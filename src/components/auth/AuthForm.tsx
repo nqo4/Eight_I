@@ -73,21 +73,42 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const isSignup = mode === "signup";
 
   const update = (field: Field) => (value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setServerError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors = validate(mode, values);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    // TODO: 인증 API가 연결되면 여기서 로그인/회원가입 요청을 보낸다
-    router.push("/demo/overview");
+    setSubmitting(true);
+    setServerError(null);
+    try {
+      const res = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isSignup ? values : { email: values.email, password: values.password }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setServerError(body?.error?.message ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch {
+      setServerError("서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -143,7 +164,18 @@ export function AuthForm({ mode }: { mode: Mode }) {
           }
         />
 
-        <PrimaryButton type="submit" label={isSignup ? "회원가입" : "로그인"} className="mt-[8px] w-full" />
+        {serverError && (
+          <p role="alert" className="text-[11px] leading-[16px] text-status-red">
+            {serverError}
+          </p>
+        )}
+
+        <PrimaryButton
+          type="submit"
+          label={isSignup ? "회원가입" : "로그인"}
+          disabled={submitting}
+          className="mt-[8px] w-full"
+        />
       </form>
 
       <div className="h-px w-full bg-line" />
