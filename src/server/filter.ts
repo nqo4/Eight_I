@@ -111,7 +111,9 @@ export function redactSecrets(content: string): { content: string; redacted: num
       return m.split("\n").map(() => "[REDACTED]").join("\n");
     });
   }
-  out = out.replace(ASSIGNMENT, (_m, head: string, q: string) => {
+  out = out.replace(ASSIGNMENT, (m, head: string, q: string, value: string) => {
+    // 'new-password' 같은 autocomplete 값이나 UPDATE_PASSWORD 같은 상수 이름은 비밀값이 아니다.
+    if (/^[a-z]+(?:-[a-z]+)+$/.test(value) || /^[A-Z][A-Z0-9_]*$/.test(value)) return m;
     redacted++;
     return `${head}${q}[REDACTED]${q}`;
   });
