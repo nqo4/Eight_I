@@ -93,13 +93,18 @@ type RepoResponse = {
   private: boolean;
   description: string | null;
 };
-type CommitResponse = { sha: string };
+type CommitResponse = {
+  sha: string;
+  commit?: { committer?: { date?: string }; author?: { date?: string } };
+};
 type TreeResponse = {
   truncated: boolean;
   tree: { path: string; type: string; size?: number }[];
 };
 
-export async function fetchRepository(input: string): Promise<{ repository: Repository; snapshot: Snapshot }> {
+// 저장소 정보와 기본 브랜치의 최신 commit·최종 수정 날짜만 확인한다(GitHub 요청 2번, 파일은 받지 않음).
+// 이 commit을 이미 분석했다면 파일을 다시 받지도, AI를 다시 부르지도 않는다.
+export async function fetchRepositoryHead(input: string): Promise<Repository> {
   const { owner, repo } = parseRepoUrl(input);
   const base = `${API}/repos/${owner}/${repo}`;
 
@@ -108,6 +113,23 @@ export async function fetchRepository(input: string): Promise<{ repository: Repo
     throw new AppError("repo_private", "비공개 저장소는 분석할 수 없어요. 공개 저장소만 지원해요.");
   }
   const commit = await getJson<CommitResponse>(`${base}/commits/${encodeURIComponent(info.default_branch)}`);
+  return {
+    id: `${info.owner.login}/${info.name}`,
+    url: info.html_url,
+    name: info.name,
+    owner: info.owner.login,
+    default_branch: info.default_branch,
+    commit_sha: commit.sha,
+    last_commit_at: commit.commit?.committer?.date ?? commit.commit?.author?.date ?? null,
+    description: info.description,
+  };
+}
+
+// 분석할 파일을 고르고 내용을 받는다(FR-02).
+export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
+  const { owner, name: repo, commit_sha } = repository;
+  const base = `${API}/repos/${owner}/${repo}`;
+  const commit = { sha: commit_sha };
   const tree = await getJson<TreeResponse>(`${base}/git/trees/${commit.sha}?recursive=1`);
 
   const blobs = tree.tree.filter((e) => e.type === "blob");
@@ -136,16 +158,7 @@ export async function fetchRepository(input: string): Promise<{ repository: Repo
     (f): f is SnapshotFile => f !== null,
   );
 
-  const repository: Repository = {
-    id: `${info.owner.login}/${info.name}`,
-    url: info.html_url,
-    name: info.name,
-    owner: info.owner.login,
-    default_branch: info.default_branch,
-    commit_sha: commit.sha,
-    description: info.description,
-  };
-  const snapshot: Snapshot = {
+  return {
     files: files.sort((a, b) => a.path.localeCompare(b.path)),
     stats: {
       total_files: blobs.length,
@@ -155,7 +168,6 @@ export async function fetchRepository(input: string): Promise<{ repository: Repo
       truncated_tree: tree.truncated,
     },
   };
-  return { repository, snapshot };
 }
 
 async function fetchRaw(owner: string, repo: string, sha: string, path: string): Promise<SnapshotFile | null> {

@@ -1,6 +1,6 @@
-// 로그인 준비용 사용자 저장(이름·아이디·비밀번호). 기획 확정 전 임시 구조라 아직 API에 연결하지 않았다.
+// 사용자(이름·아이디·비밀번호)와 로그인 세션. 아직 API에는 연결하지 않았다(로그인 화면과 함께 연결 예정).
 // 비밀번호는 scrypt로 해시해 저장하고, 원문은 어디에도 남기지 않는다.
-import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { getSql } from "./store";
 
@@ -36,6 +36,36 @@ export async function createUser(input: { name: string; username: string; passwo
     [input.name, input.username, await hashPassword(input.password)],
   );
   return rows[0];
+}
+
+const SESSION_DAYS = 7;
+
+function tokenHash(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+// 로그인 성공 시 세션을 만든다. 돌려준 token을 쿠키(httpOnly)에 담고, DB에는 해시만 둔다.
+export async function createSession(userId: string): Promise<{ token: string; expires_at: string }> {
+  const token = randomBytes(32).toString("base64url");
+  const rows = await sql()<{ expires_at: string }>(
+    `INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, now() + ($3 || ' days')::interval)
+     RETURNING expires_at`,
+    [tokenHash(token), userId, String(SESSION_DAYS)],
+  );
+  return { token, expires_at: rows[0].expires_at };
+}
+
+export async function getSessionUser(token: string): Promise<User | null> {
+  const rows = await sql()<User>(
+    `SELECT u.id::text, u.name, u.username, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id
+      WHERE s.token_hash = $1 AND s.expires_at > now()`,
+    [tokenHash(token)],
+  );
+  return rows[0] ?? null;
+}
+
+export async function deleteSession(token: string): Promise<void> {
+  await sql()(`DELETE FROM sessions WHERE token_hash = $1`, [tokenHash(token)]);
 }
 
 // 아이디·비밀번호가 맞으면 사용자, 아니면 null

@@ -30,7 +30,7 @@
 
 응답 `201`(새로 분석) 또는 `200`(같은 commit을 이미 분석해 둔 결과) `{ "analysis": Analysis, "cached": boolean }`
 
-- `analysis.repository`: 저장소 이름, 기본 브랜치, 분석 기준 commit SHA
+- `analysis.repository`: 저장소 이름, 기본 브랜치, 분석 기준 commit SHA, 최종 수정 날짜(`last_commit_at`)
 - `analysis.overview`: 한 줄 소개(`summary`), 목적, 기술 스택(`stack[].status`: `confirmed`는 package.json으로 확인됨, `unconfirmed`는 확인 불가), 주요 폴더
 - `analysis.features`: 기능 카드. 최대 5개이고 각 카드에 근거 코드가 1개 이상 있습니다.
 - `analysis.features_notice`: 기능을 못 찾았을 때만 이유 문장이 들어가고, 아니면 `null`
@@ -119,6 +119,28 @@
 | `feature_not_found` | 404 | 없는 `featureId` |
 | `demo_not_ready` | 503 | 샘플 데이터가 아직 준비되지 않았을 때 |
 | `internal_error` | 500 | 그 밖의 서버 오류 |
+
+## DB 구조
+
+표 정의는 [`src/server/schema.ts`](../src/server/schema.ts)에 있어요. 앱이 처음 DB에 연결할 때 표를 스스로 만들어요.
+
+| 표 | 저장하는 것 |
+| --- | --- |
+| `users` | 이름(`name`), 아이디(`username`, 대소문자 무관 중복 금지), 비밀번호 해시(`password_hash`, 원문 저장 안 함), 가입·수정 시각 |
+| `sessions` | 로그인 유지용 세션. 토큰의 해시, 사용자, 만료 시각(7일) |
+| `repositories` | GitHub 주소, 기본 브랜치, 마지막으로 확인한 최신 commit, **최종 수정 날짜**(`last_commit_at`), 확인한 시각 |
+| `analyses` | 저장소 + commit 하나당 분석 결과(개요·기능 카드)와 분석에 쓴 파일 내용 |
+| `analysis_artifacts` | 기능별 결과: 동작 흐름, 개념 학습(**코드 정리 내용**), 퀴즈(**문제와 정답**), 수정 미션 |
+| `user_repositories` | 사용자가 분석한 저장소 목록(처음 추가한 시각, 마지막으로 본 시각, 최신 분석 결과) |
+| `quiz_attempts` | 사용자가 고른 퀴즈 답(고른 보기, 정답 여부, 시각). 정답 여부는 서버에 저장된 퀴즈로 판정 |
+
+**같은 저장소를 다시 분석할 때 (토큰 절약)**
+
+1. GitHub에서 기본 브랜치의 최신 commit과 최종 수정 날짜만 먼저 확인해요(파일은 받지 않음).
+2. 그 commit으로 분석한 결과가 이미 있으면(= 그 사이 GitHub에 변경이 없으면) 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려줘요(`cached: true`).
+3. 변경이 있을 때만 파일을 받아 새로 분석해요. 기능별 흐름·학습·퀴즈·미션도 처음 열 때 한 번만 만들어요.
+
+로그인 API(회원가입·로그인·로그아웃, 내 저장소 목록, 퀴즈 답 저장)는 서버 함수까지 만들어 두었고(`src/server/users.ts`, `src/server/history.ts`), 로그인 화면이 정해지면 주소를 연결해요.
 
 ## 서버 설정(환경변수)
 

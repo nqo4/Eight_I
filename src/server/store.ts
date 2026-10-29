@@ -2,11 +2,14 @@
 // 같은 저장소·같은 commit을 다시 분석하면 저장된 결과를 써서 AI 비용을 아낀다.
 import { Pool } from "pg";
 import { config } from "./config";
-import type { Analysis, Snapshot } from "./types";
+import { SCHEMA } from "./schema";
+import type { Analysis, Repository, Snapshot } from "./types";
 
 export type StoredAnalysis = { analysis: Analysis; snapshot: Snapshot };
 
 export interface AnalysisStore {
+  // 저장소의 최신 commit·최종 수정 날짜를 기록한다(분석할 때마다 갱신).
+  saveRepository(repo: Repository): Promise<void>;
   saveAnalysis(entry: StoredAnalysis): Promise<void>;
   getAnalysis(id: string): Promise<StoredAnalysis | null>;
   findByCommit(repoId: string, commitSha: string): Promise<StoredAnalysis | null>;
@@ -18,7 +21,11 @@ export interface AnalysisStore {
 class MemoryStore implements AnalysisStore {
   private analyses = new Map<string, StoredAnalysis>();
   private artifacts = new Map<string, unknown>();
+  private repositories = new Map<string, Repository>();
 
+  async saveRepository(repo: Repository) {
+    this.repositories.set(repo.id.toLowerCase(), repo);
+  }
   async saveAnalysis(entry: StoredAnalysis) {
     this.analyses.set(entry.analysis.id, entry);
   }
@@ -40,33 +47,6 @@ class MemoryStore implements AnalysisStore {
   }
 }
 
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS analyses (
-  id TEXT PRIMARY KEY,
-  repo_id TEXT NOT NULL,
-  commit_sha TEXT NOT NULL,
-  analysis JSONB NOT NULL,
-  snapshot JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS analyses_repo_commit ON analyses (lower(repo_id), commit_sha);
-CREATE TABLE IF NOT EXISTS analysis_artifacts (
-  analysis_id TEXT NOT NULL REFERENCES analyses(id) ON DELETE CASCADE,
-  key TEXT NOT NULL,
-  payload JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (analysis_id, key)
-);
--- 로그인 준비용 사용자 표(기획 확정 전 임시 구조). 비밀번호 원문은 저장하지 않고 해시만 둔다.
-CREATE TABLE IF NOT EXISTS users (
-  id BIGSERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  username TEXT NOT NULL,
-  password_hash TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique ON users (lower(username));`;
-
 class PostgresStore implements AnalysisStore {
   private pool: Pool;
   private ready: Promise<void>;
@@ -83,11 +63,21 @@ class PostgresStore implements AnalysisStore {
     return res.rows as R[];
   }
 
-  async saveAnalysis({ analysis, snapshot }: StoredAnalysis) {
+  async saveRepository(repo: Repository) {
     await this.q(
-      `INSERT INTO analyses (id, repo_id, commit_sha, analysis, snapshot) VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO repositories (id, url, owner, name, default_branch, last_commit_sha, last_commit_at, checked_at)
+       VALUES (lower($1), $2, $3, $4, $5, $6, $7, now())
+       ON CONFLICT (id) DO UPDATE SET url = EXCLUDED.url, default_branch = EXCLUDED.default_branch,
+         last_commit_sha = EXCLUDED.last_commit_sha, last_commit_at = EXCLUDED.last_commit_at, checked_at = now()`,
+      [repo.id, repo.url, repo.owner, repo.name, repo.default_branch, repo.commit_sha, repo.last_commit_at],
+    );
+  }
+  async saveAnalysis({ analysis, snapshot }: StoredAnalysis) {
+    const r = analysis.repository;
+    await this.q(
+      `INSERT INTO analyses (id, repo_id, commit_sha, commit_at, analysis, snapshot) VALUES ($1, lower($2), $3, $4, $5, $6)
        ON CONFLICT (id) DO UPDATE SET analysis = EXCLUDED.analysis, snapshot = EXCLUDED.snapshot`,
-      [analysis.id, analysis.repository.id, analysis.repository.commit_sha, analysis, snapshot],
+      [analysis.id, r.id, r.commit_sha, r.last_commit_at, analysis, snapshot],
     );
   }
   async getAnalysis(id: string) {

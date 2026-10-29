@@ -1,11 +1,12 @@
 // 백엔드 기능의 본체. 웹 프레임워크와 상관없이 호출할 수 있다(Next.js 라우트는 이 함수를 부르기만 한다).
 import { randomUUID } from "node:crypto";
-import { generate } from "./ai";
+import { assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
 import { getDemo } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
-import { fetchRepository } from "./github";
+import { fetchRepositoryHead, fetchSnapshot } from "./github";
+import { linkUserRepository } from "./history";
 import {
   exerciseSchema,
   featurePrompt,
@@ -21,15 +22,29 @@ import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, Quiz, St
 export const DEMO_ID = "demo";
 
 // FR-01~04: 저장소를 읽고 개요와 기능 카드를 만든다.
-export async function analyzeRepository(url: string): Promise<{ analysis: Analysis; cached: boolean }> {
-  const { repository, snapshot } = await fetchRepository(url);
+// 최신 commit을 먼저 확인해서, 이미 분석한 commit이면(= 그 뒤로 GitHub에 변경이 없으면)
+// 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려준다.
+// userId가 있으면 그 사용자의 '내가 분석한 저장소' 목록에도 남긴다.
+export async function analyzeRepository(
+  url: string,
+  opts: { userId?: string } = {},
+): Promise<{ analysis: Analysis; cached: boolean }> {
+  const repository = await fetchRepositoryHead(url);
+  const store = getStore();
+  await store.saveRepository(repository);
+
+  const existing = await store.findByCommit(repository.id, repository.commit_sha);
+  if (existing) {
+    if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
+    return { analysis: existing.analysis, cached: true };
+  }
+
+  // 새로 분석해야 할 때만 AI 설정을 확인하고 파일을 받는다(키가 없으면 GitHub 파일 요청도 아낀다).
+  assertAiConfigured();
+  const snapshot = await fetchSnapshot(repository);
   if (snapshot.files.length === 0) {
     throw new AppError("repo_empty", "분석할 수 있는 소스 파일을 찾지 못했어요.");
   }
-
-  const store = getStore();
-  const existing = await store.findByCommit(repository.id, repository.commit_sha);
-  if (existing) return { analysis: existing.analysis, cached: true };
 
   const index = new SnapshotIndex(snapshot, repository.commit_sha);
   const confirmed = detectStack(index);
@@ -85,6 +100,7 @@ export async function analyzeRepository(url: string): Promise<{ analysis: Analys
   };
 
   await store.saveAnalysis({ analysis, snapshot });
+  if (opts.userId) await linkUserRepository(opts.userId, repository.id, analysis.id);
   return { analysis, cached: false };
 }
 

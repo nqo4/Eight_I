@@ -17,6 +17,8 @@ export type Repository = {
   owner: string;
   default_branch: string;
   commit_sha: string;
+  // 기본 브랜치 최신 commit의 시각(최종 수정 날짜). GitHub가 주지 않으면 null.
+  last_commit_at: string | null;
   description: string | null;
 };
 
