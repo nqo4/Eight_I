@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder } from "@/components/demo/ui";
-import { useFeatureResource, useSession } from "@/components/session/Session";
+import { useFeatureResource, useSession, type Progress } from "@/components/session/Session";
 import { saveQuizAttempt } from "@/lib/records";
 import type { CodeReference, Lesson, Quiz as QuizData } from "@/server/types";
 
@@ -13,6 +13,18 @@ const overlaps = (a: CodeReference, b: CodeReference) =>
 
 const keys = "ABCDEF";
 
+type QuizView = NonNullable<Progress["quizView"]>;
+
+// 한 문항의 선택·확인만 바꾼다(#2). 클릭할 때 화면에 있던 맵 전체로 덮어쓰면, 그 사이 다른 문항에서 고른 보기나
+// 확인 결과가 되돌아간다. 그래서 항상 지금(가장 최신) 상태 위에 그 문항만 합친다. pick이 null이면 선택을 지운다.
+export function mergeQuizView(view: QuizView | undefined, id: string, change: { pick?: number | null; checked?: boolean }): QuizView {
+  const picked = { ...view?.picked };
+  if (change.pick === null) delete picked[id];
+  else if (change.pick !== undefined) picked[id] = change.pick;
+  const checked = change.checked === undefined ? { ...view?.checked } : { ...view?.checked, [id]: change.checked };
+  return { picked, checked };
+}
+
 export function Quiz() {
   const router = useRouter();
   const { analysis, feature, record, progress, loadError } = useSession();
@@ -20,9 +32,9 @@ export function Quiz() {
   const lesson = useFeatureResource<{ lesson: Lesson }>("lesson");
   const picked = progress.quizView?.picked ?? {};
   const checked = progress.quizView?.checked ?? {};
-  const setQuiz = (nextPicked: Record<string, number>, nextChecked: Record<string, boolean>, extra?: (p: typeof progress) => typeof progress) =>
+  const setQuiz = (id: string, change: { pick?: number | null; checked?: boolean }, extra?: (p: typeof progress) => typeof progress) =>
     record((p) => {
-      const base = { ...p, quizView: { picked: nextPicked, checked: nextChecked } };
+      const base = { ...p, quizView: mergeQuizView(p.quizView, id, change) };
       return extra ? extra(base) : base;
     });
   const relatedConcept = (refs: CodeReference[]) => {
@@ -43,15 +55,17 @@ export function Quiz() {
         const done = checked[item.id];
         const correct = picked[item.id] === item.answer_index;
         const check = () => {
-          const nextChecked = { ...checked, [item.id]: true };
+          // 제출한 문항과 그때 고른 답을 고정해 두고, 반영은 최신 상태에 이 문항만 합친다.
+          const answer = picked[item.id];
           // 문항별 첫 시도만 내 학습 기록(서버)에 남긴다. 화면의 정답 표시와 같은 기준이다.
           if (!(item.id in progress.quiz) && analysis && feature) {
-            saveQuizAttempt(analysis.id, feature.id, item.id, picked[item.id]);
+            saveQuizAttempt(analysis.id, feature.id, item.id, answer);
           }
-          setQuiz(picked, nextChecked, (p) => ({
+          setQuiz(item.id, { pick: answer, checked: true }, (p) => ({
             ...p,
-            quiz: item.id in p.quiz ? p.quiz : { ...p.quiz, [item.id]: picked[item.id] === item.answer_index },
-            steps: q.questions.every((x) => nextChecked[x.id]) ? { ...p.steps, quiz: true } : p.steps,
+            quiz: item.id in p.quiz ? p.quiz : { ...p.quiz, [item.id]: answer === item.answer_index },
+            // 완료 여부는 합친 뒤의 최신 확인 상태로 판단한다.
+            steps: q.questions.every((x) => p.quizView?.checked[x.id]) ? { ...p.steps, quiz: true } : p.steps,
           }));
         };
         const related = done && !correct ? relatedConcept(item.references) : null;
@@ -83,7 +97,7 @@ export function Quiz() {
                       name={item.id}
                       disabled={done}
                       checked={active}
-                      onChange={() => setQuiz({ ...picked, [item.id]: ci }, checked)}
+                      onChange={() => setQuiz(item.id, { pick: ci })}
                       className="size-5 shrink-0 accent-brand-purple"
                     />
                     <span
@@ -124,11 +138,7 @@ export function Quiz() {
                       <button
                         type="button"
                         className={secondaryBtn}
-                        onClick={() => {
-                          const nextPicked = { ...picked };
-                          delete nextPicked[item.id];
-                          setQuiz(nextPicked, { ...checked, [item.id]: false });
-                        }}
+                        onClick={() => setQuiz(item.id, { pick: null, checked: false })}
                       >
                         다시 풀기
                       </button>
