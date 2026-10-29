@@ -86,6 +86,9 @@ export default function ConceptPage() {
                 ))}
               </ul>
             </section>
+            <div className="flex justify-end">
+              <PrimaryButton label="이해했어요, 확인해 볼게요" onClick={() => router.push("/demo/quiz")} />
+            </div>
           </div>
 
           <aside className="sticky top-6 flex flex-col gap-3 rounded-12 border border-line bg-surface px-5 py-6">
@@ -100,7 +103,9 @@ export default function ConceptPage() {
                 <span className="text-sm font-bold text-text-primary">{c.name}</span>
               </a>
             ))}
-            <PrimaryButton label="이해했어요, 확인해 볼게요" className="mt-2" onClick={() => router.push("/demo/quiz")} />
+            <button type="button" className={`${secondaryBtn} mt-2`} onClick={() => router.push("/demo/quiz")}>
+              연습 문제로 바로 가기
+            </button>
           </aside>
         </div>
       )}

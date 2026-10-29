@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FeatureCard } from "@/components/FeatureCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
@@ -14,6 +14,11 @@ export default function OverviewPage() {
   const router = useRouter();
   const { analysis, feature, selectFeature, ensure, loadError } = useSession();
   const detailRef = useRef<HTMLElement>(null);
+  const [picked, setPicked] = useState(0);
+
+  useEffect(() => {
+    if (picked) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [picked]);
 
   useEffect(() => {
     if (!analysis) ensure();
@@ -105,7 +110,7 @@ export default function OverviewPage() {
             selected={feature?.id === f.id}
             onSelect={() => {
               selectFeature(f);
-              requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              setPicked((n) => n + 1);
             }}
           />
         ))}
@@ -132,8 +137,12 @@ export default function OverviewPage() {
               ))}
             </ul>
           </div>
-          <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+          <div className="flex flex-col items-start gap-1.5 border-t border-line pt-4">
             <PrimaryButton label="이 기능 어떻게 동작해?" onClick={() => router.push("/demo/flow")} />
+            <p className="text-sm text-text-muted">처음이라면 여기서 시작하세요. 왼쪽 순서대로 진행돼요.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
+            <span>바로 가기:</span>
             <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/concept")}>
               이 코드 배우기
             </button>
@@ -144,7 +153,6 @@ export default function OverviewPage() {
               이제 네가 직접 바꿔봐
             </button>
           </div>
-          <p className="text-sm text-text-muted">처음이라면 왼쪽 순서대로 ‘동작 흐름’부터 보는 걸 추천해요.</p>
         </section>
       )}
     </>
