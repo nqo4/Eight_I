@@ -46,6 +46,5 @@ export async function verifyLogin(username: string, password: string): Promise<U
   );
   const row = rows[0];
   if (!row || !(await verifyPassword(password, row.password_hash))) return null;
-  const { password_hash: _hash, ...user } = row;
-  return user;
+  return { id: row.id, name: row.name, username: row.username, created_at: row.created_at };
 }
