@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* CodeBack design tokens (Figma: CodeBack — Frontend Mockup) */
+:root {
+  --paper: #fbfaf7;
+  --surface: #ffffff;
+  --line: #e7e6eb;
+  --text-primary: #161724;
+  --text-muted: #737584;
+  --brand-purple: #7157df;
+  --brand-purple-soft: #f0ecff;
+  --accent-lime: #cdea58;
+  --status-green: #2ba77a;
+  --ink: #060216;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-purple-soft: var(--brand-purple-soft);
+  --color-accent-lime: var(--accent-lime);
+  --color-status-green: var(--status-green);
+  --color-ink: var(--ink);
+
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+
+  --font-sans: var(--font-noto-sans-kr);
+  --font-manrope: var(--font-manrope), var(--font-noto-sans-kr);
+  --font-mono: var(--font-dm-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--text-primary);
+}

@@ -2,7 +2,7 @@
 // 실행: AI_GATEWAY_API_KEY가 설정된 상태에서  npm run demo:build -- https://github.com/owner/repo
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { demoPath, type DemoData } from "../server/demo";
+import { demoPath, type DemoData } from "../src/server/demo";
 import {
   analyzeRepository,
   DEMO_ID,
@@ -10,8 +10,8 @@ import {
   getFlow,
   getLesson,
   getQuiz,
-} from "../server/service";
-import { getStore } from "../server/store";
+} from "../src/server/service";
+import { getStore } from "../src/server/store";
 
 async function main() {
   const url = process.argv[2];

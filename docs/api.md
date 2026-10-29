@@ -1,6 +1,6 @@
 # CodeBack 백엔드 API
 
-프런트엔드가 목업 데이터를 만들 때 기준으로 쓰는 문서입니다. 응답 모양의 정확한 정의는 [`server/types.ts`](../server/types.ts)에 있습니다(이 파일을 프런트에 그대로 복사해 타입으로 써도 됩니다).
+프런트엔드가 목업 데이터를 만들 때 기준으로 쓰는 문서입니다. 응답 모양의 정확한 정의는 [`src/server/types.ts`](../src/server/types.ts)에 있습니다(이 파일을 프런트에 그대로 복사해 타입으로 써도 됩니다).
 
 - 모든 응답은 JSON이고 `Cache-Control: no-store`입니다.
 - 로그인은 없습니다.
@@ -135,7 +135,7 @@
 ## 구조 (Next.js 의존 최소화)
 
 ```
-server/        ← 백엔드 본체. Next.js를 import하지 않는다(다른 서버로 옮길 때 그대로 사용)
+src/server/    ← 백엔드 본체. Next.js를 import하지 않는다(다른 서버로 옮길 때 그대로 사용)
   service.ts   기능 함수(analyzeRepository, getFlow, getLesson, getQuiz, getExercise …)
   github.ts    공개 저장소 읽기(FR-01)
   filter.ts    제외·민감 파일 거르기, 비밀값 가리기(FR-02)
@@ -145,8 +145,8 @@ server/        ← 백엔드 본체. Next.js를 import하지 않는다(다른 �
   store.ts     Postgres / 메모리 저장소
   demo.ts      샘플 데이터(data/demo/demo.json) 읽기
   http.ts      웹 표준 Request/Response 도우미
-app/api/**     Next.js 라우트. server/의 함수를 부르기만 한다
+src/app/api/** Next.js 라우트. server/의 함수를 부르기만 한다
 scripts/build-demo.ts  실제 샘플 저장소를 분석해 data/demo/demo.json 생성
 ```
 
-다른 프레임워크(Express, Hono 등)로 옮길 때는 `app/api/**`의 라우트만 새로 쓰고 `server/`는 그대로 씁니다.
+다른 프레임워크(Express, Hono 등)로 옮길 때는 `src/app/api/**`의 라우트만 새로 쓰고 `src/server/`는 그대로 씁니다.
