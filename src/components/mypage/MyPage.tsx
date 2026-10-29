@@ -39,7 +39,7 @@ function missionLabel(f: LearningRecord["features"][number]) {
 }
 
 function RecordCard({ record }: { record: LearningRecord }) {
-  const { setAnalysis } = useSession();
+  const { setAnalysis, isCurrent } = useSession();
   const router = useRouter();
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +50,11 @@ function RecordCard({ record }: { record: LearningRecord }) {
     setError(null);
     try {
       const { analysis } = await api<{ analysis: Analysis }>(`/api/analyses/${encodeURIComponent(record.analysis_id)}`);
+      if (!isCurrent()) return;
       setAnalysis(analysis);
       router.push("/demo/overview");
     } catch (e) {
+      if (!isCurrent()) return;
       setError((e as ApiError).message ?? "분석 결과를 불러오지 못했어요.");
       setOpening(false);
     }
@@ -203,7 +205,7 @@ export function MyPage() {
       <Header />
       <main className="flex w-full flex-col items-start gap-6 px-4 py-8 sm:gap-8 sm:px-8 xl:px-[72px] xl:py-12">
         {user === undefined ? null : user ? (
-          <SignedIn user={user} />
+          <SignedIn key={user.email} user={user} />
         ) : (
           <section className="flex w-full max-w-[560px] flex-col items-start gap-4 rounded-12 border border-line bg-surface px-5 py-6 sm:px-8 sm:py-8">
             <span className="font-manrope text-sm font-bold text-brand-purple-ink">MY LEARNING</span>

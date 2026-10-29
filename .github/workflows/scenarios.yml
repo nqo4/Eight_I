@@ -4,7 +4,7 @@
 # AI 기능을 쓰면 학생이 GitHub 저장소 Settings → Secrets and variables → Actions에 AI_GATEWAY_API_KEY를 직접 넣는다(Agent는 키를 다루지 않는다).
 # 실제 AI 호출이 팀 예산에서 쓰이므로 기본 브랜치 push와 수동 실행(Actions 탭 → Run workflow)에서만 돈다.
 # dev 브랜치 push에서는 돌지 않는다($10 예산 보호). dev의 docker 기동 확인은 checks.yml의 api-smoke(AI 키 없음)가 한다.
-# spec이 하나도 없으면 E2E 단계는 비어 있는 채로 통과하니(--pass-with-no-tests), spec을 넣은 뒤의 결과를 본다.
+# docs/scenarios.yaml의 흐름 수(S1~S8, 8개)와 찾은 spec 수가 다르면 실패한다. spec이 없을 때 통과하지 않게 --pass-with-no-tests는 쓰지 않는다.
 name: scenarios
 
 on:
@@ -52,7 +52,11 @@ jobs:
         run: |
           npm install
           npx playwright install --with-deps chromium
-          npx playwright test --pass-with-no-tests --forbid-only
+          expected="$(grep -cE '^  - id: S[0-9]+' ../docs/scenarios.yaml)"
+          found="$(npx playwright test --list | grep -cE ' S[0-9]+\.spec\.ts:[0-9]+')"
+          echo "scenarios.yaml 흐름 $expected개, 찾은 spec $found개"
+          test "$expected" -gt 0 && test "$found" = "$expected"
+          npx playwright test --forbid-only
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7

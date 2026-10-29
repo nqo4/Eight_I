@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { invalidateUser, refreshUser } from "@/lib/auth";
 
 // FR-10 회원가입·로그인 화면. 입력란마다 이유를 보여 주고, 계정·세션은 서버(src/server/auth.ts)가 만든다.
 type Mode = "login" | "signup";
@@ -103,6 +104,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setServerError(body?.error?.message ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
+      invalidateUser();
+      await refreshUser();
       router.push("/");
       router.refresh();
     } catch {

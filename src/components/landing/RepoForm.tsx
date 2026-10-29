@@ -12,7 +12,7 @@ import type { Analysis } from "@/server/types";
 // 홈의 시작 방법: 로그인한 사용자가 공개 GitHub 저장소를 분석한다(FR-01·FR-10).
 export function RepoForm() {
   const router = useRouter();
-  const { setAnalysis } = useSession();
+  const { setAnalysis, isCurrent } = useSession();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,9 +32,11 @@ export function RepoForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
       });
+      if (!isCurrent()) return;
       setAnalysis(analysis);
       router.push("/demo/overview");
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e as ApiError);
       setBusy(false);
     }

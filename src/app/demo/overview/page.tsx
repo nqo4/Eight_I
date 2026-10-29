@@ -201,7 +201,7 @@ export default function OverviewPage() {
                       <span className="font-mono text-sm font-bold break-all text-brand-purple-ink">{refLabel(l.reference)}</span>
                       <span className="rounded-8 bg-brand-purple-soft px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{locateTag[l.layer]}</span>
                     </div>
-                    <p className="text-sm leading-6 text-pretty">{l.reason}</p>
+                    <p data-testid="locate-reason" className="text-sm leading-6 text-pretty">{l.reason}</p>
                     {l.excerpt && (
                       // 원래 코드만 보여 주고, 바꿔야 하는 줄만 하이라이트한다(고친 코드는 보여 주지 않음).
                       <pre data-testid="code-excerpt" className="mt-1 overflow-x-auto rounded-8 bg-text-primary py-3 font-mono text-xs leading-6 text-surface">
