@@ -11,6 +11,7 @@
   --brand-purple-soft: #f0ecff;
   --accent-lime: #cdea58;
   --status-green: #2ba77a;
+  --status-red: #e5484d;
   --ink: #060216;
 }
 
@@ -24,6 +25,7 @@
   --color-brand-purple-soft: var(--brand-purple-soft);
   --color-accent-lime: var(--accent-lime);
   --color-status-green: var(--status-green);
+  --color-status-red: var(--status-red);
   --color-ink: var(--ink);
 
   --radius-8: 8px;

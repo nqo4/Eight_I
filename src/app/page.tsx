@@ -13,17 +13,11 @@ export default function Home() {
           <Link href="/demo/overview" className="text-[11px] leading-[18px] text-brand-purple hover:underline">
             {`데모 둘러보기  →`}
           </Link>
+          <Link href="/login" className="text-[11px] leading-[18px] text-text-primary hover:underline">
+            로그인
+          </Link>
         </div>
       </header>
-
-      <div className="flex h-[138px] w-full shrink-0 items-center justify-between bg-surface px-[72px] whitespace-pre">
-        <Link href="/demo/overview" className="text-[12px] leading-[18px] font-bold text-brand-purple hover:underline">
-          {`▶  준비된 샘플로 3분 만에 체험하기  →`}
-        </Link>
-        <p className="text-[9px] leading-[15px] font-medium text-text-muted">
-          {`1 기능 이해  ─  2 코드 근거  ─  3 개념 학습  ─  4 직접 수정`}
-        </p>
-      </div>
 
       <section className="flex h-[810px] w-full shrink-0 items-start gap-[54px] px-[72px] pt-[95px]">
         <div className="flex h-[640px] w-[620px] shrink-0 flex-col items-start gap-[20px]">
