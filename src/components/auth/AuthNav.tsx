@@ -7,7 +7,7 @@ import { logOut, useCurrentUser } from "@/lib/auth";
 const linkClass =
   "rounded-8 text-sm font-bold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple";
 
-// 헤더 오른쪽 계정 메뉴. 로그인 전에는 '로그인', 로그인 후에는 이름·'마이페이지'·'로그아웃'을 보여 준다.
+// 헤더 오른쪽 계정 메뉴. 로그인 전에는 '로그인', 로그인 후에는 이름·'내 학습 기록'·'로그아웃'을 보여 준다.
 export function AuthNav() {
   const user = useCurrentUser();
   const router = useRouter();
@@ -29,7 +29,7 @@ export function AuthNav() {
         <span className="font-bold text-text-primary">{user.name}</span>님
       </span>
       <Link href="/mypage" className={`${linkClass} text-brand-purple-ink`}>
-        마이페이지
+        내 학습 기록
       </Link>
       <button
         type="button"

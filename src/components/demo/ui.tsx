@@ -1,9 +1,23 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
-import type { CodeReference } from "@/server/types";
+import type { CodeReference, Overview } from "@/server/types";
 import type { ApiError } from "@/components/session/Session";
 
 export const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple";
 export const secondaryBtn = `inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-8 border border-line bg-surface px-4 py-2 text-sm font-bold text-text-primary transition-colors hover:border-brand-purple disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
+
+// FR-04 '사용한 기술'. 예전 분석(technologies 없음)은 설정 파일로 확인한 stack으로 보여 준다.
+export type TechView = { name: string; role: string | null; concept: string | null; references: CodeReference[] };
+
+export function techViews(o: Overview): TechView[] {
+  if (o.technologies && o.technologies.length > 0) return o.technologies;
+  return o.stack.map((s) => ({
+    name: s.name,
+    role: s.note,
+    concept: null,
+    references: s.status === "confirmed" && s.evidence ? [s.evidence] : [],
+  }));
+}
 
 export function refLabel(r: CodeReference) {
   return `${r.path} (${r.start_line}–${r.end_line}행)`;
@@ -50,21 +64,21 @@ export function Loading({ slow }: { slow?: boolean }) {
   );
 }
 
-export function ErrorBox({ error, onRetry, onDemo }: { error: ApiError; onRetry?: () => void; onDemo?: () => void }) {
+export function ErrorBox({ error, onRetry, home }: { error: ApiError; onRetry?: () => void; home?: boolean }) {
   return (
     <div role="alert" className="flex w-full flex-col gap-3 rounded-12 bg-status-red-soft p-4 text-status-red">
       <p className="font-bold">{error.message}</p>
-      {((error.retryable && onRetry) || onDemo) && (
+      {((error.retryable && onRetry) || home) && (
         <div className="flex flex-wrap gap-2">
           {error.retryable && onRetry && (
             <button type="button" className={secondaryBtn} onClick={onRetry}>
               다시 시도
             </button>
           )}
-          {onDemo && (
-            <button type="button" className={secondaryBtn} onClick={onDemo}>
-              샘플로 체험하기
-            </button>
+          {home && (
+            <Link href="/" className={secondaryBtn}>
+              홈으로
+            </Link>
           )}
         </div>
       )}

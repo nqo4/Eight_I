@@ -62,8 +62,7 @@ export async function recordQuizAttempt(input: {
   }
   const is_correct = input.chosenIndex === q.answer_index;
   const sql = getSql();
-  // 데모(analysisId "demo")는 DB의 분석 결과가 아니라서 기록하지 않는다.
-  if (!sql || !input.userId || input.analysisId === "demo") return { is_correct, answer_index: q.answer_index, saved: false };
+  if (!sql || !input.userId) return { is_correct, answer_index: q.answer_index, saved: false };
   await sql(
     `INSERT INTO quiz_attempts (user_id, analysis_id, feature_id, question_id, chosen_index, is_correct)
      VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -77,7 +76,108 @@ export async function listQuizAttempts(userId: string, analysisId: string, featu
   if (!sql) return [];
   return sql<QuizAttempt>(
     `SELECT question_id, chosen_index, is_correct, created_at FROM quiz_attempts
-      WHERE user_id = $1 AND analysis_id = $2 AND feature_id = $3 ORDER BY created_at`,
+      WHERE user_id = $1 AND analysis_id = $2 AND feature_id = $3 AND kind = 'quiz' ORDER BY created_at`,
     [userId, analysisId, featureId],
   );
+}
+
+// 수정 미션 '완료로 표시'(자기 보고). 같은 기능을 다시 눌러도 한 번만 남긴다.
+export async function recordMissionDone(input: { userId: string | null; analysisId: string; featureId: string }): Promise<{ saved: boolean }> {
+  const sql = getSql();
+  if (!sql || !input.userId) return { saved: false };
+  await sql(
+    `INSERT INTO mission_completions (user_id, analysis_id, feature_id) VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, analysis_id, feature_id) DO NOTHING`,
+    [input.userId, input.analysisId, input.featureId],
+  );
+  return { saved: true };
+}
+
+export type FeatureRecord = {
+  id: string;
+  title: string;
+  quiz_correct: number;
+  quiz_total: number;
+  mission_done: boolean;
+};
+
+export type LearningRecord = {
+  repo_id: string;
+  url: string;
+  analysis_id: string;
+  commit_sha: string;
+  analyzed_at: string;
+  last_viewed_at: string;
+  quiz_correct: number;
+  quiz_total: number;
+  missions_done: number;
+  features: FeatureRecord[];
+};
+
+// 내 학습 기록(FR-13): 내가 분석한 저장소마다 분석 날짜·commit, 기능별 퀴즈 결과(문항별 첫 시도)와 미션 완료 여부.
+export async function listLearningRecords(userId: string): Promise<LearningRecord[]> {
+  const sql = getSql();
+  if (!sql) return [];
+  const [repos, attempts, missions] = await Promise.all([
+    sql<Omit<LearningRecord, "quiz_correct" | "quiz_total" | "missions_done" | "features"> & { features: { id: string; title: string }[] }>(
+      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, ur.last_viewed_at AS analyzed_at, ur.last_viewed_at,
+              COALESCE((SELECT json_agg(json_build_object('id', f->>'id', 'title', f->>'title'))
+                          FROM jsonb_array_elements(a.analysis->'features') f), '[]'::json) AS features
+         FROM user_repositories ur
+         JOIN repositories r ON r.id = ur.repo_id
+         JOIN analyses a ON a.id = ur.analysis_id
+        WHERE ur.user_id = $1
+        ORDER BY ur.last_viewed_at DESC`,
+      [userId],
+    ),
+    sql<{ analysis_id: string; feature_id: string; is_correct: boolean }>(
+      `SELECT DISTINCT ON (analysis_id, feature_id, question_id) analysis_id, feature_id, is_correct
+         FROM quiz_attempts WHERE user_id = $1 AND kind = 'quiz'
+        ORDER BY analysis_id, feature_id, question_id, created_at`,
+      [userId],
+    ),
+    sql<{ analysis_id: string; feature_id: string }>(
+      `SELECT analysis_id, feature_id FROM mission_completions WHERE user_id = $1`,
+      [userId],
+    ),
+  ]);
+  const key = (a: string, f: string) => `${a}\u0000${f}`;
+  const done = new Set(missions.map((m) => key(m.analysis_id, m.feature_id)));
+  return repos.map((r) => {
+    const features = r.features.map((f) => {
+      const mine = attempts.filter((t) => t.analysis_id === r.analysis_id && t.feature_id === f.id);
+      return {
+        id: f.id,
+        title: f.title,
+        quiz_correct: mine.filter((t) => t.is_correct).length,
+        quiz_total: mine.length,
+        mission_done: done.has(key(r.analysis_id, f.id)),
+      };
+    });
+    return {
+      ...r,
+      quiz_correct: features.reduce((n, f) => n + f.quiz_correct, 0),
+      quiz_total: features.reduce((n, f) => n + f.quiz_total, 0),
+      missions_done: features.filter((f) => f.mission_done).length,
+      features,
+    };
+  });
+}
+
+// FR-08(개정): 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
+export async function recordMissionScore(input: {
+  userId: string;
+  analysisId: string;
+  featureId: string;
+  score: number;
+  passed: boolean;
+}): Promise<{ saved: boolean }> {
+  const sql = getSql();
+  if (!sql) return { saved: false };
+  await sql(
+    `INSERT INTO quiz_attempts (user_id, analysis_id, feature_id, question_id, chosen_index, is_correct, kind, score)
+     VALUES ($1, $2, $3, 'mission', NULL, $4, 'mission', $5)`,
+    [input.userId, input.analysisId, input.featureId, input.passed, input.score],
+  );
+  return { saved: true };
 }

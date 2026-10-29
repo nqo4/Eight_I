@@ -12,7 +12,6 @@ type Params = { analysisId: string; featureId?: string };
 export function LearnHeader() {
   const { analysisId } = useParams<Params>();
   const { data } = useLoad(`analysis:${analysisId}`, () => getAnalysis(analysisId));
-  const demo = analysisId === "demo";
   return (
     <header className="flex h-[76px] w-full shrink-0 items-center justify-between border-b border-line bg-surface px-[36px]">
       <Brand />
@@ -20,7 +19,7 @@ export function LearnHeader() {
         <span className="text-[11px] leading-[18px] text-text-primary">
           {`현재 프로젝트  ·  ${data ? data.repository.id : "불러오는 중"}`}
         </span>
-        <span className="text-[10px] leading-[16px] text-status-green">{demo ? "●  데모 모드" : "●  실제 저장소 분석"}</span>
+        <span className="text-[10px] leading-[16px] text-status-green">●  실제 저장소 분석</span>
         <span aria-hidden className="h-5 w-px bg-line" />
         <AuthNav />
       </div>

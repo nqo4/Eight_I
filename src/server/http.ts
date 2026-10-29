@@ -24,7 +24,8 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
   }
 }
 
-const MAX_BODY = 4_000;
+// 수정 미션 채점에서 코드 조각(최대 8,000자)을 받으므로 여유를 둔다.
+const MAX_BODY = 12_000;
 
 export async function readJson<T>(req: Request): Promise<T> {
   const text = await req.text();

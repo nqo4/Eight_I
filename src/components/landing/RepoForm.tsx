@@ -9,46 +9,59 @@ import { api, useSession, type ApiError } from "@/components/session/Session";
 import { useCurrentUser } from "@/lib/auth";
 import type { Analysis } from "@/server/types";
 
-// 홈의 두 시작 방법: 내 공개 저장소 분석(S1) 또는 샘플로 체험하기(S2~S7).
+// 홈의 시작 방법: 로그인한 사용자가 공개 GitHub 저장소를 분석하거나(FR-01·FR-10),
+// 로그인 없이 '샘플로 체험하기'로 미리 분석해 둔 공개 샘플을 본다.
 export function RepoForm() {
   const router = useRouter();
   const { setAnalysis } = useSession();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState<"demo" | "analyze" | null>(null);
-  const [error, setError] = useState<{ error: ApiError; from: "demo" | "analyze" } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // 내 저장소 분석은 로그인 후에만 열린다. 샘플로 체험하기는 로그인 없이 쓸 수 있다.
+  // 내 저장소 분석은 로그인 후에만 열린다(FR-10).
   const user = useCurrentUser();
   const [needLogin, setNeedLogin] = useState(false);
   const closeLogin = useCallback(() => setNeedLogin(false), []);
 
-  async function start(from: "demo" | "analyze") {
-    setBusy(from);
+  // 샘플 체험 중임을 알리는 쿠키. 학습 화면 이동만 허용하고, 볼 수 있는 데이터는 샘플뿐이다(src/proxy.ts).
+  async function startDemo() {
+    setBusy(true);
     setError(null);
     try {
-      const { analysis } =
-        from === "demo"
-          ? await api<{ analysis: Analysis }>("/api/demo")
-          : await api<{ analysis: Analysis }>("/api/repositories/analyze", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ url: url.trim() }),
-            });
+      document.cookie = "codeback_demo=1; Path=/; Max-Age=86400; SameSite=Lax";
+      const { analysis } = await api<{ analysis: Analysis }>("/api/demo");
       setAnalysis(analysis);
       router.push("/demo/overview");
     } catch (e) {
-      setError({ error: e as ApiError, from });
-      setBusy(null);
+      setError(e as ApiError);
+      setBusy(false);
+    }
+  }
+
+  async function analyze() {
+    setBusy(true);
+    setError(null);
+    try {
+      const { analysis } = await api<{ analysis: Analysis }>("/api/repositories/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      setAnalysis(analysis);
+      router.push("/demo/overview");
+    } catch (e) {
+      setError(e as ApiError);
+      setBusy(false);
     }
   }
 
   return (
-    <div className="flex w-full max-w-[600px] flex-col items-start gap-4">
+    <div className="flex w-full max-w-[620px] flex-col items-start gap-4">
       {!open ? (
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton
-            label="내 프로젝트 분석하기"
+            label="GitHub 프로젝트 분석하기"
             onClick={() => {
               if (!user) {
                 setNeedLogin(true);
@@ -58,10 +71,10 @@ export function RepoForm() {
               requestAnimationFrame(() => inputRef.current?.focus());
             }}
           />
-          <button type="button" className={secondaryBtn} disabled={busy !== null} onClick={() => start("demo")}>
+          <button type="button" className={secondaryBtn} disabled={busy} onClick={startDemo}>
             샘플로 체험하기
           </button>
-          <span className="text-sm text-text-muted">GitHub 없이 준비된 샘플로 바로 해 봐요</span>
+          <span className="text-sm text-text-muted">로그인 없이 준비된 샘플로 바로 해 봐요</span>
         </div>
       ) : (
         <form
@@ -72,7 +85,7 @@ export function RepoForm() {
               setNeedLogin(true);
               return;
             }
-            start("analyze");
+            analyze();
           }}
         >
           <label htmlFor="repo-url" className="text-sm font-bold text-text-primary">
@@ -91,25 +104,16 @@ export function RepoForm() {
               placeholder="https://github.com/owner/repository"
               className="min-w-0 flex-1 bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-muted"
             />
-            <PrimaryButton type="submit" label="분석 시작" tone="ink" disabled={busy !== null || url.trim() === ""} />
+            <PrimaryButton type="submit" label="분석 시작" tone="ink" disabled={busy || url.trim() === ""} />
           </div>
           <p className="text-sm text-text-muted">
             ✓ 공개 저장소만 지원해요 · ◇ 코드를 실행하거나 수정하지 않아요 · 코드 일부가 AI 모델로 전송돼요(.env 같은 비밀 파일은 빼요)
           </p>
-          <button type="button" className={secondaryBtn} disabled={busy !== null} onClick={() => start("demo")}>
-            샘플로 체험하기
-          </button>
         </form>
       )}
-      {needLogin && !user && <LoginRequired feature="내 프로젝트 분석" onClose={closeLogin} />}
-      {busy && <Loading slow={busy === "analyze"} />}
-      {error && (
-        <ErrorBox
-          error={error.error}
-          onRetry={() => start(error.from)}
-          onDemo={error.from === "analyze" ? () => start("demo") : undefined}
-        />
-      )}
+      {needLogin && !user && <LoginRequired feature="GitHub 프로젝트 분석" onClose={closeLogin} />}
+      {busy && <Loading slow />}
+      {error && <ErrorBox error={error} onRetry={analyze} />}
     </div>
   );
 }

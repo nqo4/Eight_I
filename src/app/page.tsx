@@ -1,7 +1,7 @@
 import { Brand } from "@/components/Brand";
 import { AuthNav } from "@/components/auth/AuthNav";
+import { QuizShowcase } from "@/components/landing/QuizShowcase";
 import { RepoForm } from "@/components/landing/RepoForm";
-import { learningSteps } from "@/lib/demo";
 
 export default function Home() {
   return (
@@ -13,7 +13,7 @@ export default function Home() {
 
       <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-4 bg-surface px-[72px] py-8">
         <p className="text-sm font-bold text-brand-purple-ink">AI로 만든 내 프로젝트, 기능 하나부터 직접 설명할 수 있게</p>
-        <p className="text-sm font-medium text-text-muted">1 기능 이해 ─ 2 코드 근거 ─ 3 개념 학습 ─ 4 직접 수정</p>
+        <p className="text-sm font-medium text-text-muted">기능 이해 · 코드 근거 · 개념 학습 · 직접 수정</p>
       </div>
 
       <section className="flex w-full items-start gap-[54px] px-[72px] pt-20 pb-24">
@@ -36,23 +36,7 @@ export default function Home() {
           <RepoForm />
         </div>
 
-        <div className="mt-10 flex w-[480px] shrink-0 flex-col items-start gap-4 rounded-16 bg-text-primary p-7 text-surface">
-          <div className="flex w-full items-center justify-between gap-4">
-            <span className="font-mono text-sm text-surface/70">학습 순서</span>
-            <span className="text-sm font-bold text-accent-lime">● 실제 파일과 행 번호로 진행</span>
-          </div>
-          <ol className="flex w-full flex-col divide-y divide-surface/10">
-            {learningSteps.slice(1).map((step) => (
-              <li key={step.href} className="flex items-start gap-4 py-3.5">
-                <span className="font-mono text-sm text-accent-lime">{step.number}</span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="font-bold">{step.title}</span>
-                  <span className="text-sm text-surface/70">{step.caption}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
+        <QuizShowcase />
       </section>
     </div>
   );

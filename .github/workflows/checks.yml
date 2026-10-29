@@ -38,10 +38,18 @@ jobs:
           set -e
           status="$(curl -fsS http://localhost:3000/api/status)"; echo "$status"
           echo "$status" | jq -e '.store == "postgres"'
+          # 로그인하지 않으면 분석 API는 401(FR-10)
           code="$(curl -s -o body.json -w '%{http_code}' -X POST http://localhost:3000/api/repositories/analyze \
             -H 'content-type: application/json' -d '{"url":"https://gitlab.com/a/b"}')"
+          cat body.json; test "$code" = 401; jq -e '.error.code == "login_required"' body.json
+          # 시드 계정으로 로그인한 뒤 오류 응답 확인
+          config="$(docker compose config --format json)"
+          login="$(echo "$config" | jq -c '{email: .services.app.environment.SEED_USER_EMAIL, password: .services.app.environment.SEED_USER_PASSWORD}')"
+          curl -fsS -c jar.txt -X POST http://localhost:3000/api/auth/login -H 'content-type: application/json' -d "$login" > /dev/null
+          code="$(curl -s -b jar.txt -o body.json -w '%{http_code}' -X POST http://localhost:3000/api/repositories/analyze \
+            -H 'content-type: application/json' -d '{"url":"https://gitlab.com/a/b"}')"
           cat body.json; test "$code" = 400; jq -e '.error.code == "invalid_url"' body.json
-          code="$(curl -s -o body.json -w '%{http_code}' http://localhost:3000/api/analyses/nope)"
+          code="$(curl -s -b jar.txt -o body.json -w '%{http_code}' http://localhost:3000/api/analyses/nope)"
           cat body.json; test "$code" = 404; jq -e '.error.code == "analysis_not_found"' body.json
       - if: always()
         run: |

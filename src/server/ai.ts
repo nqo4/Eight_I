@@ -37,7 +37,7 @@ export function assertAiConfigured() {
   if (!aiConfigured()) {
     throw new AppError(
       "ai_not_configured",
-      "AI 분석 기능이 아직 설정되지 않았어요. 지금은 '샘플로 체험하기'를 이용해 주세요.",
+      "AI 분석 기능이 아직 설정되지 않았어요. 관리자에게 문의해 주세요.",
     );
   }
 }

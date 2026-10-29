@@ -49,7 +49,7 @@ export async function renderLearningNote({ analysis: a, lessons }: NoteInput): P
   const bullet = (t: string) => doc.font("regular").fontSize(10).fillColor("#1b1530").text(`•  ${t}`, { indent: 6, lineGap: 2 });
 
   h1(`${r.name} 학습 노트`);
-  muted(a.mode === "demo" ? "데모 모드 샘플 프로젝트" : "CodeBack 분석 결과");
+  muted("CodeBack 분석 결과");
   doc.moveDown(0.5);
   body(`저장소: ${r.url}`);
   body(`기본 브랜치: ${r.default_branch}`);

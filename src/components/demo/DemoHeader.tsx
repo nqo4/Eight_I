@@ -13,12 +13,6 @@ export function DemoHeader() {
         {analysis && (
           <div className="flex items-center gap-4 text-sm font-bold">
             <span className="text-text-primary">현재 프로젝트 · {analysis.repository.id}</span>
-            {analysis.mode === "demo" && (
-              <span className="flex items-center gap-1.5 text-status-green-ink">
-                <span aria-hidden="true">●</span>
-                <span>데모 모드</span>
-              </span>
-            )}
           </div>
         )}
         <span aria-hidden className="h-5 w-px bg-line" />
