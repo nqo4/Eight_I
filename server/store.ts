@@ -56,7 +56,16 @@ CREATE TABLE IF NOT EXISTS analysis_artifacts (
   payload JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (analysis_id, key)
-);`;
+);
+-- 로그인 준비용 사용자 표(기획 확정 전 임시 구조). 비밀번호 원문은 저장하지 않고 해시만 둔다.
+CREATE TABLE IF NOT EXISTS users (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  username TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique ON users (lower(username));`;
 
 class PostgresStore implements AnalysisStore {
   private pool: Pool;
@@ -67,7 +76,8 @@ class PostgresStore implements AnalysisStore {
     this.ready = this.pool.query(SCHEMA).then(() => undefined);
   }
 
-  private async q<R>(text: string, values: unknown[]): Promise<R[]> {
+  // 표가 준비된 뒤 SQL을 실행한다. users.ts처럼 다른 표를 다루는 모듈도 이 함수를 쓴다.
+  async q<R>(text: string, values: unknown[]): Promise<R[]> {
     await this.ready;
     const res = await this.pool.query(text, values);
     return res.rows as R[];
@@ -115,6 +125,12 @@ export function getStore(): AnalysisStore {
     globalStore.__codebackStore = config.databaseUrl ? new PostgresStore(config.databaseUrl) : new MemoryStore();
   }
   return globalStore.__codebackStore;
+}
+
+// Postgres일 때만 SQL 실행 함수를 돌려준다(메모리 저장소면 null).
+export function getSql(): PostgresStore["q"] | null {
+  const store = getStore();
+  return store instanceof PostgresStore ? store.q.bind(store) : null;
 }
 
 export async function checkStore(): Promise<"postgres" | "memory"> {
