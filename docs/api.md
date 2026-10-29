@@ -118,6 +118,20 @@
 
 `POST /api/repositories/analyze`는 로그인해야 부를 수 있고, 분석한 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
 
+### `GET /api/demo` — 샘플로 체험하기 (로그인 없음)
+
+`{ "analysis": Analysis }` (`analysis.id`는 `"demo"`, `mode`는 `"demo"`). 미리 분석해 둔 공개 샘플(`data/demo/demo.json`)이라 GitHub·AI를 부르지 않아요. 이후 `/api/analyses/demo/...` 주소는 로그인 없이 쓸 수 있어요(다른 분석은 로그인 필요). 샘플의 '어디를 고쳐야 해?'는 예시 문장만 받아요. 화면은 `codeback_demo` 쿠키로 학습 화면 이동을 허용해요(`src/proxy.ts`).
+
+### `POST .../features/{featureId}/exercise/grade` `{ code }` — 수정 미션 채점 (FR-08 개정, 로그인 필요)
+
+사용자가 자기 개발 환경에서 고친 코드(바꾼 부분, 최대 8,000자)를 붙여 넣으면 AI가 성공 조건마다 채웠는지 판단해요. 코드는 실행하지 않아요(AI 추정).
+
+`{ "grade": { feature_id, score, passed, checks: [{ condition, met, reason }], feedback, hint, inferred: true, disclaimer }, "saved": boolean }`
+
+- `score`: 채운 조건의 비율(0~100), `passed`: 모든 조건을 채움
+- 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않고 `invalid_request`
+- 점수는 `quiz_attempts`에 `kind = 'mission'`으로 남아요(샘플은 남기지 않음). 제출할 때마다 AI 비용이 들어요(약 $0.001~0.003).
+
 ### `GET /api/status`
 
 `{ "ai": { "configured": boolean, "model": string }, "store": "postgres" | "memory" }`
@@ -166,7 +180,7 @@
 | `analyses` | 저장소 + commit 하나당 분석 결과(개요·기능 카드)와 분석에 쓴 파일 내용 |
 | `analysis_artifacts` | 기능별 결과: 동작 흐름, 개념 학습(**코드 정리 내용**), 퀴즈(**문제와 정답**), 수정 미션 |
 | `user_repositories` | 사용자가 분석한 저장소 목록(처음 추가한 시각, 마지막으로 본 시각, 최신 분석 결과) |
-| `quiz_attempts` | 사용자가 고른 퀴즈 답(고른 보기, 정답 여부, 시각). 정답 여부는 서버에 저장된 퀴즈로 판정 (FR-07·FR-13) |
+| `quiz_attempts` | 퀴즈 답과 수정 미션 점수(`kind` = `quiz`·`mission`). 퀴즈는 고른 보기·정답 여부, 미션은 `score`(0~100)·통과 여부 (FR-07·FR-08·FR-13) |
 | `mission_completions` | 사용자가 '완료로 표시'한 수정 미션(기능별 한 줄, 완료 시각) (FR-08·FR-13) |
 
 **같은 저장소를 다시 분석할 때 (토큰 절약)**

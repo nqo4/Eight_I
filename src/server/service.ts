@@ -5,6 +5,7 @@ import { config } from "./config";
 import { getPrecomputed } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
+import { redactSecrets } from "./filter";
 import { fetchRepositoryHead, fetchSnapshot } from "./github";
 import { linkUserRepository } from "./history";
 import {
@@ -17,6 +18,8 @@ import {
   overviewPrompt,
   overviewSchema,
   quizSchema,
+  missionGradePrompt,
+  missionGradeSchema,
 } from "./prompts";
 import { getStore, type StoredAnalysis } from "./store";
 import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateResult, Quiz, StackItem } from "./types";
@@ -75,12 +78,14 @@ export async function analyzeRepository(
     overviewPrompt(meta, index.formatFiles(index.paths(), config.maxTotalBytes * 2)),
   );
 
-  const features: Feature[] = [];
+  const verified: Feature[] = [];
   for (const f of out.features.slice(0, 5)) {
     const refs = index.refs(f.evidence);
     if (refs.length === 0) continue; // 근거가 확인되지 않은 기능은 뺀다(FR-04)
-    features.push({ id: `F${features.length + 1}`, title: f.title, summary: f.summary, code_references: refs });
+    verified.push({ id: `F${verified.length + 1}`, title: f.title, summary: f.summary, code_references: refs });
   }
+  // FR-04: '기능'은 2~5개. 근거가 확인된 기능이 2개보다 적으면 '기능을 찾지 못했습니다'로 보여 준다.
+  const features = verified.length >= 2 ? verified : [];
 
   const stack: StackItem[] = [
     ...confirmed,
@@ -319,4 +324,78 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
     lessons[f.id] = await getStore().getArtifact<Lesson>(analysisId, key);
   }
   return { analysis: stored.analysis, lessons };
+}
+
+// '샘플로 체험하기': 미리 분석해 둔 공개 샘플(data/demo/demo.json)을 고정 id "demo"로 DB에 한 번 넣고 돌려준다.
+// 로그인 없이 볼 수 있고, GitHub·AI를 부르지 않는다. 학습 기록에는 남기지 않는다.
+export const DEMO_ID = "demo";
+
+export async function getDemoAnalysis(): Promise<Analysis> {
+  const store = getStore();
+  const existing = await store.getAnalysis(DEMO_ID);
+  if (existing) return existing.analysis;
+  const pre = getPrecomputed();
+  if (!pre) throw new AppError("demo_not_ready", "샘플 프로젝트가 아직 준비되지 않았어요.");
+  const analysis: Analysis = { ...pre.stored.analysis, id: DEMO_ID, mode: "demo" };
+  await store.saveRepository(analysis.repository);
+  await store.saveAnalysis({ analysis, snapshot: pre.stored.snapshot });
+  for (const [key, payload] of Object.entries(pre.artifacts)) await store.saveArtifact(DEMO_ID, key, payload);
+  return analysis;
+}
+
+// FR-08(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
+// 점수는 채운 조건의 비율(0~100)로 계산한다.
+export type MissionGrade = {
+  feature_id: string;
+  score: number;
+  passed: boolean; // 성공 조건을 모두 채움
+  checks: { condition: string; met: boolean; reason: string }[];
+  feedback: string;
+  hint: string | null;
+  inferred: true;
+  disclaimer: string;
+};
+
+const MAX_SUBMISSION = 8_000;
+
+export async function gradeMission(analysisId: string, featureId: string, code: string): Promise<MissionGrade> {
+  const submitted = typeof code === "string" ? code.replace(/\r\n/g, "\n").trim() : "";
+  if (!submitted) throw new AppError("invalid_request", "고친 코드를 붙여 넣어 주세요.");
+  if (submitted.length > MAX_SUBMISSION) {
+    throw new AppError("invalid_request", `고친 부분만 ${MAX_SUBMISSION.toLocaleString()}자 이내로 붙여 넣어 주세요.`);
+  }
+  // FR-09: 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않는다.
+  if (redactSecrets(submitted).redacted > 0) {
+    throw new AppError("invalid_request", "비밀값(API 키·토큰 등)으로 보이는 문자열이 있어요. 지운 뒤 다시 보내 주세요.");
+  }
+  const stored = await load(analysisId);
+  findFeature(stored, featureId);
+  const exercise = await getExercise(analysisId, featureId);
+  const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
+  const original = exercise.target_references
+    .map((r) => {
+      const ex = index.excerpt(r);
+      const lines = ex ? ex.lines.map((l, i) => `${ex.start_line + i}| ${l}`).join("\n") : r.snippet;
+      return `// ${r.path} (${r.start_line}~${r.end_line}행)\n${lines}`;
+    })
+    .join("\n\n");
+  const out = await generate(
+    missionGradeSchema,
+    missionGradePrompt({ instruction: exercise.instruction, checks: exercise.acceptance_checks, original, submitted }),
+  );
+  const checks = exercise.acceptance_checks.map((condition, i) => ({
+    condition,
+    met: Boolean(out.checks[i]?.met),
+    reason: out.checks[i]?.reason ?? "판단하지 못했어요.",
+  }));
+  return {
+    feature_id: featureId,
+    score: checks.length ? Math.round((100 * checks.filter((c) => c.met).length) / checks.length) : 0,
+    passed: checks.length > 0 && checks.every((c) => c.met),
+    checks,
+    feedback: out.feedback,
+    hint: out.hint,
+    inferred: true,
+    disclaimer: "코드를 실행하지 않고 AI가 읽어서 매긴 추정 점수예요. 내 개발 환경에서 직접 실행해 확인해 보세요.",
+  };
 }

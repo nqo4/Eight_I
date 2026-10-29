@@ -61,7 +61,7 @@ export default function OverviewPage() {
       <PageIntro
         eyebrow="PROJECT OVERVIEW"
         title="먼저, 이 프로젝트의 구조를 볼까요?"
-        description="코드 전체가 아니라 내가 아는 기능에서 시작하면 훨씬 쉬워요. 아래 기능 카드 중 하나를 골라 보세요."
+        description="코드 전체가 아니라 내가 아는 기술과 기능에서 시작하면 훨씬 쉬워요. 아래 '사용한 기술'이나 '기능' 목록에서 하나를 골라 보세요."
       />
 
       <div className="flex w-full flex-col gap-4 rounded-12 bg-brand-purple-soft px-6 py-5">
@@ -85,7 +85,7 @@ export default function OverviewPage() {
             </dd>
           </div>
           <a href={`/api/analyses/${encodeURIComponent(analysis.id)}/note`} download className={`${secondaryBtn} ml-auto`}>
-            학습 노트 내려받기 (PDF)
+            학습 노트 내려받기
           </a>
         </dl>
         <section aria-label="프로젝트 소개" className="flex flex-col gap-2">

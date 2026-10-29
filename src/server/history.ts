@@ -76,7 +76,7 @@ export async function listQuizAttempts(userId: string, analysisId: string, featu
   if (!sql) return [];
   return sql<QuizAttempt>(
     `SELECT question_id, chosen_index, is_correct, created_at FROM quiz_attempts
-      WHERE user_id = $1 AND analysis_id = $2 AND feature_id = $3 ORDER BY created_at`,
+      WHERE user_id = $1 AND analysis_id = $2 AND feature_id = $3 AND kind = 'quiz' ORDER BY created_at`,
     [userId, analysisId, featureId],
   );
 }
@@ -120,7 +120,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
   if (!sql) return [];
   const [repos, attempts, missions] = await Promise.all([
     sql<Omit<LearningRecord, "quiz_correct" | "quiz_total" | "missions_done" | "features"> & { features: { id: string; title: string }[] }>(
-      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, a.created_at AS analyzed_at, ur.last_viewed_at,
+      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, ur.last_viewed_at AS analyzed_at, ur.last_viewed_at,
               COALESCE((SELECT json_agg(json_build_object('id', f->>'id', 'title', f->>'title'))
                           FROM jsonb_array_elements(a.analysis->'features') f), '[]'::json) AS features
          FROM user_repositories ur
@@ -132,7 +132,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
     ),
     sql<{ analysis_id: string; feature_id: string; is_correct: boolean }>(
       `SELECT DISTINCT ON (analysis_id, feature_id, question_id) analysis_id, feature_id, is_correct
-         FROM quiz_attempts WHERE user_id = $1
+         FROM quiz_attempts WHERE user_id = $1 AND kind = 'quiz'
         ORDER BY analysis_id, feature_id, question_id, created_at`,
       [userId],
     ),
@@ -162,4 +162,22 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
       features,
     };
   });
+}
+
+// FR-08(개정): 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
+export async function recordMissionScore(input: {
+  userId: string;
+  analysisId: string;
+  featureId: string;
+  score: number;
+  passed: boolean;
+}): Promise<{ saved: boolean }> {
+  const sql = getSql();
+  if (!sql) return { saved: false };
+  await sql(
+    `INSERT INTO quiz_attempts (user_id, analysis_id, feature_id, question_id, chosen_index, is_correct, kind, score)
+     VALUES ($1, $2, $3, 'mission', NULL, $4, 'mission', $5)`,
+    [input.userId, input.analysisId, input.featureId, input.passed, input.score],
+  );
+  return { saved: true };
 }
