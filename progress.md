@@ -7,6 +7,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - 실제 서비스 저장소 폴더: C:\Users\user\OneDrive\Documents\8I\Eight_I
 - 현재 단계 / 다음 행동: 2단계 — problem.yaml·scenarios.yaml v1.0 동결(why_ours·insight·FR input·platform·흐름 7개 확정). 다음: 학생이 experiences·personas·sources 모양 확인 → 3단계(Docker·CI·배포) 뼈대
 - 학생에게 확인할 내용: experiences(팀원 경험 장면), personas, sources 항목 모양(키트 example 확인), S1용 소형 공개 샘플 저장소 선택, 키트 파일 위치(docker-compose.example.yml·workflows·e2e)
+- 브랜치 규칙: 매시 정각 채점, 18시는 문서 점수만 → main에는 문서만, 기술 개발(Next.js·Docker·CI)은 dev 브랜치. 합칠 시점은 학생이 정함
 
 ## 1. GitHub 준비
 
