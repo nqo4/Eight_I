@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
+import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Lesson } from "@/server/types";
@@ -63,9 +64,16 @@ export default function ConceptPage() {
                     <div className="flex flex-col gap-1.5">
                       <p className="text-xs font-bold text-text-muted">관련 코드 한 줄</p>
                       <div className="min-w-0 overflow-hidden rounded-8 bg-text-primary text-surface">
-                        <pre className="overflow-auto px-4 py-3 font-mono text-sm leading-6">{data.lesson.walkthrough.key_line.snippet}</pre>
-                        <p className="border-t border-surface/10 px-4 py-2 font-mono text-xs break-all text-surface/70">
+                        <pre className="overflow-auto px-4 py-3 font-mono text-sm leading-6">
+                          {highlightLines(data.lesson.walkthrough.key_line.snippet, data.lesson.walkthrough.key_line.path).map((tokens, i) => (
+                            <div key={i}>
+                              <Tokens tokens={tokens} />
+                            </div>
+                          ))}
+                        </pre>
+                        <p className="flex items-center justify-between gap-3 border-t border-surface/10 px-4 py-2 font-mono text-xs break-all text-surface/70">
                           {refLabel(data.lesson.walkthrough.key_line)}
+                          <LanguageTag path={data.lesson.walkthrough.key_line.path} />
                         </p>
                       </div>
                     </div>
