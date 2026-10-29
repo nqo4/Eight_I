@@ -17,7 +17,7 @@ const LAYER: Record<FlowStep["layer"], string> = {
   other: "기타",
 };
 
-// 기능의 동작 흐름(F5). '추정' 연결은 점선 화살표로 구분한다(확정 화살표로 그리지 않음).
+// 기능의 동작 흐름(FR-05). '추정' 연결은 점선 화살표로 구분한다(확정 화살표로 그리지 않음).
 export default function FlowPage() {
   const { analysisId, featureId } = useParams<{ analysisId: string; featureId: string }>();
   const { data: flow, error, reload } = useLoad(`flow:${analysisId}:${featureId}`, () => getFlow(analysisId, featureId));

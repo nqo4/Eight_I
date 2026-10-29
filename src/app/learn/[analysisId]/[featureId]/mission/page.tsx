@@ -7,7 +7,7 @@ import { PageIntro } from "@/components/demo/PageIntro";
 import { ErrorBox, Loading, useLoad } from "@/components/learn/states";
 import { getExercise } from "@/lib/api";
 
-// 직접 수정 미션(F8). 서비스가 코드를 고치지 않고, 완료 체크는 자기 보고다.
+// 직접 수정 미션(FR-08). 서비스가 코드를 고치지 않고, 완료 체크는 자기 보고다.
 export default function MissionPage() {
   const { analysisId, featureId } = useParams<{ analysisId: string; featureId: string }>();
   const { data: ex, error, reload } = useLoad(`exercise:${analysisId}:${featureId}`, () => getExercise(analysisId, featureId));

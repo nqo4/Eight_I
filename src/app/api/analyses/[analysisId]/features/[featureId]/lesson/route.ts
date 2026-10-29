@@ -5,7 +5,7 @@ import { getLesson } from "@/server/service";
 
 export const maxDuration = 60;
 
-// GET /api/analyses/{analysisId}/features/{featureId}/lesson  (F6)
+// GET /api/analyses/{analysisId}/features/{featureId}/lesson  (FR-06)
 export async function GET(req: Request, ctx: RouteContext<"/api/analyses/[analysisId]/features/[featureId]/lesson">) {
   await connection();
   return handle(async () => {
