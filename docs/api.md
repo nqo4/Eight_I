@@ -19,7 +19,7 @@
 | '이제 네가 직접 바꿔봐' (S6) | `GET .../features/{featureId}/exercise` |
 | '어디를 고쳐야 해?' → '위치 찾기' (S7) | `POST .../locate` |
 | '정답 확인' 결과 저장 (S5) | `POST .../features/{featureId}/quiz/attempts` |
-| '완료로 표시' 저장 (S6) | `POST .../features/{featureId}/exercise/complete` |
+| '채점하기' (S6) | `POST .../features/{featureId}/exercise/grade` |
 | '내 학습 기록' (S6) | `GET /api/me/records` |
 | '학습 노트 내려받기' (S8) | `GET .../note` |
 | 처음 화면에서 사용 가능 여부 확인 | `GET /api/status` |
@@ -113,7 +113,6 @@
 | 주소 | 로그인 | 하는 일 |
 | --- | --- | --- |
 | `POST .../features/{featureId}/quiz/attempts` `{ question_id, chosen_index }` | 선택 | 서버가 저장된 퀴즈로 정답을 판정해 돌려주고, 로그인했으면 기록에 남겨요(`saved`) |
-| `POST .../features/{featureId}/exercise/complete` | 선택 | '완료로 표시'(자기 보고)를 기록에 남겨요. 로그인 전이면 `saved: false` |
 | `GET /api/me/records` | 필요 | 내가 분석한 저장소마다 퀴즈 맞힌 수·전체 수, 완료한 미션 수, 기능별 진행 상황 |
 
 `POST /api/repositories/analyze`는 로그인해야 부를 수 있고, 분석한 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
@@ -177,7 +176,6 @@
 | `analysis_artifacts` | 기능별 결과: 동작 흐름, 개념 학습(**코드 정리 내용**), 퀴즈(**문제와 정답**), 수정 미션 |
 | `user_repositories` | 사용자가 분석한 저장소 목록(처음 추가한 시각, 마지막으로 본 시각, 최신 분석 결과) |
 | `quiz_attempts` | 퀴즈 답과 수정 미션 점수(`kind` = `quiz`·`mission`). 퀴즈는 고른 보기·정답 여부, 미션은 `score`(0~100)·통과 여부 (FR-07·FR-08·FR-13) |
-| `mission_completions` | 사용자가 '완료로 표시'한 수정 미션(기능별 한 줄, 완료 시각) (FR-08·FR-13) |
 
 **같은 저장소를 다시 분석할 때 (토큰 절약)**
 

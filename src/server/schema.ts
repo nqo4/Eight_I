@@ -3,8 +3,7 @@
 //
 //  users ─┬─ sessions            로그인 유지
 //         ├─ user_repositories ── repositories   내가 분석한 저장소 목록
-//         ├─ quiz_attempts ────── analyses       내가 고른 퀴즈 답
-//         └─ mission_completions ─ analyses      내가 완료로 표시한 수정 미션
+//         └─ quiz_attempts ────── analyses       내가 고른 퀴즈 답·수정 미션 점수
 //  repositories ── analyses ── analysis_artifacts (흐름·학습·퀴즈·미션 결과)
 export const SCHEMA = `
 -- 사용자. 비밀번호 원문은 저장하지 않고 해시만 둔다.
@@ -89,12 +88,4 @@ ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'q
 ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS score INT;
 ALTER TABLE quiz_attempts ALTER COLUMN chosen_index DROP NOT NULL;
 
--- 사용자가 '완료로 표시'한 수정 미션(자기 보고). 기능마다 한 번만 남긴다.
-CREATE TABLE IF NOT EXISTS mission_completions (
-  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  analysis_id TEXT NOT NULL REFERENCES analyses(id) ON DELETE CASCADE,
-  feature_id TEXT NOT NULL,
-  completed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, analysis_id, feature_id)
-);
 `;

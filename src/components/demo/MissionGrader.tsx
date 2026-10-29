@@ -8,29 +8,17 @@ import { gradeMission, type MissionGrade } from "@/lib/records";
 
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
-// 점수 구간별 색: 모두 통과(초록) · 절반 이상(보라) · 그 아래(빨강)
-function scoreTone(g: MissionGrade) {
-  if (g.passed) return { text: "text-status-green-ink", bar: "bg-status-green", badge: "bg-status-green/10 text-status-green-ink" };
-  if (g.score >= 50) return { text: "text-brand-purple-ink", bar: "bg-brand-purple", badge: "bg-brand-purple-soft text-brand-purple-ink" };
-  return { text: "text-status-red", bar: "bg-status-red", badge: "bg-status-red-soft text-status-red" };
-}
-
+// 점수만 보여 준다(통과·실패, 조건별 충족 여부는 표시하지 않음).
 function ScoreCard({ grade }: { grade: MissionGrade }) {
-  const tone = scoreTone(grade);
-  const met = grade.checks.filter((c) => c.met).length;
   return (
     <div data-testid="mission-grade" className="flex w-full flex-col gap-4 rounded-12 border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-bold text-text-muted">AI 추정 점수</p>
-          <p className={`font-manrope text-5xl leading-none font-extrabold ${tone.text}`}>
-            <span data-testid="mission-score">{grade.score}</span>
-            <span className="ml-1 text-xl">점</span>
-          </p>
-        </div>
-        <span className={`rounded-8 px-3 py-1.5 text-sm font-bold ${tone.badge}`}>
-          {grade.passed ? "모든 조건 통과" : `조건 ${met}/${grade.checks.length} 충족`}
-        </span>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-bold text-text-muted">AI 추정 점수</p>
+        <p className="font-manrope text-5xl leading-none font-extrabold text-brand-purple-ink">
+          <span data-testid="mission-score">{grade.score}</span>
+          <span className="ml-1 text-xl">점</span>
+          <span className="ml-1 text-base font-bold text-text-muted">/ 100</span>
+        </p>
       </div>
       <div
         role="meter"
@@ -40,30 +28,8 @@ function ScoreCard({ grade }: { grade: MissionGrade }) {
         aria-valuenow={grade.score}
         className="h-2.5 w-full overflow-hidden rounded-8 bg-paper"
       >
-        <div className={`h-full rounded-8 ${tone.bar}`} style={{ width: `${grade.score}%` }} />
+        <div className="h-full rounded-8 bg-brand-purple" style={{ width: `${grade.score}%` }} />
       </div>
-
-      <ul className="flex flex-col divide-y divide-line">
-        {grade.checks.map((c, i) => (
-          <li key={i} className="flex items-start gap-3 py-2.5">
-            <span
-              aria-hidden
-              className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-surface ${
-                c.met ? "bg-status-green" : "bg-status-red"
-              }`}
-            >
-              {c.met ? "✓" : "✕"}
-            </span>
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-sm font-bold text-text-primary">
-                <span className="sr-only">{c.met ? "충족: " : "미충족: "}</span>
-                {c.condition}
-              </span>
-              <span className="text-sm leading-6 text-text-muted">{c.reason}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
 
       {grade.feedback && <p className="text-sm leading-6 text-pretty text-text-primary">{grade.feedback}</p>}
       {grade.hint && (
@@ -71,13 +37,15 @@ function ScoreCard({ grade }: { grade: MissionGrade }) {
           <span className="font-bold">다음 힌트:</span> {grade.hint}
         </p>
       )}
-      <p className="text-xs text-text-muted">{grade.disclaimer}</p>
+      <p data-testid="exercise-disclaimer" className="text-xs text-text-muted">
+        {grade.disclaimer}
+      </p>
     </div>
   );
 }
 
 // 고친 코드를 붙여 넣으면 AI가 성공 조건마다 판단해 0~100점을 매긴다(실행하지 않음). 점수는 '내 학습 기록'에 남는다.
-export function MissionGrader({ analysisId, featureId }: { analysisId: string; featureId: string }) {
+export function MissionGrader({ analysisId, featureId, onGraded }: { analysisId: string; featureId: string; onGraded?: () => void }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [grade, setGrade] = useState<MissionGrade | null>(null);
@@ -88,6 +56,7 @@ export function MissionGrader({ analysisId, featureId }: { analysisId: string; f
     setError(null);
     try {
       setGrade((await gradeMission(analysisId, featureId, code)).grade);
+      onGraded?.();
     } catch (e) {
       setError(e as ApiError);
     } finally {

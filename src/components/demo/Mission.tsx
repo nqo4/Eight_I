@@ -1,22 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PrimaryButton } from "@/components/PrimaryButton";
 import { MissionGrader } from "@/components/demo/MissionGrader";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
-import { saveMissionDone } from "@/lib/records";
 import type { Exercise } from "@/server/types";
 
 const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "코드 힌트" } as const;
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export function Mission() {
-  const { analysis, feature, record, remember, progress, loadError } = useSession();
+  const { analysis, feature, record, remember, loadError } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ exercise: Exercise }>("exercise");
-  const checks = progress.missionChecks ?? {};
   const [hints, setHints] = useState(1);
-  const done = progress.done;
 
   useEffect(() => {
     if (data) remember({ exercise: data.exercise });
@@ -26,7 +22,6 @@ export function Mission() {
   if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} home={Boolean(loadError)} />;
   if (!data) return <Loading slow={slow} />;
   const ex = data.exercise;
-  const all = ex.acceptance_checks.every((_, i) => checks[i]);
 
   return (
     <section aria-label="직접 바꿔보기" className="grid w-full grid-cols-[minmax(0,1fr)_400px] items-start gap-[18px]">
@@ -74,54 +69,31 @@ export function Mission() {
             </div>
           )}
         </div>
-        {analysis && feature && <MissionGrader analysisId={analysis.id} featureId={feature.id} />}
+        {analysis && feature && (
+          <MissionGrader
+            analysisId={analysis.id}
+            featureId={feature.id}
+            onGraded={() => record((p) => ({ ...p, steps: { ...p.steps, mission: true } }))}
+          />
+        )}
       </div>
 
-      <fieldset aria-labelledby="mission-checks" className="flex min-w-0 flex-col items-start gap-3 rounded-12 border border-line bg-surface px-[26px] py-7">
-        <p className={label}>완료 체크</p>
-        <h2 id="mission-checks" className="text-lg font-bold text-text-primary">
-          직접 실행해 확인해요
+      <aside aria-labelledby="mission-criteria" className="flex min-w-0 flex-col items-start gap-3 rounded-12 border border-line bg-surface px-[26px] py-7">
+        <p className={label}>채점 기준</p>
+        <h2 id="mission-criteria" className="text-lg font-bold text-text-primary">
+          이 조건으로 점수를 매겨요
         </h2>
         <p className="text-sm leading-6 text-text-muted">
-          내 개발 환경에서 직접 고치고 앱을 실행해 확인한 뒤 체크하세요. CodeBack은 코드를 대신 고치거나 push하지 않아요.
+          내 개발 환경에서 직접 고친 뒤 코드를 붙여 넣으면, AI가 아래 조건을 얼마나 채웠는지 0~100점으로 알려 줘요. CodeBack은 코드를 대신 고치거나 push하지 않아요.
         </p>
-        <div className="flex w-full flex-col divide-y divide-line">
+        <ol data-testid="exercise-criteria" className="flex w-full list-decimal flex-col divide-y divide-line pl-5 marker:font-bold marker:text-brand-purple-ink">
           {ex.acceptance_checks.map((c, i) => (
-            <label key={i} className={`flex min-h-12 items-center gap-3 py-2.5 text-sm leading-6 ${done ? "" : "cursor-pointer"}`}>
-              <input
-                type="checkbox"
-                checked={!!checks[i]}
-                disabled={done}
-                onChange={() => record((p) => ({ ...p, missionChecks: { ...p.missionChecks, [i]: !p.missionChecks?.[i] } }))}
-                className="size-5 shrink-0 accent-brand-purple"
-              />
+            <li key={i} className="py-2.5 pl-1 text-sm leading-6">
               {c}
-            </label>
+            </li>
           ))}
-        </div>
-        <div className="flex w-full flex-col items-start gap-3 border-t border-line pt-4">
-          {done ? (
-            <span data-testid="exercise-done" className="font-bold text-status-green-ink">
-              완료로 표시했어요
-            </span>
-          ) : (
-            <>
-              <PrimaryButton
-                label="완료로 표시"
-                disabled={!all}
-                onClick={() => {
-                  record((p) => ({ ...p, done: true, steps: { ...p.steps, mission: true } }));
-                  if (analysis && feature) saveMissionDone(analysis.id, feature.id);
-                }}
-              />
-              {!all && <span className="text-sm text-text-muted">성공 조건을 모두 체크하면 완료할 수 있어요</span>}
-            </>
-          )}
-          <span data-testid="exercise-disclaimer" className="text-xs text-text-muted">
-            자기 보고이며 실행 결과를 보증하지 않음
-          </span>
-        </div>
-      </fieldset>
+        </ol>
+      </aside>
     </section>
   );
 }

@@ -33,11 +33,9 @@ function Stat({ label, value, caption }: { label: string; value: string; caption
   );
 }
 
-// 미션: 완료 표시(자기 보고)와 AI 채점 최고 점수를 함께 보여 준다.
+// 미션은 AI 채점 최고 점수만 보여 준다(통과·실패 표시 없음).
 function missionLabel(f: LearningRecord["features"][number]) {
-  const score = f.mission_best_score === null ? null : `${f.mission_best_score}점`;
-  if (f.mission_done) return score ? `미션 완료 · ${score}` : "미션 완료";
-  return score ? `미션 ${score}` : "미션 전";
+  return f.mission_best_score === null ? "미션 전" : `미션 ${f.mission_best_score}점`;
 }
 
 function RecordCard({ record }: { record: LearningRecord }) {
@@ -104,7 +102,7 @@ function RecordCard({ record }: { record: LearningRecord }) {
               data-testid="mission-status"
               title={f.mission_graded ? `채점 ${f.mission_graded}번 · 최근 ${f.mission_last_score}점` : undefined}
               className={`w-36 rounded-8 px-2 py-1 text-center text-xs font-bold ${
-                f.mission_done || f.mission_best_score !== null ? "bg-brand-purple-soft text-brand-purple-ink" : "text-text-muted"
+                f.mission_best_score !== null ? "bg-brand-purple-soft text-brand-purple-ink" : "text-text-muted"
               }`}
             >
               {missionLabel(f)}
@@ -136,7 +134,6 @@ function SignedIn({ user }: { user: User }) {
   const { records, error } = state;
   const quizTotal = records?.reduce((n, r) => n + r.quiz_total, 0) ?? 0;
   const quizCorrect = records?.reduce((n, r) => n + r.quiz_correct, 0) ?? 0;
-  const missions = records?.reduce((n, r) => n + r.missions_done, 0) ?? 0;
   const bestScores = records?.flatMap((r) => r.features.flatMap((f) => (f.mission_best_score === null ? [] : [f.mission_best_score])));
   const avgScore = bestScores?.length ? Math.round(bestScores.reduce((n, x) => n + x, 0) / bestScores.length) : null;
 
@@ -145,7 +142,7 @@ function SignedIn({ user }: { user: User }) {
       <section className="flex flex-col gap-2">
         <span className="font-manrope text-sm font-bold text-brand-purple-ink">MY LEARNING</span>
         <h1 className="text-3xl font-bold text-text-primary">내 학습 기록</h1>
-        <p className="text-sm text-text-muted">{user.name}님이 분석한 저장소와 퀴즈 결과, 수정 미션 진행 상황이에요.</p>
+        <p className="text-sm text-text-muted">{user.name}님이 분석한 저장소와 퀴즈 결과, 수정 미션 점수예요.</p>
       </section>
 
       <section aria-label="내 정보와 학습 요약" className="flex w-full flex-wrap gap-4">
@@ -164,7 +161,6 @@ function SignedIn({ user }: { user: User }) {
           value={quizTotal ? `${quizCorrect}/${quizTotal}` : "-"}
           caption={quizTotal ? "문항별 첫 시도 기준" : "아직 푼 퀴즈가 없어요"}
         />
-        <Stat label="완료한 미션" value={records ? `${missions}개` : "-"} caption="자기 보고 기준" />
         <Stat
           label="미션 점수"
           value={avgScore === null ? "-" : `${avgScore}점`}
@@ -212,7 +208,7 @@ export function MyPage() {
           <section className="flex w-full max-w-[560px] flex-col items-start gap-4 rounded-12 border border-line bg-surface px-8 py-8">
             <span className="font-manrope text-sm font-bold text-brand-purple-ink">MY LEARNING</span>
             <h1 className="text-2xl font-bold text-text-primary">로그인하면 내 학습 기록을 볼 수 있어요.</h1>
-            <p className="text-sm text-text-muted">분석한 저장소와 퀴즈 결과, 수정 미션 진행 상황을 한곳에서 확인하세요.</p>
+            <p className="text-sm text-text-muted">분석한 저장소와 퀴즈 결과, 수정 미션 점수를 한곳에서 확인하세요.</p>
             <PrimaryButton href="/login" label="로그인하러 가기" />
           </section>
         )}

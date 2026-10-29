@@ -23,10 +23,6 @@ export function saveQuizAttempt(analysisId: string, featureId: string, questionI
   post(`${base(analysisId, featureId)}/quiz/attempts`, { question_id: questionId, chosen_index: chosenIndex });
 }
 
-export function saveMissionDone(analysisId: string, featureId: string) {
-  post(`${base(analysisId, featureId)}/exercise/complete`);
-}
-
 // 수정 미션 AI 채점(FR-08 개정). 로그인해야 하고, 점수는 서버가 '내 학습 기록'에 남긴다.
 export function gradeMission(analysisId: string, featureId: string, code: string) {
   return api<{ grade: MissionGrade; saved: boolean }>(`${base(analysisId, featureId)}/exercise/grade`, {
