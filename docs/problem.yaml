@@ -1,6 +1,8 @@
 # ── 대회 대시보드 양식 ──
-# 아래 항목은 이 파일의 기존 내용(problem·solution·functional_requirements)을 대회 양식 키로 옮긴 것이다.
-# 새 내용은 더하지 않았다. 팀이 아직 정하지 않은 칸은 null 또는 []로 남겼다.
+# 아래 항목은 이 파일의 팀 원본(problem·solution·functional_requirements)을 대회 양식 키로 옮긴 것이다.
+# 2026-10-29 v1.0 동결: 팀 원본에서 도출할 수 있던 빈 칸(why_ours·insight·FR-03/FR-10 input)을 채웠다.
+# 아직 비어 있는 칸: personas·experiences(팀원이 겪은 장면 — 학생 답 대기), sources(후보는 아래 주석).
+# 이 블록을 바꾸려면 팀 합의 후 version을 올리고 scenarios.yaml·README를 같은 commit에서 맞춘다.
 statement: >-
   바이브코딩으로 프로젝트를 만든 개발 입문자는 기능을 추가하거나 수정할 때
   자신이 사용한 코드와 기술의 작동 원리를 잘 이해하지 못해 AI에 다시 의존하고,
@@ -28,16 +30,21 @@ canvas:
   alternatives:
     - how_used: "AI에게 코드를 다시 작성하거나 수정하도록 요청"
       shortcoming: "문제는 일시적으로 해결해도 코드 이해 부족이 지속될 수 있음"
-      why_ours: null
+      why_ours: "우리는 코드를 대신 고치지 않는다. 사용자가 아는 기능에서 출발해 실제 파일·라인 근거를 따라가게 하고, 마지막에 직접 수정하게 해서 다음에는 AI 없이도 고칠 수 있게 만든다."
     - how_used: "AI에게 관련 코드·기능을 그때그때 설명해 달라고 요청"
       shortcoming: "전체 기능 흐름이 단편적으로 설명되고 학습 성취가 검증되지 않음"
-      why_ours: null
+      why_ours: "우리는 기능 → 파일 역할 → 코드 근거 → 개념 순서로 한 흐름을 끝까지 연결해 보여 주고, 퀴즈와 수정 미션으로 이해했는지 확인한다. 묻는 것만 답하는 챗봇은 사용자가 모르는 줄도 몰랐던 부분을 찾아 주지 못한다."
     - how_used: "기존 강의·검색·문법 학습 플랫폼 이용"
       shortcoming: "자신의 프로젝트와 직접 연결된 맞춤 학습이 어려움"
-      why_ours: null
+      why_ours: "우리는 범용 문법 강의가 아니라 사용자가 직접 만든 저장소의 실제 코드를 교재로 쓴다. 모든 설명이 내 프로젝트의 파일 경로와 라인 범위에 붙어 있어서 배운 것을 바로 내 코드에 적용할 수 있다."
 personas: []
 experiences: []
 sources: []
+# sources 후보(2026-10-29 확인, 열리는 URL). 키트 problem.example.yaml의 sources 항목 모양을 확인한 뒤 위 배열로 옮긴다.
+# - https://dorumugs.github.io/coding/%EB%B0%94%EC%9D%B4%EB%B8%8C%EC%BD%94%EB%94%A9_%EB%A9%B4%EC%A0%91_%EC%A0%84%EC%B2%B4%EA%B7%B8%EB%A6%BC_%ED%8C%90%EB%B3%84%EC%A0%84%EB%9E%B5/
+#   뒷받침하는 주장: 면접관이 겪는 현상 — "물어보면 자기 코드를 설명 못 하는 사람이 섞여 있다", "산출물과 실력 사이의 연결선이 끊어졌다" (statement의 '작동 원리를 잘 이해하지 못해')
+# - https://www.chosun.com/national/national_general/2025/11/09/H4NZNXFVJNHBXCBXXYXZFVWUZI/
+#   뒷받침하는 주장: 대학생 91.7%가 과제·자료 검색에 AI 활용 경험(한국직업능력연구원 조사 인용) (canvas.context의 'AI 코딩 도구로 완성')
 five_whys:
   symptom: "자신의 프로젝트에 사용된 기술·기능을 설명하거나 직접 수정하기 어렵다."
   whys:
@@ -60,9 +67,9 @@ solution_paths:
     status: deferred
     reason: "학습보다 대리 수행을 강화해 제품 목적과 어긋남"
 insight:
-  claim: null
-  evidence: null
-  design_decision: null
+  claim: "사용자가 이미 아는 화면·기능에서 출발해 실제 코드 근거를 따라가고 작은 수정까지 직접 해 보면, 범용 강의보다 자기 프로젝트에 대한 이해와 수정 자신감이 높아진다."
+  evidence: "아직 없음 — 팀 가설. 바이브코딩 경험자 5명 내외 인터뷰와 학습 전후 동일 난도 수정 과제 비교로 검증 예정."
+  design_decision: "폴더 구조를 나열하지 않고 기능 카드에서 시작한다. 모든 설명은 파일 경로·라인 범위에 연결하고, 확인된 사실과 AI 추정을 구분해 표시한다. 코드를 대신 고치지 않고 직접 수정 미션으로 끝낸다. 저장소 코드는 서버에서 실행하지 않는다."
 features:
   - id: FR-01
     name: "공개 GitHub 저장소 가져오기"
@@ -82,7 +89,7 @@ features:
       분석에 사용한 경로와 파일 내용을 실제 GitHub 응답에 근거해 기록한다.
   - id: FR-03
     name: "프로젝트 전체 구조 요약"
-    input: null
+    input: "FR-02에서 걸러진 파일 목록과 README·package.json 등 설정 파일 내용"
     output: "앱 목적, 기술 스택, 주요 디렉터리, 화면·API 역할을 쉬운 말로 정리한다."
     done: |-
       프레임워크 추정의 근거 파일(package.json 등)을 보여준다.
@@ -138,7 +145,7 @@ features:
       제출 텍스트에 비밀값이 의심되면 전송 전 경고한다.
   - id: FR-10
     name: "데모 예제 모드"
-    input: null
+    input: "홈 화면의 '샘플로 체험하기' 클릭 (저장소 URL 입력 없음)"
     output: "GitHub 연결 실패 상황에서도 준비된 공개 샘플로 핵심 흐름을 재현한다."
     done: |-
       샘플/데모 모드임을 명확하게 표시한다.
@@ -148,8 +155,8 @@ features:
 document:
   id: PRD-001
   title: "CodeBack | 문제정의 및 기능 명세"
-  version: "0.1.0"
-  status: "초안 — 팀 검토 및 사용자 검증 필요"
+  version: "1.0.0"
+  status: "v1.0 동결(2026-10-29) — 변경은 팀 합의 후 version을 올려서. 사용자 고충·원인은 여전히 미검증 가설"
   updated_at: "2026-10-29"
   owner: "SUMTECH 팀"
   companion_document: "docs/scenarios.yaml"
