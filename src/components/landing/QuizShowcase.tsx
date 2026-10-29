@@ -13,17 +13,17 @@ const keys = "ABCD";
 
 export function QuizShowcase() {
   return (
-    <figure className="relative mr-16 h-[560px] w-[560px] shrink-0">
+    <figure className="relative w-full max-w-[560px] self-center xl:mr-16 xl:h-[560px] xl:w-[560px] xl:max-w-none xl:shrink-0 xl:self-auto">
       <figcaption className="sr-only">
         예시: 샘플 저장소의 로그인 기능 퀴즈. 비밀번호 길이 검사를 바꿨을 때 화면과 서버가 어떻게 동작하는지 고르고, 정답과 코드 근거를 확인한다.
       </figcaption>
 
       {/* 배경 원 */}
-      <div aria-hidden className="absolute top-1/2 left-1/2 size-[560px] -translate-1/2 rounded-full border border-brand-purple/15" />
+      <div aria-hidden className="absolute top-1/2 left-1/2 hidden size-[560px] -translate-1/2 rounded-full border border-brand-purple/15 xl:block" />
 
-      <div aria-hidden className="absolute inset-x-8 top-8 bottom-10">
-        <div className="flex h-full rotate-[1deg] flex-col gap-3.5 rounded-16 border border-line bg-surface px-7 pt-7 pb-6 shadow-[0_30px_60px_rgba(6,2,22,0.18)]">
-          <div className="flex items-center justify-between">
+      <div aria-hidden className="xl:absolute xl:inset-x-8 xl:top-8 xl:bottom-10">
+        <div className="flex flex-col gap-3.5 rounded-16 border border-line bg-surface px-5 pt-6 pb-5 sm:px-7 sm:pt-7 sm:pb-6 xl:h-full xl:rotate-[1deg] shadow-[0_30px_60px_rgba(6,2,22,0.18)]">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span className="font-manrope text-xs font-bold tracking-wider text-brand-purple-ink">QUIZ · 1 / 3</span>
             <span className="text-xs font-bold text-text-muted">이메일·비밀번호로 로그인</span>
           </div>
