@@ -12,7 +12,7 @@ test("S6 학습자가 수정 미션을 채점받고 내 학습 기록에서 저�
   await firstCard.click()
   await page.getByRole("button", { name: "이제 네가 직접 바꿔봐" }).click()
   const section = page.getByRole("region", { name: "직접 바꿔보기" })
-  const code = section.getByLabel("고친 코드")
+  const code = section.getByLabel("고친 코드", { exact: true })
   await code.waitFor(AI_WAIT)
   // 화면에 보이는 '현재 코드'를 그대로 붙여 넣어도 채점은 된다(점수 값은 AI 추정이라 숫자 형식만 확인)
   await code.fill(await section.locator("pre").first().innerText())
