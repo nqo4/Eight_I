@@ -2,6 +2,7 @@
 // 한글을 위해 나눔고딕(OFL, assets/fonts/OFL.txt)을 PDF에 넣는다.
 import { join } from "node:path";
 import PDFDocument from "pdfkit";
+import { techViews } from "../lib/technologies";
 import type { Analysis, Lesson } from "./types";
 
 const FONT_DIR = join(process.cwd(), "assets", "fonts");
@@ -42,11 +43,28 @@ export async function renderLearningNote({ analysis: a, lessons }: NoteInput): P
   const done = new Promise<void>((resolve) => doc.on("end", () => resolve()));
 
   const r = a.repository;
+  const keepTogether = (height: number) => {
+    const bottom = doc.page.height - doc.page.margins.bottom;
+    if (height <= bottom - doc.page.margins.top && doc.y + height > bottom) doc.addPage();
+  };
   const h1 = (t: string) => doc.font("bold").fontSize(20).fillColor("#1b1530").text(t).moveDown(0.4);
-  const h2 = (t: string) => doc.moveDown(0.8).font("bold").fontSize(13).fillColor("#5b3df5").text(t).moveDown(0.3);
+  const h2 = (t: string) => {
+    keepTogether(60);
+    doc.moveDown(0.8).font("bold").fontSize(13).fillColor("#5b3df5").text(t).moveDown(0.3);
+  };
   const body = (t: string) => doc.font("regular").fontSize(10).fillColor("#1b1530").text(t, { lineGap: 2 });
   const muted = (t: string) => doc.font("regular").fontSize(9).fillColor("#6b6680").text(t, { lineGap: 2 });
   const bullet = (t: string) => doc.font("regular").fontSize(10).fillColor("#1b1530").text(`•  ${t}`, { indent: 6, lineGap: 2 });
+  const evidenceBullet = (text: string, details: readonly string[]) => {
+    const height = doc.font("regular").fontSize(10).heightOfString(`•  ${text}`, { indent: 6, lineGap: 2 });
+    const detailHeight = details.reduce(
+      (sum, line) => sum + doc.font("regular").fontSize(9).heightOfString(line, { lineGap: 2 }),
+      0,
+    );
+    keepTogether(height + detailHeight);
+    bullet(text);
+    for (const line of details) muted(line);
+  };
 
   h1(`${r.name} 학습 노트`);
   muted("CodeBack 분석 결과");
@@ -68,13 +86,12 @@ export async function renderLearningNote({ analysis: a, lessons }: NoteInput): P
   );
 
   h2("사용한 기술");
-  const techs = a.overview.technologies ?? [];
-  for (const s of a.overview.stack) {
-    const where = s.evidence ? `${s.evidence.path}:${s.evidence.start_line}` : "근거 파일 확인 불가";
-    const t = techs.find((x) => x.name.toLowerCase() === s.name.toLowerCase());
-    bullet(`${s.name} (${s.status === "confirmed" ? where : "확인 불가"})${t?.role ? ` — ${t.role}` : ""}`);
-    if (t?.concept) muted(`     핵심 개념: ${t.concept}`);
-    for (const u of t?.references ?? []) muted(`     쓰인 곳: ${u.path}:${u.start_line}–${u.end_line}`);
+  for (const tech of techViews(a.overview)) {
+    evidenceBullet(`${tech.name}${tech.role ? ` — ${tech.role}` : ""}`, [
+      ...(tech.concept ? [`     핵심 개념: ${tech.concept}`] : []),
+      ...(tech.references.length === 0 ? ["     근거: 확인 불가"] : []),
+      ...tech.references.map((ref) => `     쓰인 곳: ${ref.path}:${ref.start_line}–${ref.end_line}`),
+    ]);
   }
 
   if (a.overview.directories.length > 0) {
@@ -85,6 +102,7 @@ export async function renderLearningNote({ analysis: a, lessons }: NoteInput): P
   h2("기능과 근거 파일");
   if (a.features.length === 0) body(a.features_notice ?? "기능을 찾지 못했어요.");
   for (const f of a.features) {
+    keepTogether(70);
     doc.moveDown(0.3).font("bold").fontSize(11).fillColor("#1b1530").text(`${f.id}. ${f.title}`);
     muted(f.summary);
     for (const ref of f.code_references) bullet(`${ref.path} : ${ref.start_line}–${ref.end_line}`);
@@ -92,8 +110,19 @@ export async function renderLearningNote({ analysis: a, lessons }: NoteInput): P
     if (lesson) {
       doc.moveDown(0.2);
       body(`배운 내용: ${lesson.overview}`);
-      for (const c of lesson.concepts) bullet(`${c.name} — ${c.why_needed}`);
-      for (const w of lesson.design_reasons ?? []) bullet(`왜 이렇게 만들었나: ${w.reason}${w.inferred ? " (AI 추정)" : ""}`);
+      for (const concept of lesson.concepts) {
+        evidenceBullet(
+          `${concept.name} — ${concept.why_needed}`,
+          concept.references.map((ref) => `     개념 근거: ${ref.path}:${ref.start_line}–${ref.end_line}`),
+        );
+      }
+      for (const reason of lesson.design_reasons ?? []) {
+        const ref = reason.reference;
+        evidenceBullet(
+          `왜 이렇게 만들었나: ${reason.reason}${reason.inferred || !ref ? " (AI 추정)" : ""}`,
+          ref ? [`     설명 근거: ${ref.path}:${ref.start_line}–${ref.end_line}`] : [],
+        );
+      }
     }
   }
 

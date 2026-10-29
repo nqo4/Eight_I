@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
-import { getPrecomputed } from "./demo";
+import { getPrecomputed, getPrecomputedLesson, withPrecomputedTechnologies } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
 import { redactSecrets } from "./filter";
@@ -46,7 +46,7 @@ export async function analyzeRepository(
     && Array.isArray(existing.analysis.overview.technologies)
   ) {
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
-    return { analysis: existing.analysis, cached: true };
+    return { analysis: withPrecomputedTechnologies(existing.analysis), cached: true };
   }
 
   const pre = await savePrecomputed(repository);
@@ -152,7 +152,7 @@ async function load(analysisId: string): Promise<StoredAnalysis> {
 }
 
 export async function getAnalysis(analysisId: string): Promise<Analysis> {
-  return (await load(analysisId)).analysis;
+  return withPrecomputedTechnologies((await load(analysisId)).analysis);
 }
 
 // F11: 분석별·정규화한 요청별로 위치 찾기 결과를 저장한다.
@@ -238,7 +238,10 @@ export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
 }
 
 // F6
-export function getLesson(analysisId: string, featureId: string): Promise<Lesson> {
+export async function getLesson(analysisId: string, featureId: string): Promise<Lesson> {
+  const stored = await load(analysisId);
+  const precomputed = getPrecomputedLesson(stored.analysis, findFeature(stored, featureId));
+  if (precomputed) return precomputed;
   return cached(analysisId, featureId, "lesson", async ({ feature, index, files }) => {
     const out = await generate(
       lessonSchema,
@@ -323,9 +326,10 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
   const lessons: Record<string, Lesson | null> = {};
   for (const f of stored.analysis.features) {
     const key = `${f.id}:lesson`;
-    lessons[f.id] = await getStore().getArtifact<Lesson>(analysisId, key);
+    lessons[f.id] = getPrecomputedLesson(stored.analysis, f)
+      ?? await getStore().getArtifact<Lesson>(analysisId, key);
   }
-  return { analysis: stored.analysis, lessons };
+  return { analysis: withPrecomputedTechnologies(stored.analysis), lessons };
 }
 
 // F8(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),

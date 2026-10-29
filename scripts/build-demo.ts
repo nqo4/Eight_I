@@ -28,7 +28,7 @@ async function main() {
     throw new Error("데모에는 검증된 코드 근거가 있는 기술이 3개 이상 필요해요.");
   }
 
-  const artifacts: Record<string, unknown> = {};
+  const artifacts: DemoData["artifacts"] = {};
   for (const f of analysis.features) {
     artifacts[`${f.id}:flow`] = await getFlow(analysis.id, f.id);
     artifacts[`${f.id}:lesson`] = await getLesson(analysis.id, f.id);

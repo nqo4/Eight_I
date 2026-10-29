@@ -14,7 +14,7 @@ export const overviewSchema = z.object({
   technologies: z.array(z.object({
     name: z.string().describe("이 프로젝트에서 실제로 쓰는 기술 이름"),
     role: z.string().describe("이 기술이 이 프로젝트에서 맡은 구체적인 역할"),
-    concept: z.string().describe("이 기술의 핵심 개념을 초보자에게 짧고 쉽게 설명"),
+    concept: z.string().describe("이 프로젝트에서 실제 사용한 기술의 핵심 개념과 한계를 짧고 쉽게 설명한다. 비밀번호 해시·JWT 서명·암호화를 구분하고, 서명된 JWT의 내용을 비공개라고 하거나 해시·쿠키가 모든 공격을 막는다고 보장하지 않는다"),
     references: z.array(ref).min(1).max(3).describe("기술의 근거 1~3곳. package.json의 의존성 라인과 실제 사용 코드의 라인을 함께 포함한다"),
   })).describe("코드 근거가 있는 사용한 기술 목록. 역할과 사용 코드를 확인하지 못한 기술은 제외"),
   unconfirmed_stack: z
@@ -80,20 +80,20 @@ export const lessonSchema = z.object({
     key_line: ref.nullable().describe("변화를 만드는 가장 중요한 코드 한 줄. 꼭 필요할 때만 최대 3줄, 근거가 없으면 null"),
   }).describe("행동 전후 변화 → 관련 코드 한 줄 → 개념 순서로 설명한다"),
   design_reasons: z.array(z.object({
-    reason: z.string().describe("이 구현 방식을 쓴 이유. 코드로 확인되는 사실과 작성자의 의도에 대한 추정을 구분한다"),
+    reason: z.string().describe("선택한 기능의 실제 구현 방식과 그 이유. 코드로 확인되는 동작과 작성자의 의도에 대한 추정을 구분하고, 입증되지 않은 의도는 '추정'이라고 명시한다. 보안 효과나 삭제 데이터의 완전한 복구를 보장하지 않는다"),
     reference: ref.nullable().describe("이유가 코드에서 확인되면 해당 위치, 확인할 수 없으면 null"),
-    inferred: z.boolean().describe("코드로 확인할 수 없는 이유나 작성자 의도는 true"),
+    inferred: z.boolean().describe("동작을 근거로 추측한 설계 목적 등 코드·주석으로 입증되지 않은 이유나 작성자 의도는 true"),
   })).min(1).max(3).describe("'왜 이렇게 만들었나' 설명 1~3개"),
   file_roles: z.array(z.object({ path: z.string(), role: z.string() })),
-  code_explanations: z.array(z.object({ reference: ref, explanation: z.string() })).describe("중요한 코드 2~4곳"),
+  code_explanations: z.array(z.object({ reference: ref, explanation: z.string().describe("선택한 기능의 해당 코드에서 확인되는 동작만 설명한다. 참조 범위가 설명의 실제 근거를 포함해야 한다") })).describe("중요한 코드 2~4곳"),
   concepts: z
     .array(
       z.object({
         name: z.string().describe("실제 코드에 쓰인 개념(예: React state, 이벤트 처리, API 요청)"),
-        why_needed: z.string().describe("이 서비스에서 왜 필요한가"),
-        explanation: z.string(),
-        easy_explanation: z.string().describe("비유를 써서 아주 쉽게 푼 설명"),
-        references: z.array(ref).describe("이 개념이 쓰인 실제 코드 1~3곳"),
+        why_needed: z.string().describe("선택한 기능에서 이 개념이 맡는 구체적인 역할. 검증 대상 필드와 조건은 해당 함수의 스키마에 맞추고 다른 기능의 예를 섞지 않는다. 확인되지 않은 필요성이나 설계 의도는 추정이라고 밝힌다"),
+        explanation: z.string().describe("참조 코드의 실제 동작과 한계를 설명한다. 해시는 암호화와 구분하고 비밀번호 추측 위험이 없다고 단정하지 않는다. JWT 서명은 위변조 검증이지 내용 암호화가 아니다. httpOnly는 JS 읽기 제한, secure는 HTTPS 전송 제한, SameSite는 값에 따른 교차 사이트 전송 제한이며 모든 탈취·XSS·CSRF를 막는다고 쓰지 않는다. 삭제는 이메일 변경·관계 행 삭제 등 부수 효과도 확인하고 완전 복구를 보장하지 않는다"),
+        easy_explanation: z.string().describe("선택한 기능을 비유로 쉽게 풀되 실제 동작과 한계를 유지한다. 서명을 비밀 암호화로, 해시·쿠키를 절대적 보안으로, soft delete를 표시만 지우면 완전 복구되는 방식으로 비유하지 않는다"),
+        references: z.array(ref).describe("설명한 동작을 실제로 확인할 수 있는 코드 1~3곳. 이름만 같은 다른 함수나 관련 없는 스키마를 근거로 삼지 않는다"),
       }),
     )
     .describe("코드에 실제로 있는 개념만 2~4개"),

@@ -21,7 +21,10 @@ test("S8 학습자가 다음에 다시 볼 수 있도록 프로젝트 학습 노
   const repo = (await page.getByTestId("repo-name").innerText()).trim()
   const shownSha = (await page.getByTestId("repo-commit").innerText()).trim()
   const intro = (await page.getByTestId("project-summary").innerText()).trim()
-  const techPath = (await page.getByRole("region", { name: "사용한 기술" }).getByRole("button").first().innerText()).match(/\S+\.\w+/)?.[0] ?? ""
+  const techCards = page.getByRole("region", { name: "사용한 기술" }).getByRole("button")
+  const techNames = await techCards.locator(":scope > span:first-child").allInnerTexts()
+  expect(techNames.length).toBeGreaterThan(0)
+  const techPath = (await techCards.first().innerText()).match(/\S+\.\w+/)?.[0] ?? ""
   const featurePath = (await page.getByRole("region", { name: "기능" }).getByTestId("feature-card").first().innerText()).match(/\S+\.\w+/)?.[0] ?? ""
 
   const downloadPromise = page.waitForEvent("download")
@@ -33,6 +36,9 @@ test("S8 학습자가 다음에 다시 볼 수 있도록 프로젝트 학습 노
   expect(text).toContain(squash(repo))
   expect(text).toContain(shownSha)
   expect(text).toContain(squash(intro))
+  const techSection = text.split(squash("사용한 기술"))[1]?.split(/폴더역할|기능과근거파일/)[0] ?? ""
+  expect(techSection.match(/•/g) ?? []).toHaveLength(techNames.length)
+  for (const name of techNames) expect(techSection).toContain(`•${squash(name)}`)
   expect(techPath).not.toBe("")
   expect(text).toContain(techPath)
   expect(featurePath).not.toBe("")

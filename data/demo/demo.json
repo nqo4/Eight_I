@@ -220,8 +220,8 @@
           },
           {
             "name": "bcryptjs",
-            "role": "사용자 비밀번호를 해시(암호화)하고 비교합니다. 회원가입 시 hashPassword()로 원문을 숨기고, 로그인 시 comparePasswords()로 일치 여부를 확인합니다.",
-            "concept": "비밀번호를 원래대로 되돌릴 수 없는 형태로 변환하는 암호화 라이브러리. 같은 비밀번호도 매번 다른 결과를 만들어 안전합니다.",
+            "role": "회원가입 시 hashPassword()로 비밀번호의 bcrypt 해시를 만들고, 로그인 시 comparePasswords()로 입력한 비밀번호가 저장된 해시에 대응하는지 확인합니다.",
+            "concept": "비밀번호 원문 대신 salt와 비용 설정을 포함한 해시를 저장·비교하는 라이브러리입니다. 해시는 복호화하는 암호문이 아니지만, 유출된 해시에 후보 비밀번호를 대입하는 공격까지 막지는 않습니다.",
             "references": [
               {
                 "path": "package.json",
@@ -249,7 +249,7 @@
           {
             "name": "jose",
             "role": "JWT 토큰을 만들고 검증합니다. setSession()에서 사용자 ID를 담은 토큰을 생성해 쿠키에 저장하고, verifyToken()으로 쿠키의 토큰을 읽어 로그인 상태를 확인합니다.",
-            "concept": "JSON 형태 데이터를 암호화해 토큰으로 만드는 라이브러리. 서버만 아는 비밀키로 서명해 위조를 막습니다.",
+            "concept": "이 프로젝트에서는 사용자 ID와 만료 시간을 담은 JWT를 HS256으로 서명하고 검증합니다. 서명은 내용 암호화가 아니므로 토큰을 가진 사람은 payload를 읽을 수 있으며, 서버는 서명과 만료를 확인합니다.",
             "references": [
               {
                 "path": "package.json",
@@ -991,7 +991,7 @@
       },
       "design_reasons": [
         {
-          "reason": "비밀번호를 평문이 아닌 해시로 저장해 데이터베이스가 노출되어도 실제 비밀번호를 알 수 없게 했다",
+          "reason": "hashPassword는 bcryptjs로 비밀번호를 해시한다. 평문 대신 해시를 저장하면 원문이 바로 노출되는 위험을 줄일 수 있지만, 유출된 해시에 대한 비밀번호 추측 공격까지 막는 것은 아니다.",
           "reference": {
             "path": "lib/auth/session.ts",
             "start_line": 9,
@@ -1002,7 +1002,7 @@
           "inferred": false
         },
         {
-          "reason": "JWT를 쿠키에 저장하고 httpOnly, secure, sameSite 옵션을 켜서 자바스크립트로 접근하거나 다른 사이트에서 훔쳐가지 못하게 했다",
+          "reason": "세션 쿠키에 httpOnly: true, secure: true, sameSite: 'lax'를 설정한다. 각각 자바스크립트의 쿠키 읽기, HTTPS가 아닌 전송, 일부 교차 사이트 전송을 제한하며 모든 탈취나 요청 위조를 막는 것은 아니다.",
           "reference": {
             "path": "lib/auth/session.ts",
             "start_line": 53,
@@ -1013,7 +1013,7 @@
           "inferred": false
         },
         {
-          "reason": "이메일이 틀렸을 때와 비밀번호가 틀렸을 때 같은 메시지를 보여 공격자가 이메일이 등록되어 있는지 알 수 없게 했다",
+          "reason": "이메일이 없을 때와 비밀번호가 틀릴 때 같은 메시지를 반환한다. 오류 문구로 이메일 등록 여부를 구분하기 어렵게 하려는 의도로 추정되지만, 등록 여부 노출을 완전히 막는다는 뜻은 아니다.",
           "reference": {
             "path": "app/(login)/actions.ts",
             "start_line": 66,
@@ -1075,7 +1075,7 @@
             "commit_sha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
             "snippet": "  const isPasswordValid = await comparePasswords(\n    password,\n    foundUser.passwordHash\n  );\n\n  if (!isPasswordValid) {\n    return {\n      error: 'Invalid email or password. Please try again.',\n      email,\n      password\n    };\n  }"
           },
-          "explanation": "comparePasswords가 사용자가 입력한 비밀번호를 bcrypt로 해시해서 데이터베이스의 passwordHash와 비교한다. 틀리면 같은 에러 메시지를 반환한다."
+          "explanation": "comparePasswords는 bcryptjs의 compare로 입력한 비밀번호가 저장된 passwordHash에 대응하는지 확인한다. 새 해시 문자열을 만들어 단순 비교하는 것이 아니며, 틀리면 같은 에러 메시지를 반환한다."
         },
         {
           "reference": {
@@ -1092,8 +1092,8 @@
         {
           "name": "bcrypt 해시",
           "why_needed": "비밀번호를 평문으로 저장하면 데이터베이스가 노출될 때 위험하므로 단방향 해시로 변환해 저장한다",
-          "explanation": "bcryptjs 라이브러리가 비밀번호를 해시로 바꾸고(hashPassword), 로그인 시 입력값을 같은 방식으로 해시해서 저장된 해시와 비교한다(comparePasswords). 같은 비밀번호라도 매번 다른 해시가 나오지만 compare 함수는 일치 여부를 확인할 수 있다.",
-          "easy_explanation": "비밀번호를 '고기를 갈아서 햄버거 패티로 만드는 것'처럼 되돌릴 수 없게 바꿔 저장한다. 로그인할 때는 입력한 비밀번호를 같은 방식으로 갈아서 저장된 패티와 비교한다.",
+          "explanation": "bcryptjs의 hashPassword는 비밀번호를 해시로 만들고, comparePasswords는 compare로 저장된 해시의 salt와 비용 설정을 이용해 입력값의 일치 여부를 확인한다. 해시는 복호화하는 암호문이 아니지만, 유출되면 후보 비밀번호를 대입해 맞혀 볼 수 있다.",
+          "easy_explanation": "비밀번호 원문 대신 확인용 지문을 보관하는 셈이다. 로그인할 때는 저장된 지문의 조건으로 입력값이 맞는지 검사한다. 지문을 복호화하지는 않지만, 후보 비밀번호를 하나씩 시험하는 공격은 가능하다.",
           "references": [
             {
               "path": "lib/auth/session.ts",
@@ -1135,9 +1135,9 @@
         },
         {
           "name": "httpOnly 쿠키",
-          "why_needed": "자바스크립트로 쿠키를 읽지 못하게 막아 XSS 공격으로 JWT를 훔쳐가는 것을 방지한다",
-          "explanation": "setSession에서 쿠키를 저장할 때 httpOnly: true, secure: true, sameSite: 'lax' 옵션을 설정한다. httpOnly는 브라우저에서만 쿠키를 보내고 JS 접근을 차단하며, secure는 HTTPS에서만 전송하고, sameSite는 다른 사이트에서 쿠키를 보내지 못하게 한다.",
-          "easy_explanation": "'은행 출입증을 투명 케이스에 넣어서 직접 꺼낼 수 없게 만드는 것'처럼, 쿠키를 자바스크립트로 읽지 못하게 보호한다.",
+          "why_needed": "세션 쿠키를 자바스크립트가 직접 읽지 못하게 해서 XSS로 토큰 값이 노출될 위험을 줄인다. XSS 자체나 로그인된 브라우저를 통한 요청까지 막지는 않는다.",
+          "explanation": "setSession은 httpOnly: true, secure: true, sameSite: 'lax'를 설정한다. httpOnly는 자바스크립트의 쿠키 읽기를 제한하고, secure는 HTTPS에서만 전송하게 한다. SameSite=Lax는 일부 교차 사이트 요청의 쿠키 전송을 제한하지만, 일반적인 최상위 안전한 탐색 요청 등에는 쿠키가 전송될 수 있어 모든 CSRF를 막는 보장은 아니다.",
+          "easy_explanation": "브라우저가 출입증을 대신 보내되 페이지의 자바스크립트에는 출입증 값을 보여주지 않는 방식이다. HTTPS 전송과 일부 다른 사이트 요청도 제한하지만, 출입증을 이용한 모든 공격을 막는 금고는 아니다.",
           "references": [
             {
               "path": "lib/auth/session.ts",
@@ -1474,7 +1474,7 @@
           "inferred": false
         },
         {
-          "reason": "비밀번호는 bcryptjs로 해시한 후 저장하고, 세션은 JWT로 만들어 httpOnly 쿠키에 1일간 보관해 보안을 유지함",
+          "reason": "hashPassword는 bcryptjs의 hash로 비밀번호를 해시하고, comparePasswords는 compare로 입력값과 저장된 해시의 일치 여부를 확인한다.",
           "reference": {
             "path": "lib/auth/session.ts",
             "start_line": 9,
@@ -1599,9 +1599,9 @@
         },
         {
           "name": "bcryptjs 비밀번호 해시",
-          "why_needed": "비밀번호를 평문으로 저장하면 DB 유출 시 위험하므로, 복호화 불가능한 해시로 변환해 저장하기 위해",
+          "why_needed": "비밀번호를 평문 대신 bcrypt 해시로 저장해 DB 유출 시 원문이 바로 노출되는 위험을 줄이기 위해",
           "explanation": "hashPassword(password)는 bcrypt로 비밀번호를 해시해 DB에 저장하고, comparePasswords는 로그인 시 입력한 비밀번호와 저장된 해시를 비교합니다.",
-          "easy_explanation": "비밀번호를 그대로 저장하지 않고 일방통행 변환기로 바꿔 저장합니다. 나중에 로그인할 때는 입력한 비밀번호를 같은 방식으로 바꿔서 저장된 것과 같은지만 확인합니다. 원본을 알아낼 수는 없습니다.",
+          "easy_explanation": "비밀번호 원문 대신 확인용 지문을 저장합니다. 로그인할 때 compare가 저장된 지문의 조건으로 입력값을 확인합니다. 복호화하는 방식은 아니지만 후보 비밀번호를 대입해 맞혀 보는 공격은 가능합니다.",
           "references": [
             {
               "path": "app/(login)/actions.ts",
@@ -1621,9 +1621,9 @@
         },
         {
           "name": "JWT 세션 토큰",
-          "why_needed": "사용자가 로그인했다는 정보를 서버만 확인할 수 있는 토큰으로 만들어 쿠키에 저장하기 위해",
-          "explanation": "setSession은 사용자 ID와 만료 시간을 JWT로 서명해 httpOnly 쿠키에 저장합니다. getSession은 쿠키에서 토큰을 읽어 서명을 검증하고, 만료되지 않았으면 사용자 정보를 반환합니다.",
-          "easy_explanation": "로그인한 사용자에게 입장권(토큰)을 발급해 쿠키에 보관하게 합니다. 이 입장권은 서버만 위조 여부를 확인할 수 있고, 유효기간(1일)이 지나면 자동으로 무효가 됩니다.",
+          "why_needed": "로그인한 사용자의 ID와 만료 시간을 서명된 토큰으로 쿠키에 담고, 서버가 서명과 만료를 검증하기 위해",
+          "explanation": "setSession은 사용자 ID와 만료 시간을 담은 JWT를 httpOnly 쿠키에 저장합니다. signToken의 HS256 서명은 내용 암호화가 아니므로 토큰을 가진 사람은 payload를 읽을 수 있습니다. 이 코드의 서버는 AUTH_SECRET에서 만든 키로 서명을 생성·검증하며, getSession은 verifyToken을 통해 서명과 JWT 만료를 검증한 payload를 반환합니다.",
+          "easy_explanation": "내용을 읽을 수 있는 입장권에 비밀키로 확인 도장을 찍는 방식입니다. 도장은 내용을 숨기지 않고 변조 여부를 확인하는 데 쓰이며, 서버는 서명과 1일 유효기간을 검증합니다.",
           "references": [
             {
               "path": "lib/auth/session.ts",
@@ -1633,11 +1633,18 @@
               "snippet": "export async function setSession(user: NewUser) {\n  const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);\n  const session: SessionData = {\n    user: { id: user.id! },\n    expires: expiresInOneDay.toISOString(),\n  };\n  const encryptedSession = await signToken(session);\n  (await cookies()).set('session', encryptedSession, {\n    expires: expiresInOneDay,\n    httpOnly: true,\n    secure: true,\n    sameSite: 'lax',\n  });\n}"
             },
             {
-              "path": "lib/db/queries.ts",
-              "start_line": 7,
-              "end_line": 24,
+              "path": "lib/auth/session.ts",
+              "start_line": 25,
+              "end_line": 38,
               "commit_sha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
-              "snippet": "export async function getUser() {\n  const sessionCookie = (await cookies()).get('session');\n  if (!sessionCookie || !sessionCookie.value) {\n    return null;\n  }\n\n  const sessionData = await verifyToken(sessionCookie.value);\n  if (\n    !sessionData ||\n    !sessionData.user ||\n    typeof sessionData.user.id !== 'number'\n  ) {\n    return null;\n  }\n\n  if (new Date(sessionData.expires) < new Date()) {\n    return null;\n  }"
+              "snippet": "export async function signToken(payload: SessionData) {\n  return await new SignJWT(payload)\n    .setProtectedHeader({ alg: 'HS256' })\n    .setIssuedAt()\n    .setExpirationTime('1 day from now')\n    .sign(key);\n}\n\nexport async function verifyToken(input: string) {\n  const { payload } = await jwtVerify(input, key, {\n    algorithms: ['HS256'],\n  });\n  return payload as SessionData;\n}"
+            },
+            {
+              "path": "lib/auth/session.ts",
+              "start_line": 40,
+              "end_line": 44,
+              "commit_sha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
+              "snippet": "export async function getSession() {\n  const session = (await cookies()).get('session')?.value;\n  if (!session) return null;\n  return await verifyToken(session);\n}"
             }
           ]
         }
@@ -2346,13 +2353,13 @@
       },
       "design_reasons": [
         {
-          "reason": "화면(minLength=8)과 서버(z.string().min(8)) 양쪽에서 8자 이상 검사를 해서 클라이언트 조작을 방지합니다",
+          "reason": "서버의 updatePasswordSchema가 현재·새·확인 비밀번호를 각각 8~100자 문자열로 검사합니다. 화면의 입력 제한과 별개로 서버에서도 길이 조건을 적용합니다.",
           "reference": {
-            "path": "app/(dashboard)/dashboard/security/page.tsx",
-            "start_line": 57,
-            "end_line": 58,
+            "path": "app/(login)/actions.ts",
+            "start_line": 231,
+            "end_line": 235,
             "commit_sha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
-            "snippet": "                minLength={8}\n                maxLength={100}"
+            "snippet": "const updatePasswordSchema = z.object({\n  currentPassword: z.string().min(8).max(100),\n  newPassword: z.string().min(8).max(100),\n  confirmPassword: z.string().min(8).max(100)\n});"
           },
           "inferred": false
         },
@@ -2457,9 +2464,9 @@
         },
         {
           "name": "Zod 스키마 검증",
-          "why_needed": "클라이언트에서 보낸 데이터가 형식에 맞는지(이메일 형식, 최소 길이 등) 서버에서 다시 확인하기 위해",
-          "explanation": "zod는 JavaScript 객체가 정해진 규칙(타입, 길이, 형식)에 맞는지 검사하는 라이브러리입니다. safeParse로 검사하면 통과 시 data를, 실패 시 error를 돌려줍니다",
-          "easy_explanation": "공항 보안 검색대에서 짐의 크기와 내용물을 규정에 맞게 확인하는 것처럼, Zod는 서버로 들어오는 데이터가 약속한 형태인지 자동으로 검사합니다",
+          "why_needed": "비밀번호 변경 요청의 currentPassword, newPassword, confirmPassword가 모두 문자열이고 8~100자인지 서버에서 확인하기 위해",
+          "explanation": "updatePasswordSchema는 현재·새·확인 비밀번호 세 필드의 타입과 길이를 검사합니다. validatedActionWithUser의 safeParse가 실패하면 에러를 반환합니다. 이메일 형식은 검사하지 않으며, 현재 비밀번호가 맞는지와 새 비밀번호·확인값의 관계는 이후 액션 코드에서 따로 검사합니다.",
+          "easy_explanation": "비밀번호 세 칸이 모두 8~100자 문자열인지 입구에서 확인하는 검사입니다. 현재 비밀번호가 맞는지, 새 비밀번호 두 칸이 같은지는 입구를 통과한 뒤 별도로 확인합니다.",
           "references": [
             {
               "path": "app/(login)/actions.ts",
@@ -2479,9 +2486,9 @@
         },
         {
           "name": "bcrypt 비밀번호 해싱",
-          "why_needed": "비밀번호를 평문으로 저장하면 DB 유출 시 그대로 노출되므로, 복호화할 수 없는 해시로 변환해서 저장하기 위해",
-          "explanation": "bcryptjs의 hash는 비밀번호를 일방향으로 암호화하고, compare는 입력한 평문과 저장된 해시가 같은 비밀번호인지 확인합니다. SALT_ROUNDS(10)는 암호화 강도입니다",
-          "easy_explanation": "비밀번호를 잘게 갈아서 되돌릴 수 없는 가루로 만들고, 나중에 입력한 비밀번호를 똑같이 갈아서 가루가 일치하는지 비교합니다. 가루만 봐서는 원래 비밀번호를 알 수 없습니다",
+          "why_needed": "새 비밀번호를 평문 대신 bcrypt 해시로 저장해 DB 유출 시 원문이 바로 노출되는 위험을 줄이기 위해",
+          "explanation": "hashPassword는 bcryptjs의 hash로 새 비밀번호를 해시하고, comparePasswords는 compare로 현재 비밀번호가 저장된 해시에 대응하는지 확인합니다. 해시는 복호화하는 암호화가 아니며, 유출된 해시에 후보 비밀번호를 대입하는 공격까지 막지는 않습니다.",
+          "easy_explanation": "새 비밀번호 원문 대신 확인용 지문을 저장합니다. 현재 비밀번호 확인에는 저장된 지문의 조건을 사용하며, 새 지문 문자열을 만들어 단순 비교하지 않습니다. 후보 비밀번호를 시험하는 공격은 가능하므로 절대적인 보호는 아닙니다.",
           "references": [
             {
               "path": "lib/auth/session.ts",
@@ -2739,13 +2746,13 @@
       },
       "design_reasons": [
         {
-          "reason": "사용자 레코드를 완전히 지우지 않고 deletedAt 타임스탬프만 기록하는 soft delete 방식을 사용한다. 이렇게 하면 데이터 복구가 가능하고, 다른 테이블의 외래 키 참조가 깨지지 않는다.",
+          "reason": "사용자 행은 남기되 deletedAt과 이메일을 변경하고, 조회된 팀과 사용자의 teamMembers 관계 행은 삭제한다. deletedAt만 되돌려도 이메일과 팀 관계가 모두 복구되는 구현은 아니다.",
           "reference": {
             "path": "app/(login)/actions.ts",
             "start_line": 317,
-            "end_line": 323,
+            "end_line": 334,
             "commit_sha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
-            "snippet": "    await db\n      .update(users)\n      .set({\n        deletedAt: sql`CURRENT_TIMESTAMP`,\n        email: sql`CONCAT(email, '-', id, '-deleted')` // Ensure email uniqueness\n      })\n      .where(eq(users.id, user.id));"
+            "snippet": "    await db\n      .update(users)\n      .set({\n        deletedAt: sql`CURRENT_TIMESTAMP`,\n        email: sql`CONCAT(email, '-', id, '-deleted')` // Ensure email uniqueness\n      })\n      .where(eq(users.id, user.id));\n\n    if (userWithTeam?.teamId) {\n      await db\n        .delete(teamMembers)\n        .where(\n          and(\n            eq(teamMembers.userId, user.id),\n            eq(teamMembers.teamId, userWithTeam.teamId)\n          )\n        );\n    }"
           },
           "inferred": false
         },
@@ -2886,9 +2893,9 @@
         },
         {
           "name": "Soft Delete",
-          "why_needed": "데이터를 완전히 지우지 않고 '삭제됨' 표시만 해서 복구 가능성을 남기기 위해",
-          "explanation": "레코드를 실제로 삭제하지 않고 deletedAt 같은 타임스탬프 컬럼에 삭제 시각을 기록한다. 조회할 때는 deletedAt이 null인 레코드만 가져와서 삭제된 것처럼 보이게 한다.",
-          "easy_explanation": "책을 버리지 않고 '폐기' 스티커만 붙이는 것과 같다. 나중에 필요하면 스티커를 떼고 다시 쓸 수 있다.",
+          "why_needed": "사용자 행을 남긴 채 삭제 시각을 기록하고, getUser 조회에서 삭제된 사용자를 제외하는 데 쓰인다. 복구를 위한 설계 의도인지는 코드만으로 확인되지 않는다.",
+          "explanation": "deleteAccount는 users.deletedAt에 삭제 시각을 기록하고 이메일에 '-{id}-deleted'를 붙인다. 조회된 팀이 있으면 해당 사용자와 팀의 teamMembers 행도 실제 삭제한다. getUser는 deletedAt이 null인 사용자만 조회한다. 따라서 사용자 행이 남아 있어도 deletedAt만 지워 원래 이메일과 팀 관계까지 완전히 복구할 수 있는 것은 아니다.",
+          "easy_explanation": "회원 카드를 버리지 않고 '삭제됨' 도장을 찍지만, 카드의 이메일도 바꾸고 팀 명단에서도 연결을 지우는 셈이다. 도장만 지운다고 원래 이메일과 팀 소속이 모두 돌아오지는 않는다.",
           "references": [
             {
               "path": "app/(login)/actions.ts",
@@ -2905,11 +2912,11 @@
               "snippet": "    .where(and(eq(users.id, sessionData.user.id), isNull(users.deletedAt)))"
             },
             {
-              "path": "lib/db/schema.ts",
-              "start_line": 19,
-              "end_line": 19,
+              "path": "app/(login)/actions.ts",
+              "start_line": 325,
+              "end_line": 334,
               "commit_sha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
-              "snippet": "  deletedAt: timestamp('deleted_at'),"
+              "snippet": "    if (userWithTeam?.teamId) {\n      await db\n        .delete(teamMembers)\n        .where(\n          and(\n            eq(teamMembers.userId, user.id),\n            eq(teamMembers.teamId, userWithTeam.teamId)\n          )\n        );\n    }"
             }
           ]
         },
