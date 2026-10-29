@@ -24,6 +24,7 @@ ENV NODE_ENV=production \
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/data ./data
+COPY --from=builder /app/assets ./assets
 COPY --from=builder --chown=app:app /app/.next/standalone ./
 COPY --from=builder --chown=app:app /app/.next/static ./.next/static
 USER app

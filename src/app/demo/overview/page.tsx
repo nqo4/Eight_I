@@ -7,7 +7,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
-import type { Analysis, CodeReference, Layer, LocateResult, Overview } from "@/server/types";
+import type { CodeReference, Layer, LocateResult, Overview } from "@/server/types";
 
 const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "기타" };
 const locateTag = { ui: "화면", server: "서버", db: "DB" } as const;
@@ -22,38 +22,6 @@ function techViews(o: Overview): TechView[] {
     concept: null,
     references: s.status === "confirmed" && s.evidence ? [s.evidence] : [],
   }));
-}
-
-function buildNote(a: Analysis) {
-  const r = a.repository;
-  const o = a.overview;
-  return [
-    `# ${r.id} 학습 노트`,
-    "",
-    `- 프로젝트: ${r.id}`,
-    `- 분석 기준 commit SHA: ${r.commit_sha}`,
-    `- 기본 브랜치: ${r.default_branch}`,
-    "",
-    "## 프로젝트 소개",
-    o.summary,
-    o.purpose,
-    o.intro_inferred ? "- 소개 출처: AI 추정" : `- 소개 근거 파일: ${(o.intro_sources ?? []).join(", ") || "확인 불가"}`,
-    "",
-    "## 사용한 기술",
-    ...techViews(o).flatMap((t) => [
-      `### ${t.name}`,
-      `- 역할: ${t.role ?? "확인 불가"}`,
-      `- 근거 파일: ${t.references.length ? t.references.map(refLabel).join(", ") : "확인 불가"}`,
-    ]),
-    "",
-    "## 주요 폴더",
-    ...o.directories.map((d) => `- ${d.path} (${layerTag[d.layer ?? "other"]}): ${d.role}`),
-    "",
-    "## 기능별 근거 파일",
-    ...(a.features.length
-      ? a.features.flatMap((f) => [`### ${f.title}`, f.summary, ...f.code_references.map((c) => `- ${refLabel(c)}`), ""])
-      : ["기능을 찾지 못했습니다", ""]),
-  ].join("\n");
 }
 
 export default function OverviewPage() {
@@ -102,17 +70,6 @@ export default function OverviewPage() {
     }
   };
 
-  const download = () => {
-    const blob = new Blob([buildNote(analysis)], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `codeback-${repo.owner}-${repo.name}-${repo.commit_sha.slice(0, 7)}.md`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <>
@@ -142,9 +99,9 @@ export default function OverviewPage() {
               {repo.commit_sha}
             </dd>
           </div>
-          <button type="button" className={`${secondaryBtn} ml-auto`} onClick={download}>
-            학습 노트 내려받기
-          </button>
+          <a href={`/api/analyses/${encodeURIComponent(analysis.id)}/note`} download className={`${secondaryBtn} ml-auto`}>
+            학습 노트 내려받기 (PDF)
+          </a>
         </dl>
         <section aria-label="프로젝트 소개" className="flex flex-col gap-2">
           <h2 className="text-xs font-bold text-text-muted">프로젝트 소개</h2>
