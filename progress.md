@@ -5,8 +5,8 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 ## 현재 상태
 
 - 실제 서비스 저장소 폴더: C:\Users\user\OneDrive\Documents\8I\Eight_I
-- 현재 단계 / 다음 행동: 2단계 — 팀 문서를 대회 양식으로 옮겨 push(cbd80af), 대시보드 표시 확인과 빈 칸 채우기
-- 학생에게 확인할 내용: platform·platformReason, why_ours, experiences, 흐름 선택, 보류/제외 상태
+- 현재 단계 / 다음 행동: 2단계 — problem.yaml·scenarios.yaml v1.0 동결(why_ours·insight·FR input·platform·흐름 7개 확정). 다음: 학생이 experiences·personas·sources 모양 확인 → 3단계(Docker·CI·배포) 뼈대
+- 학생에게 확인할 내용: experiences(팀원 경험 장면), personas, sources 항목 모양(키트 example 확인), S1용 소형 공개 샘플 저장소 선택, 키트 파일 위치(docker-compose.example.yml·workflows·e2e)
 
 ## 1. GitHub 준비
 
@@ -31,16 +31,16 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [ ] 팀원 경험을 언제·어떤 장면·어떻게 대응했는지까지 experiences에 기록
 - [ ] 외부 자료는 열리는 URL을 sources에 그대로 적고 원문이 주장을 직접 뒷받침하는지 확인, 출처 없는 수치 없음
 - [ ] 문제가 '우리 기능이 없어서'가 아니라 실제 상황·행동으로 서술됐는지 확인
-- [ ] 2-B 해법 찾기: 학생이 낸 해법과 결정을 solution_paths에, 기존 대안 대신 이 해법이어야 하는 이유를 학생 말로 why_ours에 작성
-- [ ] 2-C features에 학생이 고른 해법의 기능별 입력·결과·완료 조건 작성
+- [x] 2-B 해법 찾기: 학생이 낸 해법과 결정을 solution_paths에, 기존 대안 대신 이 해법이어야 하는 이유를 학생 말로 why_ours에 작성 (팀 원본 문장으로 채움, 학생 확인 필요)
+- [x] 2-C features에 학생이 고른 해법의 기능별 입력·결과·완료 조건 작성 (FR-03·FR-10 input 채움)
 - [x] YAML 문법 검사, 등록된 레포의 기본 브랜치에 docs/problem.yaml push
 - [x] 학생이 개인 로그인으로 우리 팀 → 문제 정의를 열어 캔버스 표시 확인(Agent는 화면을 열 수 없음, 약 1분 캐시)
-- [ ] 핵심 사용자 흐름·기능별 동작 규칙·완료 조건·제외 범위를 팀과 확인
-- [ ] 로그인 필요 여부와 역할 이름(흐름 account·docker 시드 계정 역할 이름으로 씀) 결정
-- [ ] 첫 화면에서 알려 줄 것(로그인하지 않은 사람이 `/`에서 볼 서비스 이름·하는 일)을 학생과 정함
-- [ ] 주 사용 플랫폼(desktop·mobile·both)과 실제 사용 장면에 근거한 platformReason 작성
-- [ ] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push
-- [ ] 서비스의 AI 호출 필요 여부 확인
+- [x] 핵심 사용자 흐름·기능별 동작 규칙·완료 조건·제외 범위를 팀과 확인 (대회 흐름 S1~S6·S8, SC-07은 P1 제외)
+- [x] 로그인 필요 여부와 역할 이름(흐름 account·docker 시드 계정 역할 이름으로 씀) 결정 (로그인 없음, account 미사용)
+- [x] 첫 화면에서 알려 줄 것(로그인하지 않은 사람이 `/`에서 볼 서비스 이름·하는 일)을 학생과 정함 (서비스 이름 CodeBack, 한 줄: AI로 만든 프로젝트를 기능에서 코드까지 배우는 학습 서비스, 버튼 '내 프로젝트 분석하기'·'샘플로 체험하기')
+- [x] 주 사용 플랫폼(desktop·mobile·both)과 실제 사용 장면에 근거한 platformReason 작성 (desktop)
+- [x] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push (7개, 모두 홈에서 시작, Bun.YAML 파싱 확인)
+- [x] 서비스의 AI 호출 필요 여부 확인 (필요: FR-03~FR-08의 구조 요약·기능 추출·설명·퀴즈·미션 생성. S1만 실시간 분석, 샘플 모드는 사전 생성 결과)
 - [ ] README 등 기존 문서에 확인된 구현 설계 기록, 기본 브랜치 push
 - 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml / cbd80af61145cd9e4d46d371184bd333314f2e5e / 학생 답 대기: alternatives[].why_ours, experiences, sources, insight, FR-03·FR-10 input, scenarios platform·platformReason, 흐름 3~8개 선택(현재 8개, S7은 P1)
 
