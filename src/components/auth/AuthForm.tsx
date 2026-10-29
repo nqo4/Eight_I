@@ -28,15 +28,14 @@ type InputFieldProps = {
   id: Field;
   label: string;
   type: string;
-  value: string;
   placeholder: string;
   autoComplete: string;
   error?: string;
-  onChange: (value: string) => void;
+  onChange: () => void;
   trailing?: React.ReactNode;
 };
 
-function InputField({ id, label, type, value, placeholder, autoComplete, error, onChange, trailing }: InputFieldProps) {
+function InputField({ id, label, type, placeholder, autoComplete, error, onChange, trailing }: InputFieldProps) {
   return (
     <div className="flex w-full flex-col items-start gap-[8px]">
       <label htmlFor={id} className="text-[11px] leading-[16px] font-bold text-text-primary">
@@ -51,12 +50,11 @@ function InputField({ id, label, type, value, placeholder, autoComplete, error, 
           id={id}
           name={id}
           type={type}
-          value={value}
           placeholder={placeholder}
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={onChange}
           className="min-w-0 flex-1 bg-transparent text-[13px] leading-[20px] text-text-primary outline-none placeholder:text-text-muted"
         />
         {trailing}
@@ -72,7 +70,6 @@ function InputField({ id, label, type, value, placeholder, autoComplete, error, 
 
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
-  const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -80,14 +77,20 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   const isSignup = mode === "signup";
 
-  const update = (field: Field) => (value: string) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
+  const update = (field: Field) => () => {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
     setServerError(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Read the DOM so input entered before hydration or by autofill is preserved.
+    const formData = new FormData(event.currentTarget);
+    const values: Record<Field, string> = {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    };
     const nextErrors = validate(mode, values);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -131,7 +134,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
             id="name"
             label="이름"
             type="text"
-            value={values.name}
             placeholder="홍길동"
             autoComplete="name"
             error={errors.name}
@@ -142,7 +144,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
           id="email"
           label="이메일"
           type="email"
-          value={values.email}
           placeholder="you@example.com"
           autoComplete="email"
           error={errors.email}
@@ -152,7 +153,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
           id="password"
           label="비밀번호"
           type={showPassword ? "text" : "password"}
-          value={values.password}
           placeholder={`${MIN_PASSWORD_LENGTH}자 이상`}
           autoComplete={isSignup ? "new-password" : "current-password"}
           error={errors.password}

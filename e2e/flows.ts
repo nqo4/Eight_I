@@ -5,7 +5,9 @@ import { E2E_USER_EMAIL, E2E_USER_PASSWORD } from "./env"
 export const SAMPLE_REPO = "https://github.com/nextjs/saas-starter"
 
 export async function loginAsLearner(page: Page) {
+  const authChecked = page.waitForResponse((response) => response.url().endsWith("/api/auth/me"))
   await page.goto("/login")
+  await authChecked
   await page.getByLabel("이메일").fill(E2E_USER_EMAIL)
   await page.getByLabel("비밀번호", { exact: true }).fill(E2E_USER_PASSWORD)
   await page.getByRole("button", { name: "로그인", exact: true }).click()

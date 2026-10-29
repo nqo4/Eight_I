@@ -23,7 +23,9 @@ function emit() {
 }
 
 function set(user: User | null) {
-  if (current?.email !== user?.email || current === undefined) epoch += 1;
+  // Initial discovery has no previous account state to clear. Remounting here
+  // would discard form input entered while the first auth check was pending.
+  if (current !== undefined && current?.email !== user?.email) epoch += 1;
   current = user;
   checkFailed = false;
   emit();
