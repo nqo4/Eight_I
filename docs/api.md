@@ -193,7 +193,7 @@
 | `AI_GATEWAY_API_KEY` | (없음) | AI Gateway 키. 대시보드 자료 → API 키 |
 | `AI_MODEL` | `anthropic/claude-haiku-5.5` | Gateway 모델 식별자 |
 | `DATABASE_URL` | (없음 → 메모리) | Postgres 주소. 배포 환경에서는 필요 |
-| `GITHUB_TOKEN` | (없음) | 있으면 GitHub 요청 한도가 IP당 60회/시간에서 토큰당 5,000회/시간으로 늘어남(읽기 전용 토큰). docker-compose.yml도 이 값을 앱에 넘김 |
+| `GITHUB_TOKEN` | (없음) | 있으면 GitHub 요청 한도가 늘어남(읽기 전용 토큰) |
 | `ANALYZE_MAX_FILES` | 80 | 한 저장소에서 읽을 최대 파일 수 |
 | `ANALYZE_MAX_TOTAL_BYTES` | 250000 | 한 저장소에서 읽을 최대 총 크기 |
 | `ANALYZE_MAX_FILE_BYTES` | 40000 | 이보다 큰 파일은 건너뜀 |
