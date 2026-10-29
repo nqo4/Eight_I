@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MissionGrader } from "@/components/demo/MissionGrader";
+import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Exercise } from "@/server/types";
@@ -41,8 +42,19 @@ export function Mission() {
         {ex.target_references[0] && (
           <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3">
             <div className="flex min-w-0 flex-col gap-1.5 rounded-8 bg-text-primary px-4 py-3 text-surface">
-              <p className="text-xs font-bold text-surface/70">현재 코드</p>
-              <pre className="overflow-auto font-mono text-sm leading-6">{ex.target_references[0].snippet.split("\n").slice(0, 3).join("\n")}</pre>
+              <p className="flex items-center justify-between gap-3 text-xs font-bold text-surface/70">
+                현재 코드
+                <LanguageTag path={ex.target_references[0].path} />
+              </p>
+              <pre className="overflow-auto font-mono text-sm leading-6">
+                {highlightLines(ex.target_references[0].snippet, ex.target_references[0].path)
+                  .slice(0, 3)
+                  .map((tokens, i) => (
+                    <div key={i}>
+                      <Tokens tokens={tokens} />
+                    </div>
+                  ))}
+              </pre>
               <p className="font-mono text-xs break-all text-surface/70">{refLabel(ex.target_references[0])}</p>
             </div>
             <span aria-hidden className="self-center text-sm font-bold text-brand-purple-ink">→</span>

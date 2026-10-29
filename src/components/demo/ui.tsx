@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CodeReference, Overview } from "@/server/types";
 import type { ApiError } from "@/components/session/Session";
+import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 
 export const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple";
 export const secondaryBtn = `inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-8 border border-line bg-surface px-4 py-2 text-sm font-bold text-text-primary transition-colors hover:border-brand-purple disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
@@ -41,13 +42,16 @@ export function CodeExcerpt({ r, highlight = false }: { r: CodeReference; highli
     >
       <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-surface/10 px-5 py-2.5 font-mono text-xs text-surface/70">
         <span>{refLabel(r)}</span>
-        <span>{r.commit_sha.slice(0, 7)}</span>
+        <span className="flex items-center gap-3">
+          <LanguageTag path={r.path} />
+          {r.commit_sha.slice(0, 7)}
+        </span>
       </figcaption>
       <pre className="max-h-96 overflow-auto px-5 py-3 font-mono text-sm leading-6">
-        {r.snippet.split("\n").map((line, i) => (
+        {highlightLines(r.snippet, r.path).map((tokens, i) => (
           <div key={i}>
             <span className="mr-4 inline-block w-10 select-none text-right text-surface/40">{r.start_line + i}</span>
-            {line}
+            <Tokens tokens={tokens} />
           </div>
         ))}
       </pre>
