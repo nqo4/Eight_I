@@ -214,8 +214,21 @@ async function fetchRaw(owner: string, repo: string, sha: string, path: string):
   const res = await request(`${RAW}/${owner}/${repo}/${sha}/${encoded}`, {
     headers: { Accept: "text/plain" },
   });
-  if (!res.ok) return null;
-  const text = await res.text();
+  // 404만 '받을 파일이 없음'으로 보고 뺀다. 429·5xx 등 일시 장애는 분석 전체를 실패시킨다(#6).
+  // 빠진 파일로 분석이 성공하면 그 결과가 이 commit의 캐시로 남아 다음 요청에서도 계속 누락되기 때문이다.
+  if (res.status === 404) {
+    console.warn(`[github] raw_not_found status=404 path=/${owner}/${repo}/${sha.slice(0, 7)}/${encoded}`);
+    return null;
+  }
+  checkStatus(res);
+  let text: string;
+  try {
+    text = await res.text();
+  } catch {
+    // 응답 본문을 받다가 끊긴 경우. 일부만 받은 파일로 분석하지 않는다.
+    console.error(`[github] github_unavailable body_interrupted path=/${owner}/${repo}/${sha.slice(0, 7)}/${encoded}`);
+    throw new AppError("github_unavailable", "GitHub에서 파일을 받다가 연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
+  }
   if (looksBinary(text)) return null;
   const { content } = redactSecrets(text.replace(/\r\n/g, "\n"));
   return { path, content, size: text.length };
@@ -224,10 +237,16 @@ async function fetchRaw(owner: string, repo: string, sha: string, path: string):
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let next = 0;
+  let failed = false;
   async function worker() {
-    while (next < items.length) {
+    while (!failed && next < items.length) {
       const i = next++;
-      out[i] = await fn(items[i]);
+      try {
+        out[i] = await fn(items[i]);
+      } catch (err) {
+        failed = true; // 하나라도 실패하면 남은 파일은 더 요청하지 않는다
+        throw err;
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));

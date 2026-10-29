@@ -6,7 +6,7 @@ const MAX_REF_LINES = 60;
 export type RawRef = { path: string; start_line: number; end_line: number };
 
 export class SnapshotIndex {
-  private byPath = new Map<string, { file: SnapshotFile; lines: string[] }>();
+  private byPath = new Map<string, { file: SnapshotFile; lines: string[]; specs?: string[] }>();
 
   constructor(
     readonly snapshot: Snapshot,
@@ -71,9 +71,8 @@ export class SnapshotIndex {
     if (!from) return false;
     const target = stripExt(normalizePath(toPath));
     const dir = from.file.path.split("/").slice(0, -1).join("/");
-    const re = /(?:import\s[^'"]*?from\s*|import\s*\(\s*|require\s*\(\s*|export\s[^'"]*?from\s*)['"]([^'"]+)['"]/g;
-    for (const m of from.file.content.matchAll(re)) {
-      const spec = m[1];
+    from.specs ??= importSpecifiers(from.file.content);
+    for (const spec of from.specs) {
       let resolved: string | null = null;
       if (spec.startsWith(".")) resolved = joinPath(dir, spec);
       else if (spec.startsWith("@/") || spec.startsWith("~/")) resolved = spec.slice(2);
@@ -115,6 +114,111 @@ export class SnapshotIndex {
     }
     return [...out];
   }
+}
+
+// 실제 코드에 있는 import·require·export ... from의 경로만 모은다(#12).
+// 주석이나 문자열 안에 import처럼 적힌 글자는 실행되지 않으므로 연결 근거로 쓰지 않는다.
+const IMPORT_RE = /(?<![\w$.])(?:import\s[^'"]*?from\s*|import\s*\(\s*|require\s*\(\s*|export\s[^'"]*?from\s*)(['"])/g;
+
+export function importSpecifiers(source: string): string[] {
+  const masked = maskNonCode(source);
+  const out: string[] = [];
+  for (const m of masked.matchAll(IMPORT_RE)) {
+    const open = m.index + m[0].length - 1;
+    const close = source.indexOf(m[1], open + 1);
+    const spec = close > open ? source.slice(open + 1, close) : "";
+    if (spec && !spec.includes("\n")) out.push(spec);
+  }
+  return out;
+}
+
+// 주석은 공백으로, 문자열·템플릿·정규식의 글자는 따옴표만 남기고 공백으로 바꾼다. 위치와 줄바꿈은 그대로 둔다.
+// 템플릿의 ${...} 안은 실행되는 코드라 그대로 둔다. 문자열은 줄을 넘지 않으므로 JSX 글의 작은따옴표(Don't)가
+// 뒤쪽 코드까지 문자열로 잘못 읽게 두지 않고 그 줄에서 끊는다. 정확한 파서가 아니라서 애매하면 연결을 놓치는 쪽(inferred)으로 둔다.
+export function maskNonCode(src: string): string {
+  const out = src.split("");
+  const n = src.length;
+  const blank = (i: number) => {
+    if (out[i] !== "\n") out[i] = " ";
+  };
+  const templates: number[] = []; // 열린 ${ 마다 그때의 중괄호 깊이
+  let depth = 0;
+  let prev = ""; // 정규식과 나눗셈을 가르려고 앞의 의미 있는 토큰을 기억한다
+  let i = 0;
+  while (i < n) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (c === "/" && d === "/") {
+      while (i < n && src[i] !== "\n") blank(i++);
+      continue;
+    }
+    if (c === "/" && d === "*") {
+      const end = src.indexOf("*/", i + 2);
+      const stop = end < 0 ? n : end + 2;
+      while (i < stop) blank(i++);
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      i++;
+      while (i < n && src[i] !== c && src[i] !== "\n") {
+        if (src[i] === "\\" && i + 1 < n && src[i + 1] !== "\n") blank(i++);
+        blank(i++);
+      }
+      if (src[i] === c) i++;
+      prev = "a";
+      continue;
+    }
+    if (c === "`" || (c === "}" && templates.length > 0 && templates[templates.length - 1] === depth)) {
+      if (c === "}") templates.pop();
+      i++;
+      while (i < n && src[i] !== "`" && !(src[i] === "$" && src[i + 1] === "{")) {
+        if (src[i] === "\\" && i + 1 < n) blank(i++);
+        blank(i++);
+      }
+      if (src[i] === "$") {
+        templates.push(depth);
+        i += 2;
+        prev = "(";
+      } else {
+        i++;
+        prev = "a";
+      }
+      continue;
+    }
+    if (c === "/" && regexAllowed(prev)) {
+      i++;
+      let inClass = false;
+      while (i < n && src[i] !== "\n" && (src[i] !== "/" || inClass)) {
+        if (src[i] === "\\" && i + 1 < n && src[i + 1] !== "\n") blank(i++);
+        else if (src[i] === "[") inClass = true;
+        else if (src[i] === "]") inClass = false;
+        blank(i++);
+      }
+      if (src[i] === "/") i++;
+      prev = "a";
+      continue;
+    }
+    if (/[\w$]/.test(c)) {
+      let j = i;
+      while (j < n && /[\w$]/.test(src[j])) j++;
+      prev = src.slice(i, j);
+      i = j;
+      continue;
+    }
+    if (c === "{") depth++;
+    else if (c === "}") depth--;
+    if (!/\s/.test(c)) prev = c;
+    i++;
+  }
+  return out.join("");
+}
+
+const REGEX_AFTER_WORD = new Set(["return", "typeof", "instanceof", "in", "of", "new", "delete", "void", "throw", "case", "do", "else", "yield", "await"]);
+
+function regexAllowed(prev: string) {
+  if (prev === "") return true;
+  if (/^[\w$]/.test(prev)) return REGEX_AFTER_WORD.has(prev);
+  return prev !== ")" && prev !== "]";
 }
 
 function normalizePath(p: string) {
