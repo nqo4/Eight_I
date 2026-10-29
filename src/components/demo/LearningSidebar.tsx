@@ -2,41 +2,53 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/components/session/Session";
 import { learningSteps } from "@/lib/demo";
 
 export function LearningSidebar() {
   const pathname = usePathname();
-  const current = learningSteps.find((step) => step.href === pathname) ?? learningSteps[0];
+  const { progress } = useSession();
+  const currentIndex = learningSteps.findIndex((step) => step.href === pathname);
+  const doneCount = learningSteps.filter((step) => progress.steps[step.key]).length;
 
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col items-start gap-[10px] bg-brand-purple-soft px-[20px] pt-[30px] pb-[22px]">
-      <p className="font-manrope text-[9px] leading-[14px] font-bold whitespace-nowrap text-brand-purple">LEARNING MAP</p>
+    <aside className="flex w-[260px] shrink-0 flex-col items-start gap-2.5 bg-brand-purple-soft px-5 pt-8 pb-6">
+      <p className="font-manrope text-xs font-bold tracking-wider text-brand-purple-ink">LEARNING MAP</p>
+      <nav aria-label="학습 단계" className="flex w-full flex-col gap-2.5">
+        {learningSteps.map((step, index) => {
+          const current = index === currentIndex;
+          const done = Boolean(progress.steps[step.key]);
+          return (
+            // Figma: CB / Sidebar Step — 학습 단계 탐색용 사이드바 항목.
+            <Link
+              key={step.href}
+              href={step.href}
+              aria-current={current ? "step" : undefined}
+              className={`flex w-full items-center gap-2.5 rounded-8 px-3.5 py-3 transition-colors hover:bg-surface ${
+                current ? "bg-surface ring-1 ring-brand-purple" : "bg-surface/60"
+              }`}
+            >
+              <span className={`w-6 shrink-0 font-mono text-xs ${done ? "text-status-green-ink" : "text-brand-purple-ink"}`}>
+                {done ? "✓" : step.number}
+              </span>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className={`text-sm font-bold ${current ? "text-text-primary" : "text-text-muted"}`}>
+                  {step.title}
+                  {done && <span className="sr-only"> (완료)</span>}
+                </span>
+                <span className="text-xs text-text-muted">{current ? "지금 보는 단계" : step.caption}</span>
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
 
-      {learningSteps.map((step) => (
-        // Figma: CB / Sidebar Step — 학습 단계 탐색용 사이드바 항목.
-        <Link
-          key={step.href}
-          href={step.href}
-          aria-current={step.href === current.href ? "step" : undefined}
-          className={`flex h-[58px] w-[218px] shrink-0 items-center justify-center gap-[10px] rounded-8 bg-surface px-[14px] py-[11px] transition-opacity hover:opacity-100 ${
-            step.href === current.href ? "" : "opacity-55"
-          }`}
-        >
-          <span className="font-mono text-[9px] leading-[14px] whitespace-nowrap text-brand-purple">{step.number}</span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/figma/step-dot.svg" alt="" width={7} height={7} className="block shrink-0" />
-          <span className="flex flex-col items-start gap-[2px] whitespace-nowrap">
-            <span className="text-[11px] leading-[16px] font-bold text-text-primary">{step.title}</span>
-            <span className="text-[8px] leading-[12px] text-text-muted">{step.caption}</span>
-          </span>
-        </Link>
-      ))}
-
-      <div className="h-[270px] w-px shrink-0" />
-
-      <div className="flex h-[92px] w-[220px] shrink-0 flex-col items-start gap-[8px] rounded-12 bg-surface px-[15px] py-[14px] whitespace-nowrap">
-        <p className="text-[9px] leading-[14px] font-bold text-text-muted">오늘의 학습</p>
-        <p className="font-manrope text-[20px] leading-[26px] font-extrabold text-brand-purple">{current.progress}% 완료</p>
+      <div className="mt-6 flex w-full flex-col items-start gap-1.5 rounded-12 bg-surface px-4 py-3.5">
+        <p className="text-xs font-bold text-text-muted">이 기능에서 끝낸 단계</p>
+        <p className="font-manrope text-xl font-extrabold text-brand-purple-ink">
+          {doneCount} / {learningSteps.length}
+        </p>
+        <p className="text-xs text-text-muted">화면을 열기만 하면 완료로 세지 않아요.</p>
       </div>
     </aside>
   );

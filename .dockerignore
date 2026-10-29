@@ -1,0 +1,9 @@
+.git
+node_modules
+.next
+e2e
+docs
+*.md
+.env
+.env.*
+npm-debug.log*

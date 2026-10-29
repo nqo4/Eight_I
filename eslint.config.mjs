@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // E2E는 e2e/ 폴더에서 따로 설치·실행한다.
+    "e2e/**",
   ]),
 ]);
 

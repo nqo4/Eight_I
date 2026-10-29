@@ -1,66 +1,56 @@
-import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { RepoForm } from "@/components/landing/RepoForm";
-import { cartButtonCode } from "@/lib/demo";
+import { learningSteps } from "@/lib/demo";
 
 export default function Home() {
   return (
     <div className="flex w-full flex-col items-start bg-paper">
-      <header className="flex h-[76px] w-full shrink-0 items-center justify-between border-b border-line bg-surface px-[36px]">
+      <header className="flex h-[76px] w-full shrink-0 items-center justify-between border-b border-line bg-surface px-9">
         <Brand />
-        <div className="flex items-center gap-[16px] font-bold whitespace-pre">
-          <span className="font-manrope text-[10px] leading-[16px] text-status-green">{`●  INTERACTIVE PROTOTYPE`}</span>
-          <Link href="/demo/overview" className="text-[11px] leading-[18px] text-brand-purple hover:underline">
-            {`데모 둘러보기  →`}
-          </Link>
-          <Link href="/login" className="text-[11px] leading-[18px] text-text-primary hover:underline">
-            로그인
-          </Link>
-        </div>
+        <p className="text-sm font-bold text-text-muted">공개 GitHub 저장소 · 로그인 없이 사용</p>
       </header>
 
-      <section className="flex h-[810px] w-full shrink-0 items-start gap-[54px] px-[72px] pt-[95px]">
-        <div className="flex h-[640px] w-[620px] shrink-0 flex-col items-start gap-[20px]">
-          <div className="flex items-center gap-[10px]">
-            <span className="rounded-12 bg-brand-purple px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-surface">
-              01
-            </span>
-            <span className="font-manrope text-[11px] leading-[16px] font-bold whitespace-nowrap text-brand-purple">
-              FROM FEATURE TO CODE
-            </span>
-          </div>
+      <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-4 bg-surface px-[72px] py-8">
+        <p className="text-sm font-bold text-brand-purple-ink">AI로 만든 내 프로젝트, 기능 하나부터 직접 설명할 수 있게</p>
+        <p className="text-sm font-medium text-text-muted">1 기능 이해 ─ 2 코드 근거 ─ 3 개념 학습 ─ 4 직접 수정</p>
+      </div>
 
-          <h1 className="h-[165px] w-[609px] font-manrope text-[72px] leading-[82px] font-extrabold tracking-[-2.16px] text-text-primary">
+      <section className="flex w-full items-start gap-[54px] px-[72px] pt-20 pb-24">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-6">
+          <span className="font-manrope text-sm font-bold text-brand-purple-ink">FROM FEATURE TO CODE</span>
+
+          <h1 className="font-manrope text-[72px] leading-[82px] font-extrabold tracking-[-2.16px] text-text-primary">
             AI가 만든 코드를,
             <br />
             <span className="text-brand-purple">진짜 내 코드로.</span>
           </h1>
 
-          <div className="h-[8px] w-[410px] shrink-0 bg-brand-purple" />
+          <div aria-hidden className="h-2 w-[410px] max-w-full shrink-0 bg-brand-purple" />
 
-          <p className="w-[600px] text-[15px] leading-[27px] text-text-muted">
-            완성된 기능에서 출발해 실제 파일과 코드를 따라가고,
-            <br />
-            개념을 이해한 뒤 작은 수정까지 직접 해보세요.
+          <p className="max-w-[600px] text-lg leading-8 text-text-muted">
+            “발표에서 이 부분 어떻게 만들었냐고 물으면?” 내 GitHub 프로젝트에서 익숙한 기능 하나를 골라 실제 파일과 코드를 따라가고,
+            개념을 이해한 뒤 작은 수정까지 직접 해 보세요. CodeBack은 코드를 대신 고쳐 주지 않아요.
           </p>
 
           <RepoForm />
         </div>
 
-        <div className="mt-[40px] flex h-[560px] w-[570px] shrink-0 flex-col items-start gap-[14px] rounded-16 bg-text-primary p-[24px]">
-          <div className="flex h-[34px] w-[522px] items-center justify-between whitespace-nowrap">
-            <span className="font-mono text-[10px] leading-[16px] text-surface">CartButton.tsx</span>
-            <span className="text-[9px] leading-[14px] font-bold text-status-green">● 확인된 코드</span>
+        <div className="mt-10 flex w-[480px] shrink-0 flex-col items-start gap-4 rounded-16 bg-text-primary p-7 text-surface">
+          <div className="flex w-full items-center justify-between gap-4">
+            <span className="font-mono text-sm text-surface/70">학습 순서</span>
+            <span className="text-sm font-bold text-accent-lime">● 실제 파일과 행 번호로 진행</span>
           </div>
-          <pre className="w-[520px] font-mono text-[12px] leading-[30px] text-surface">{cartButtonCode.join("\n")}</pre>
-          <Link
-            href="/demo/concept"
-            className="flex h-[60px] w-[522px] shrink-0 items-center justify-between rounded-8 bg-brand-purple px-[16px] font-bold whitespace-nowrap"
-          >
-            <span className="text-[9px] leading-[14px] text-brand-purple-soft">핵심 개념</span>
-            <span className="text-[12px] leading-[18px] text-surface">상태 업데이트 + 조건문</span>
-            <span className="font-manrope text-[16px] leading-[20px] text-accent-lime">→</span>
-          </Link>
+          <ol className="flex w-full flex-col divide-y divide-surface/10">
+            {learningSteps.slice(1).map((step) => (
+              <li key={step.href} className="flex items-start gap-4 py-3.5">
+                <span className="font-mono text-sm text-accent-lime">{step.number}</span>
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-bold">{step.title}</span>
+                  <span className="text-sm text-surface/70">{step.caption}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
     </div>

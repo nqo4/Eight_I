@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, Manrope, Noto_Sans_KR } from "next/font/google";
+import { SessionProvider } from "@/components/session/Session";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${notoSansKr.variable} ${manrope.variable} ${dmMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }
