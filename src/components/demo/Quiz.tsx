@@ -74,12 +74,12 @@ export function Quiz() {
             key={item.id}
             data-testid="quiz-question"
             aria-labelledby={`quiz-q-${item.id}`}
-            className="flex min-w-0 flex-col items-start gap-4 rounded-16 border border-line bg-surface px-10 pt-8 pb-7"
+            className="flex min-w-0 flex-col items-start gap-4 rounded-16 border border-line bg-surface px-5 pt-6 pb-5 sm:px-10 sm:pt-8 sm:pb-7"
           >
             <p className="font-manrope text-xs font-bold tracking-wider text-brand-purple-ink">
               QUIZ · {qi + 1} / {q.questions.length}
             </p>
-            <h2 id={`quiz-q-${item.id}`} className="text-[22px] leading-8 font-bold text-balance text-text-primary">
+            <h2 id={`quiz-q-${item.id}`} className="text-lg leading-7 font-bold text-balance text-text-primary sm:text-[22px] sm:leading-8">
               {item.question}
             </h2>
             <div role="radiogroup" aria-labelledby={`quiz-q-${item.id}`} className="flex w-full flex-col gap-2.5">
@@ -112,7 +112,7 @@ export function Quiz() {
               })}
             </div>
             {!done && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <PrimaryButton label="정답 확인" disabled={picked[item.id] === undefined} onClick={check} />
                 {picked[item.id] === undefined && <span className="text-sm text-text-muted">보기를 하나 고르면 확인할 수 있어요</span>}
               </div>
@@ -123,7 +123,7 @@ export function Quiz() {
                   {correct ? "✓ 정답이에요" : `! 오답이에요 (정답: ${item.choices[item.answer_index]})`}
                 </p>
                 <p className="text-sm leading-6 text-pretty">{item.explanation}</p>
-                <ul data-testid="quiz-refs" className="font-mono text-sm text-text-muted">
+                <ul data-testid="quiz-refs" className="font-mono text-sm break-all text-text-muted">
                   {item.references.map((r) => (
                     <li key={`${r.path}:${r.start_line}`}>참고: {refLabel(r)}</li>
                   ))}

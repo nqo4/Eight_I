@@ -16,7 +16,7 @@ const secondaryBtn =
 
 function Header() {
   return (
-    <header className="flex h-[76px] w-full shrink-0 items-center justify-between border-b border-line bg-surface px-9">
+    <header className="flex h-16 w-full shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 sm:h-[76px] sm:px-9">
       <Brand />
       <AuthNav />
     </header>
@@ -25,9 +25,9 @@ function Header() {
 
 function Stat({ label, value, caption }: { label: string; value: string; caption?: string }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-12 border border-line bg-surface px-6 py-5">
+    <div className="flex min-w-[140px] flex-1 flex-col gap-1 rounded-12 border border-line bg-surface px-5 py-4 sm:px-6 sm:py-5">
       <p className="text-xs font-bold text-text-muted">{label}</p>
-      <p className="font-manrope text-3xl font-extrabold text-text-primary">{value}</p>
+      <p className="font-manrope text-2xl font-extrabold text-text-primary sm:text-3xl">{value}</p>
       {caption && <p className="text-xs text-text-muted">{caption}</p>}
     </div>
   );
@@ -59,7 +59,7 @@ function RecordCard({ record }: { record: LearningRecord }) {
   };
 
   return (
-    <article data-testid="learning-record" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-6 py-5">
+    <article data-testid="learning-record" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
           <button
@@ -94,8 +94,8 @@ function RecordCard({ record }: { record: LearningRecord }) {
       <ul className="flex flex-col divide-y divide-line">
         {record.features.map((f) => (
           <li key={f.id} data-testid="record-feature" className="flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
-            <span className="min-w-0 flex-1 text-sm font-bold text-text-primary">{f.title}</span>
-            <span className="w-28 text-right text-xs text-text-muted">
+            <span className="w-full min-w-0 text-sm font-bold text-text-primary sm:w-auto sm:flex-1">{f.title}</span>
+            <span className="text-xs text-text-muted sm:w-28 sm:text-right">
               {f.quiz_total ? `퀴즈 ${f.quiz_correct}/${f.quiz_total} 정답` : "퀴즈 전"}
             </span>
             <span
@@ -141,12 +141,12 @@ function SignedIn({ user }: { user: User }) {
     <>
       <section className="flex flex-col gap-2">
         <span className="font-manrope text-sm font-bold text-brand-purple-ink">MY LEARNING</span>
-        <h1 className="text-3xl font-bold text-text-primary">내 학습 기록</h1>
+        <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">내 학습 기록</h1>
         <p className="text-sm text-text-muted">{user.name}님이 분석한 저장소와 퀴즈 결과, 수정 미션 점수예요.</p>
       </section>
 
       <section aria-label="내 정보와 학습 요약" className="flex w-full flex-wrap gap-4">
-        <div className="flex min-w-[260px] flex-col gap-3 rounded-12 bg-brand-purple-soft px-6 py-5">
+        <div className="flex w-full flex-col gap-3 rounded-12 bg-brand-purple-soft px-5 py-4 sm:w-auto sm:min-w-[260px] sm:px-6 sm:py-5">
           <p className="text-xs font-bold text-text-muted">내 정보</p>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
             <dt className="text-text-muted">이름</dt>
@@ -201,11 +201,11 @@ export function MyPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-paper">
       <Header />
-      <main className="flex w-full flex-col items-start gap-8 px-[72px] py-12">
+      <main className="flex w-full flex-col items-start gap-6 px-4 py-8 sm:gap-8 sm:px-8 xl:px-[72px] xl:py-12">
         {user === undefined ? null : user ? (
           <SignedIn user={user} />
         ) : (
-          <section className="flex w-full max-w-[560px] flex-col items-start gap-4 rounded-12 border border-line bg-surface px-8 py-8">
+          <section className="flex w-full max-w-[560px] flex-col items-start gap-4 rounded-12 border border-line bg-surface px-5 py-6 sm:px-8 sm:py-8">
             <span className="font-manrope text-sm font-bold text-brand-purple-ink">MY LEARNING</span>
             <h1 className="text-2xl font-bold text-text-primary">로그인하면 내 학습 기록을 볼 수 있어요.</h1>
             <p className="text-sm text-text-muted">분석한 저장소와 퀴즈 결과, 수정 미션 점수를 한곳에서 확인하세요.</p>

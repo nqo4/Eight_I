@@ -6,7 +6,7 @@ import { PageIntro } from "@/components/demo/PageIntro";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, techViews } from "@/components/demo/ui";
 import { useSession } from "@/components/session/Session";
 
-const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-7 py-6";
+const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-5 py-5 sm:px-7 sm:py-6";
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 // FR-14 기술 상세: '사용한 기술'에서 고른 기술의 역할·핵심 개념·쓰인 위치(파일 경로·라인과 코드 발췌).
@@ -60,7 +60,7 @@ export default function TechPage() {
             <p className="text-sm text-text-muted">이 기술이 쓰인 코드 위치를 확인하지 못했어요.</p>
           ) : (
             <>
-              <ul data-testid="tech-refs" className="flex flex-col gap-1 font-mono text-sm text-brand-purple-ink">
+              <ul data-testid="tech-refs" className="flex flex-col gap-1 font-mono text-sm break-all text-brand-purple-ink">
                 {tech.references.map((r) => (
                   <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
                 ))}

@@ -35,7 +35,7 @@ export function LoginRequired({ feature, onClose }: { feature: string; onClose: 
         aria-modal="true"
         aria-labelledby="login-required-title"
         aria-describedby="login-required-desc"
-        className="flex w-full max-w-[440px] flex-col items-start gap-4 rounded-16 border border-line bg-surface px-8 py-8"
+        className="flex w-full max-w-[440px] flex-col items-start gap-4 rounded-16 border border-line bg-surface px-6 py-7 sm:px-8 sm:py-8"
         onClick={(e) => e.stopPropagation()}
       >
         <span className="flex size-10 items-center justify-center rounded-8 bg-brand-purple-soft font-manrope text-lg font-extrabold text-brand-purple-ink">
@@ -52,7 +52,7 @@ export function LoginRequired({ feature, onClose }: { feature: string; onClose: 
         <div aria-hidden className="h-1 w-full overflow-hidden rounded-8 bg-brand-purple-soft">
           <div className="login-required-bar h-full bg-brand-purple" style={{ animationDuration: `${REDIRECT_MS}ms` }} />
         </div>
-        <div className="flex w-full items-center justify-end gap-2.5 pt-1">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2.5 pt-1">
           <button
             type="button"
             onClick={onClose}

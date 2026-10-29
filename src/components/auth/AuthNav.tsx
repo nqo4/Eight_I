@@ -24,11 +24,11 @@ export function AuthNav() {
   }
 
   return (
-    <div className="flex items-center gap-4">
-      <span className="text-sm text-text-muted" data-testid="current-user">
+    <div className="flex items-center gap-2.5 sm:gap-4">
+      <span className="hidden text-sm text-text-muted sm:inline" data-testid="current-user">
         <span className="font-bold text-text-primary">{user.name}</span>님
       </span>
-      <Link href="/mypage" className={`${linkClass} text-brand-purple-ink`}>
+      <Link href="/mypage" className={`${linkClass} whitespace-nowrap text-brand-purple-ink`}>
         내 학습 기록
       </Link>
       <button
@@ -38,7 +38,7 @@ export function AuthNav() {
           router.push("/");
           router.refresh();
         }}
-        className="rounded-8 border border-line bg-surface px-3 py-1.5 text-sm font-bold text-text-primary hover:border-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
+        className="rounded-8 border border-line bg-surface px-3 py-1.5 text-sm font-bold whitespace-nowrap whitespace-nowrap text-text-primary hover:border-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
       >
         로그아웃
       </button>

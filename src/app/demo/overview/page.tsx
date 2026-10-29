@@ -67,11 +67,11 @@ export default function OverviewPage() {
         description="코드 전체가 아니라 내가 아는 기술과 기능에서 시작하면 훨씬 쉬워요. 아래 '사용한 기술'이나 '기능' 목록에서 하나를 골라 보세요."
       />
 
-      <div className="flex w-full flex-col gap-4 rounded-12 bg-brand-purple-soft px-6 py-5">
+      <div className="flex w-full flex-col gap-4 rounded-12 bg-brand-purple-soft px-4 py-4 sm:px-6 sm:py-5">
         <dl className="flex flex-wrap items-end gap-x-10 gap-y-3">
           <div className="flex flex-col gap-1">
             <dt className="text-xs font-bold text-text-muted">저장소</dt>
-            <dd data-testid="repo-name" className="text-xl font-bold text-text-primary">
+            <dd data-testid="repo-name" className="text-xl font-bold break-all text-text-primary">
               {repo.id}
             </dd>
           </div>
@@ -83,7 +83,7 @@ export default function OverviewPage() {
           </div>
           <div className="flex flex-col gap-1">
             <dt className="text-xs font-bold text-text-muted">분석 기준 commit</dt>
-            <dd data-testid="repo-commit" className="font-mono text-sm">
+            <dd data-testid="repo-commit" className="font-mono text-sm break-all">
               {repo.commit_sha}
             </dd>
           </div>
@@ -144,9 +144,9 @@ export default function OverviewPage() {
           {analysis.overview.directories.length === 0 ? (
             <p className="text-sm text-text-muted">확인된 주요 폴더가 없어요.</p>
           ) : (
-            <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+            <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
               {analysis.overview.directories.map((d) => (
-                <li key={d.path} data-testid="directory" className="flex min-w-0 items-baseline gap-2 text-sm">
+                <li key={d.path} data-testid="directory" className="flex min-w-0 flex-wrap items-baseline gap-2 text-sm sm:flex-nowrap">
                   <span className="shrink-0 font-mono font-bold break-all text-text-primary">{d.path}</span>
                   <span className="shrink-0 rounded-8 bg-surface px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{layerTag[d.layer ?? "other"]}</span>
                   <span className="min-w-0 text-text-muted">{d.role}</span>
@@ -162,9 +162,9 @@ export default function OverviewPage() {
         )}
       </div>
 
-      <section aria-label="어디를 고쳐야 해?" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-6 py-5">
+      <section aria-label="어디를 고쳐야 해?" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-4 py-4 sm:px-6 sm:py-5">
         <h2 className="text-lg font-bold text-text-primary">어디를 고쳐야 해?</h2>
-        <div className="flex w-full items-center gap-3">
+        <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           <input
             type="text"
             aria-label="어디를 고쳐야 해?"
@@ -262,9 +262,9 @@ export default function OverviewPage() {
         </span>
       </div>
 
-      <section aria-label="기능" className="grid w-full grid-cols-2 gap-3">
+      <section aria-label="기능" className="grid w-full grid-cols-1 gap-3 md:grid-cols-2">
         {analysis.features.length === 0 && (
-          <p role="note" className="col-span-2 text-sm text-text-muted">
+          <p role="note" className="text-sm md:col-span-2 text-text-muted">
             기능을 찾지 못했습니다. 기능 목록 대신 위의 사용한 기술부터 살펴보세요{analysis.features_notice ? ` — ${analysis.features_notice}` : ""}
           </p>
         )}
