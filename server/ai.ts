@@ -34,6 +34,10 @@ export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise
       maxRetries: 1,
       timeout: config.aiTimeoutMs,
     });
+    // 팀 예산($10)이 한정돼 있어 호출마다 토큰 사용량을 남긴다.
+    console.info(
+      `[ai] ${config.aiModel} input=${result.usage.inputTokens ?? "?"} output=${result.usage.outputTokens ?? "?"} tokens`,
+    );
     return result.output;
   } catch (err) {
     throw toAppError(err);
