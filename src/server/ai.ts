@@ -66,7 +66,7 @@ export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise
 
 function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
-  const e = err as { name?: string; statusCode?: number; message?: string };
+  const e = err as { name?: string; statusCode?: number; message?: string; cause?: { message?: string } };
   if (e?.name === "AbortError" || e?.name === "TimeoutError" || /timed? ?out|aborted/i.test(e?.message ?? "")) {
     return new AppError("ai_timeout", "AI 응답이 너무 오래 걸렸어요. 잠시 후 다시 시도해 주세요.");
   }
@@ -82,5 +82,6 @@ function toAppError(err: unknown): AppError {
     );
   }
   console.error("[ai] generation failed:", e?.name, status ?? "", e?.message?.slice(0, 300));
+  if (e?.name === "AI_NoObjectGeneratedError") console.error("[ai] schema validation:", e.cause?.message?.slice(-2500));
   return new AppError("ai_failed", "AI 분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
 }

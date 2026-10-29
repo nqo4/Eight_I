@@ -29,10 +29,16 @@
 
 요청 `{ "url": "https://github.com/owner/repo" }`
 
-응답 `201`(새로 분석) 또는 `200`(같은 commit을 이미 분석해 둔 결과) `{ "analysis": Analysis, "cached": boolean }`
+응답 `201`(새로 분석) 또는 `200`(같은 commit을 현재 형식으로 이미 분석해 둔 결과) `{ "analysis": Analysis, "cached": boolean }`
+
+캐시는 저장소 ID가 대소문자 구분 없이 일치하고, `locate_examples`와 새 소개·기술 필드가 있는 현재 형식일 때만 재사용합니다. 이전 형식이나 다른 저장소 ID가 남은 캐시는 다시 분석해 저장합니다.
 
 - `analysis.repository`: 저장소 이름, 기본 브랜치, 분석 기준 commit SHA, 최종 수정 날짜(`last_commit_at`)
 - `analysis.overview`: 한 줄 소개(`summary`), 목적, 기술 스택(`stack[].status`: `confirmed`는 package.json으로 확인됨, `unconfirmed`는 확인 불가), 주요 폴더
+- `analysis.overview.intro_sources`: 소개(`summary`·`purpose`)의 근거로 사용한 파일 경로 배열. 분석 snapshot에 실제로 있는 파일만 반환합니다.
+- `analysis.overview.intro_inferred`: 검증된 `intro_sources`에 README 계열 파일이 없으면 `true`입니다. 이때 소개 옆에 'AI 추정'을 표시합니다.
+- `analysis.overview.technologies[]`: '사용한 기술' 목록. `name`(기술 이름), `role`(이 프로젝트에서 맡은 역할), `concept`(초보자를 위한 짧은 핵심 개념 설명), `references`(검증된 `CodeReference` 1~3개)를 반환합니다. package.json의 의존성 라인과 실제 사용 코드 라인을 근거로 요청하며, 유효하지 않은 참조와 검증된 참조가 하나도 없는 기술은 제외합니다. 기술을 선택하면 역할·개념·파일 경로·라인을 보여 줍니다.
+- 위 소개 근거·추정 여부·기술 목록은 이전에 캐시한 분석에는 없을 수 있는 선택 필드입니다. 기존 `stack`, `directories`, `locate_examples`는 계속 제공합니다.
 - `analysis.features`: 기능 카드. 최대 5개이고 각 카드에 근거 코드가 1개 이상 있습니다.
 - `analysis.overview.directories[]`: `path`, `role`, `layer`(`ui`·`server`·`db`·`config`·`other`). 실제 분석 파일이 있는 폴더만 표시합니다.
 - `analysis.stats.skipped_sensitive`: `.env*`·비밀키·인증서 등 민감 파일 제외 수. `skipped_by_filter`에 포함됩니다.

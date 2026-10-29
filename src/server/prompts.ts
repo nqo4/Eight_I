@@ -10,6 +10,13 @@ const ref = z.object({
 export const overviewSchema = z.object({
   summary: z.string().describe("프로젝트 한 줄 소개(40자 안팎)"),
   purpose: z.string().describe("이 앱이 무엇을 하는지 2~3문장"),
+  intro_sources: z.array(z.string()).describe("summary와 purpose의 근거로 실제 사용한 파일 경로. README가 있으면 우선 사용하고, 없으면 소개를 추정한 소스 코드 경로"),
+  technologies: z.array(z.object({
+    name: z.string().describe("이 프로젝트에서 실제로 쓰는 기술 이름"),
+    role: z.string().describe("이 기술이 이 프로젝트에서 맡은 구체적인 역할"),
+    concept: z.string().describe("이 기술의 핵심 개념을 초보자에게 짧고 쉽게 설명"),
+    references: z.array(ref).min(1).max(3).describe("기술의 근거 1~3곳. package.json의 의존성 라인과 실제 사용 코드의 라인을 함께 포함한다"),
+  })).describe("코드 근거가 있는 사용한 기술 목록. 역할과 사용 코드를 확인하지 못한 기술은 제외"),
   unconfirmed_stack: z
     .array(z.object({ name: z.string(), note: z.string() }))
     .describe("코드에서 쓰는 흔적은 있지만 설정 파일로 확인하지 못한 기술(예: 배포 환경, DB). 없으면 빈 배열"),
@@ -36,6 +43,9 @@ export const overviewSchema = z.object({
 
 export function overviewPrompt(meta: string, files: string) {
   return `아래 GitHub 저장소를 분석해 프로젝트 개요와 사용자 기능 목록을 만들어라.
+- summary와 purpose는 README 등 프로젝트 설명 파일을 우선 근거로 작성하고, 실제로 근거로 쓴 파일 경로를 intro_sources에 넣는다. README가 없으면 코드에서 추정하고 그 코드 경로를 넣는다.
+- technologies에는 실제 사용을 확인한 기술마다 이름, 이 프로젝트에서 맡은 구체적인 역할, 초보자용 핵심 개념 설명을 넣는다. 일반적인 기술 소개만으로 역할을 대신하지 않는다.
+- 기술마다 references 1~3곳에 package.json의 해당 의존성 라인과 실제 사용 코드 라인을 함께 붙인다. 설정 파일이나 의존성 이름만 보고 실제 쓰임을 꾸며 내지 않는다.
 - 폴더 구조를 나열하는 대신, 사용자가 화면에서 알아볼 수 있는 기능을 찾는다.
 - 각 기능에는 그 기능을 실제로 구현한 파일과 라인 범위를 근거로 붙인다.
 - 근거를 찾지 못한 기능은 넣지 않는다.

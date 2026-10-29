@@ -5,7 +5,7 @@ const AI_WAIT = { timeout: 90_000 }
 test("S3 학습자가 고른 기능이 화면·서버·DB의 어느 파일에서 동작하는지 따라간다", async ({ page }) => {
   await page.goto("/")
   await page.getByRole("button", { name: "샘플로 체험하기" }).click()
-  await page.getByRole("region", { name: "기능 목록" }).getByTestId("feature-card").first().click()
+  await page.getByRole("region", { name: "기능" }).getByTestId("feature-card").first().click()
   await page.getByRole("button", { name: "이 기능 어떻게 동작해?" }).click()
   const steps = page.getByRole("region", { name: "동작 흐름" }).getByTestId("flow-step")
   await steps.first().click(AI_WAIT)

@@ -22,6 +22,11 @@ async function main() {
   const { analysis } = await analyzeRepository(url);
   console.log(`분석 완료: ${analysis.repository.id} @ ${analysis.repository.commit_sha}, 기능 ${analysis.features.length}개`);
   if (analysis.features.length < 2) throw new Error("데모에는 기능 카드가 2개 이상 필요해요. 다른 샘플 저장소를 골라 주세요.");
+  if (!analysis.overview.intro_sources?.length) throw new Error("데모 소개에는 검증된 근거 파일이 필요해요.");
+  const technologies = analysis.overview.technologies || [];
+  if (technologies.length < 3 || technologies.some((technology) => technology.references.length === 0)) {
+    throw new Error("데모에는 검증된 코드 근거가 있는 기술이 3개 이상 필요해요.");
+  }
 
   const artifacts: Record<string, unknown> = {};
   for (const f of analysis.features) {

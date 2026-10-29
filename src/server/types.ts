@@ -59,6 +59,11 @@ export type Overview = {
   // FR-03: 폴더 역할. layer는 화면·서버·DB·설정 구분
   directories: { path: string; role: string; layer: Layer }[];
   support: { status: "supported" | "limited"; reason: string | null };
+  // FR-03(2026-10-29 22:41 개정): 소개의 근거 파일(README 등). README 없이 코드로만 추정하면 intro_inferred=true('AI 추정')
+  intro_sources?: string[];
+  intro_inferred?: boolean;
+  // FR-04 '사용한 기술': 기술마다 이 프로젝트에서 맡은 역할, 핵심 개념 설명, 쓰인 코드 위치(검증된 경로·라인)
+  technologies?: { name: string; role: string; concept: string; references: CodeReference[] }[];
 };
 
 export type Feature = {

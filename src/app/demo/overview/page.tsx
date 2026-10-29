@@ -7,10 +7,22 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
-import type { Analysis, Layer, LocateResult } from "@/server/types";
+import type { Analysis, CodeReference, Layer, LocateResult, Overview } from "@/server/types";
 
 const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "기타" };
 const locateTag = { ui: "화면", server: "서버", db: "DB" } as const;
+
+type TechView = { name: string; role: string | null; concept: string | null; references: CodeReference[] };
+
+function techViews(o: Overview): TechView[] {
+  if (o.technologies && o.technologies.length > 0) return o.technologies;
+  return o.stack.map((s) => ({
+    name: s.name,
+    role: s.note,
+    concept: null,
+    references: s.status === "confirmed" && s.evidence ? [s.evidence] : [],
+  }));
+}
 
 function buildNote(a: Analysis) {
   const r = a.repository;
@@ -22,16 +34,22 @@ function buildNote(a: Analysis) {
     `- 분석 기준 commit SHA: ${r.commit_sha}`,
     `- 기본 브랜치: ${r.default_branch}`,
     "",
-    "## 한 줄 소개",
+    "## 프로젝트 소개",
     o.summary,
+    o.purpose,
+    o.intro_inferred ? "- 소개 출처: AI 추정" : `- 소개 근거 파일: ${(o.intro_sources ?? []).join(", ") || "확인 불가"}`,
     "",
-    "## 기술 스택",
-    ...o.stack.map((s) => `- ${s.name}: ${s.evidence && s.status === "confirmed" ? s.evidence.path : "확인 불가"}`),
+    "## 사용한 기술",
+    ...techViews(o).flatMap((t) => [
+      `### ${t.name}`,
+      `- 역할: ${t.role ?? "확인 불가"}`,
+      `- 근거 파일: ${t.references.length ? t.references.map(refLabel).join(", ") : "확인 불가"}`,
+    ]),
     "",
     "## 주요 폴더",
     ...o.directories.map((d) => `- ${d.path} (${layerTag[d.layer ?? "other"]}): ${d.role}`),
     "",
-    "## 기능 카드",
+    "## 기능별 근거 파일",
     ...(a.features.length
       ? a.features.flatMap((f) => [`### ${f.title}`, f.summary, ...f.code_references.map((c) => `- ${refLabel(c)}`), ""])
       : ["기능을 찾지 못했습니다", ""]),
@@ -43,6 +61,7 @@ export default function OverviewPage() {
   const { analysis, feature, selectFeature, ensure, loadError, startDemo } = useSession();
   const detailRef = useRef<HTMLElement>(null);
   const [picked, setPicked] = useState(0);
+  const [techName, setTechName] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [locating, setLocating] = useState(false);
   const [located, setLocated] = useState<LocateResult | null>(null);
@@ -62,6 +81,8 @@ export default function OverviewPage() {
   const repo = analysis.repository;
   const stats = analysis.stats;
   const skipped = stats.total_files - stats.included_files;
+  const techs = techViews(analysis.overview);
+  const tech = techs.find((t) => t.name === techName) ?? null;
 
   const locate = async () => {
     setLocating(true);
@@ -118,36 +139,70 @@ export default function OverviewPage() {
           <div className="flex flex-col gap-1">
             <dt className="text-xs font-bold text-text-muted">분석 기준 commit</dt>
             <dd data-testid="repo-commit" className="font-mono text-sm">
-              {repo.commit_sha.slice(0, 12)}
+              {repo.commit_sha}
             </dd>
           </div>
           <button type="button" className={`${secondaryBtn} ml-auto`} onClick={download}>
             학습 노트 내려받기
           </button>
         </dl>
-        <p data-testid="project-summary" className="text-lg font-bold text-pretty text-text-primary">
-          {analysis.overview.summary}
-        </p>
-        <p className="text-sm leading-6 text-pretty text-text-muted">{analysis.overview.purpose}</p>
+        <section aria-label="프로젝트 소개" className="flex flex-col gap-2">
+          <h2 className="text-xs font-bold text-text-muted">프로젝트 소개</h2>
+          <p data-testid="project-summary" className="text-lg font-bold text-pretty text-text-primary">
+            {analysis.overview.summary}
+          </p>
+          <p className="text-sm leading-6 text-pretty text-text-muted">{analysis.overview.purpose}</p>
+          <div data-testid="intro-sources" className="flex flex-wrap items-center gap-1.5">
+            {analysis.overview.intro_inferred ? (
+              <span className="rounded-8 bg-surface px-2 py-1 text-xs font-bold text-brand-purple-ink">AI 추정</span>
+            ) : (
+              (analysis.overview.intro_sources ?? []).map((p) => (
+                <span key={p} className="rounded-8 bg-surface px-2 py-1 font-mono text-xs break-all text-brand-purple-ink">
+                  {p}
+                </span>
+              ))
+            )}
+          </div>
+        </section>
         <p data-testid="analysis-stats" className="text-sm text-text-muted">
           분석에 쓴 파일 {stats.included_files}개 · 제외 {skipped}개 · 민감 파일 제외 {stats.skipped_sensitive ?? 0}개
         </p>
-        <section aria-label="기술 스택" className="flex flex-col gap-2">
-          <h2 className="text-xs font-bold text-text-muted">기술 스택</h2>
+        <section aria-label="사용한 기술" className="flex flex-col gap-2">
+          <h2 className="text-xs font-bold text-text-muted">사용한 기술</h2>
           <ul className="flex flex-wrap gap-2">
-            {analysis.overview.stack.map((s) => (
-              <li
-                key={s.name}
-                title={s.note ?? undefined}
-                className={`flex flex-col gap-0.5 rounded-8 px-3 py-1.5 ${s.status === "confirmed" ? "bg-surface" : "border border-dashed border-text-muted/40"}`}
-              >
-                <span className={`text-sm font-bold ${s.status === "confirmed" ? "text-brand-purple-ink" : "text-text-muted"}`}>{s.name}</span>
-                <span className="font-mono text-xs break-all text-text-muted">
-                  {s.status === "confirmed" && s.evidence ? s.evidence.path : "확인 불가"}
-                </span>
+            {techs.map((t) => (
+              <li key={t.name}>
+                <button
+                  type="button"
+                  aria-pressed={tech?.name === t.name}
+                  onClick={() => setTechName(t.name)}
+                  className={`flex flex-col items-start gap-0.5 rounded-8 border bg-surface px-3 py-1.5 text-left hover:border-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple ${tech?.name === t.name ? "border-brand-purple ring-1 ring-brand-purple" : "border-line"}`}
+                >
+                  <span className="text-sm font-bold text-brand-purple-ink">{t.name}</span>
+                  <span className="font-mono text-xs break-all text-text-muted">{t.references[0]?.path ?? "확인 불가"}</span>
+                  {t.role && <span className="text-xs text-text-muted">{t.role}</span>}
+                </button>
               </li>
             ))}
           </ul>
+          {tech && (
+            <div data-testid="tech-detail" className="flex flex-col gap-2 rounded-8 bg-surface px-4 py-3">
+              <h3 className="text-base font-bold text-text-primary">{tech.name}</h3>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-xs font-bold text-text-muted">이 프로젝트에서 맡은 역할</h4>
+                <p className="text-sm leading-6">{tech.role ?? "확인 불가"}</p>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-xs font-bold text-text-muted">핵심 개념</h4>
+                <p className="text-sm leading-6">{tech.concept ?? "확인 불가"}</p>
+              </div>
+              <ul className="flex flex-col gap-1 font-mono text-sm text-brand-purple-ink">
+                {tech.references.map((r) => (
+                  <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
         <section aria-label="주요 폴더" className="flex flex-col gap-2">
           <h2 className="text-xs font-bold text-text-muted">주요 폴더</h2>
@@ -246,16 +301,16 @@ export default function OverviewPage() {
       </section>
 
       <div className="flex w-full items-center justify-between">
-        <h2 className="text-lg font-bold text-text-primary">어떤 기능부터 알아볼까요?</h2>
+        <h2 className="text-lg font-bold text-text-primary">기능</h2>
         <span className="rounded-12 bg-brand-purple-soft px-2.5 py-1 text-xs font-bold text-brand-purple-ink">
           {analysis.features.length}개 기능 발견
         </span>
       </div>
 
-      <section aria-label="기능 목록" className="grid w-full grid-cols-2 gap-3">
+      <section aria-label="기능" className="grid w-full grid-cols-2 gap-3">
         {analysis.features.length === 0 && (
           <p role="note" className="col-span-2 text-sm text-text-muted">
-            기능을 찾지 못했습니다{analysis.features_notice ? ` — ${analysis.features_notice}` : ""}
+            기능을 찾지 못했습니다. 기능 목록 대신 위의 사용한 기술부터 살펴보세요{analysis.features_notice ? ` — ${analysis.features_notice}` : ""}
           </p>
         )}
         {analysis.features.map((f, i) => (

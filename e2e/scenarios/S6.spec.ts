@@ -5,7 +5,7 @@ const AI_WAIT = { timeout: 90_000 }
 test("S6 학습자가 수정 미션을 받아 자기 개발 환경에서 직접 고치고 완료를 표시한다", async ({ page }) => {
   await page.goto("/")
   await page.getByRole("button", { name: "샘플로 체험하기" }).click()
-  await page.getByRole("region", { name: "기능 목록" }).getByTestId("feature-card").first().click()
+  await page.getByRole("region", { name: "기능" }).getByTestId("feature-card").first().click()
   await page.getByRole("button", { name: "이제 네가 직접 바꿔봐" }).click()
   const section = page.getByRole("region", { name: "직접 바꿔보기" })
   const boxes = section.getByRole("checkbox")

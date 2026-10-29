@@ -36,7 +36,14 @@ export async function analyzeRepository(
   await store.saveRepository(repository);
 
   const existing = await store.findByCommit(repository.id, repository.commit_sha);
-  if (existing) {
+  if (
+    existing
+    && existing.analysis.repository.id.toLowerCase() === repository.id.toLowerCase()
+    && Array.isArray(existing.analysis.locate_examples)
+    && Array.isArray(existing.analysis.overview.intro_sources)
+    && typeof existing.analysis.overview.intro_inferred === "boolean"
+    && Array.isArray(existing.analysis.overview.technologies)
+  ) {
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
     return { analysis: existing.analysis, cached: true };
   }
@@ -78,6 +85,13 @@ export async function analyzeRepository(
       .map((u) => ({ name: u.name, status: "unconfirmed" as const, evidence: null, note: u.note })),
   ];
   const supported = isSupportedStack(confirmed);
+  const introSources = [...new Set(out.intro_sources.flatMap((path) => {
+    const file = index.file(path);
+    return file ? [file.path] : [];
+  }))];
+  const technologies = out.technologies
+    .map((technology) => ({ ...technology, references: index.refs(technology.references).slice(0, 3) }))
+    .filter((technology) => technology.references.length > 0);
 
   const analysis: Analysis = {
     id: randomUUID(),
@@ -87,6 +101,9 @@ export async function analyzeRepository(
     overview: {
       summary: out.summary,
       purpose: out.purpose,
+      intro_sources: introSources,
+      intro_inferred: !introSources.some((path) => /^readme(?:[._-]|$)/i.test(path.split("/").pop() || "")),
+      technologies,
       stack,
       directories: out.directories.filter((d) => index.paths().some((p) => p === d.path || p.startsWith(`${d.path.replace(/\/$/, "")}/`))),
       support: supported

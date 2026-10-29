@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-test("S1 학습자가 공개 GitHub 프로젝트를 연결해 프로젝트 구조와 기능 카드를 받는다", async ({ page }) => {
+test("S1 학습자가 공개 GitHub 프로젝트를 연결해 프로젝트 소개와 사용한 기술·기능 목록을 받는다", async ({ page }) => {
   test.setTimeout(150_000)
   await page.goto("/")
   await page.getByRole("button", { name: "내 프로젝트 분석하기" }).click()
@@ -11,11 +11,10 @@ test("S1 학습자가 공개 GitHub 프로젝트를 연결해 프로젝트 구�
   await expect(page.getByTestId("repo-branch")).not.toBeEmpty()
   await expect(page.getByTestId("repo-commit")).toHaveText(/^[0-9a-f]{7,40}$/)
   await expect(page.getByTestId("project-summary")).not.toBeEmpty()
-  const stack = page.getByRole("region", { name: "기술 스택" }).getByRole("listitem")
-  await expect(stack.first()).toBeVisible()
-  await expect(stack.first()).toContainText(/\S+\.\w+|확인 불가/)
-  await expect(page.getByRole("region", { name: "주요 폴더" }).getByRole("listitem").first()).toBeVisible()
-  const cards = page.getByRole("region", { name: "기능 목록" }).getByTestId("feature-card")
-  expect(await cards.count()).toBeGreaterThanOrEqual(2)
+  const techs = page.getByRole("region", { name: "사용한 기술" }).getByRole("button")
+  await expect(techs.first()).toBeVisible()
+  await expect(techs.first()).toContainText(/\S+\.\w+/)
+  const cards = page.getByRole("region", { name: "기능" }).getByTestId("feature-card")
+  await expect(cards.nth(1)).toBeVisible()
   await expect(cards.first()).toContainText(/\S+\.\w+/)
 })
