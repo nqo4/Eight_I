@@ -4,13 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
-import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Lesson } from "@/server/types";
 
-// FR-06 Top-down 학습: 기능 설명 → 파일 역할 → 중요한 코드 → 핵심 개념, '쉬운 설명 펼치기', '왜 이렇게 만들었나'.
-const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-5 py-5 sm:px-7 sm:py-6";
+const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-7 py-6";
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export default function ConceptPage() {
@@ -39,7 +37,7 @@ export default function ConceptPage() {
       {error && <ErrorBox error={error} onRetry={loadError ? undefined : retry} home={Boolean(loadError)} />}
       {!error && !data && <Loading slow={slow} />}
       {data && (
-        <div className="grid w-full grid-cols-1 items-start gap-[18px] xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_320px] items-start gap-[18px]">
           <div className="flex min-w-0 flex-col gap-[18px]">
             <section aria-label="기능 설명" className={panel}>
               <p className={label}>1 · 기능 설명</p>
@@ -49,12 +47,12 @@ export default function ConceptPage() {
                     <span className="font-bold">내가 하는 행동: </span>
                     {data.lesson.walkthrough.action}
                   </p>
-                  <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3">
                     <div className="flex flex-col gap-1 rounded-8 bg-surface p-4">
                       <p className="text-xs font-bold text-text-muted">바뀌기 전</p>
                       <p className="text-sm leading-6 text-pretty">{data.lesson.walkthrough.before}</p>
                     </div>
-                    <span aria-hidden className="rotate-90 self-center justify-self-center text-sm font-bold text-brand-purple-ink sm:rotate-0">→</span>
+                    <span aria-hidden className="self-center text-sm font-bold text-brand-purple-ink">→</span>
                     <div className="flex flex-col gap-1 rounded-8 bg-surface p-4">
                       <p className="text-xs font-bold text-text-muted">바뀐 후</p>
                       <p className="text-sm leading-6 text-pretty">{data.lesson.walkthrough.after}</p>
@@ -64,16 +62,9 @@ export default function ConceptPage() {
                     <div className="flex flex-col gap-1.5">
                       <p className="text-xs font-bold text-text-muted">관련 코드 한 줄</p>
                       <div className="min-w-0 overflow-hidden rounded-8 bg-text-primary text-surface">
-                        <pre className="overflow-auto px-4 py-3 font-mono text-sm leading-6">
-                          {highlightLines(data.lesson.walkthrough.key_line.snippet, data.lesson.walkthrough.key_line.path).map((tokens, i) => (
-                            <div key={i}>
-                              <Tokens tokens={tokens} />
-                            </div>
-                          ))}
-                        </pre>
-                        <p className="flex items-center justify-between gap-3 border-t border-surface/10 px-4 py-2 font-mono text-xs break-all text-surface/70">
+                        <pre className="overflow-auto px-4 py-3 font-mono text-sm leading-6">{data.lesson.walkthrough.key_line.snippet}</pre>
+                        <p className="border-t border-surface/10 px-4 py-2 font-mono text-xs break-all text-surface/70">
                           {refLabel(data.lesson.walkthrough.key_line)}
-                          <LanguageTag path={data.lesson.walkthrough.key_line.path} />
                         </p>
                       </div>
                     </div>
@@ -86,7 +77,7 @@ export default function ConceptPage() {
               <p className={label}>2 · 파일 역할</p>
               <ul className="flex flex-col divide-y divide-line">
                 {(allFiles ? data.lesson.file_roles : data.lesson.file_roles.slice(0, 3)).map((f) => (
-                  <li key={f.path} className="grid grid-cols-1 gap-1 py-2.5 sm:grid-cols-[minmax(0,16rem)_1fr] sm:gap-4">
+                  <li key={f.path} className="grid grid-cols-[minmax(0,16rem)_1fr] gap-4 py-2.5">
                     <span className="font-mono text-sm break-all text-brand-purple-ink">{f.path}</span>
                     <span className="text-sm leading-6">{f.role}</span>
                   </li>
@@ -123,7 +114,7 @@ export default function ConceptPage() {
                   <li key={c.name} id={`concept-${i}`} data-testid="concept" className="flex scroll-mt-6 flex-col gap-2 rounded-12 bg-paper p-5">
                     <h3 className="text-lg font-bold">{c.name}</h3>
                     <p className="text-sm leading-6 text-pretty">{c.explanation}</p>
-                    <ul data-testid="concept-refs" className="font-mono text-sm break-all text-text-muted">
+                    <ul data-testid="concept-refs" className="font-mono text-sm text-text-muted">
                       {c.references.map((r) => (
                         <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
                       ))}
@@ -175,7 +166,7 @@ export default function ConceptPage() {
             </div>
           </div>
 
-          <aside className="hidden flex-col gap-3 xl:sticky xl:top-6 xl:flex rounded-12 border border-line bg-surface px-5 py-6">
+          <aside className="sticky top-6 flex flex-col gap-3 rounded-12 border border-line bg-surface px-5 py-6">
             <p className={label}>이 기능의 개념</p>
             {data.lesson.concepts.map((c, i) => (
               <a

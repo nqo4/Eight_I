@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
-import type { AnalysisDeadline } from "./deadline";
+import { getPrecomputed } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
 import { redactSecrets } from "./filter";
@@ -24,23 +24,15 @@ import {
 import { getStore, type StoredAnalysis } from "./store";
 import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateResult, Quiz, StackItem } from "./types";
 
-// FR-01~04: 저장소를 읽고 프로젝트 소개, 사용한 기술, 기능 목록을 만든다.
+// FR-01~04: 저장소를 읽고 개요와 기능 카드를 만든다.
 // 최신 commit을 먼저 확인해서, 이미 분석한 commit이면(= 그 뒤로 GitHub에 변경이 없으면)
 // 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려준다.
 // userId가 있으면 그 사용자의 '내가 분석한 저장소' 목록에도 남긴다.
 export async function analyzeRepository(
   url: string,
-  opts: { userId?: string; deadline?: AnalysisDeadline } = {},
+  opts: { userId?: string } = {},
 ): Promise<{ analysis: Analysis; cached: boolean }> {
-  // B4: 어느 단계가 느린지 보려고 단계별 시간을 서버 로그에 남긴다(저장소 이름·commit·시간만).
-  const t0 = Date.now();
-  const timing = (cached: string, parts: Record<string, number>) =>
-    console.info(
-      `[analyze] ${repository.id}@${repository.commit_sha.slice(0, 7)} cached=${cached} `
-        + Object.entries(parts).map(([k, v]) => `${k}=${v}ms`).join(" ") + ` total=${Date.now() - t0}ms`,
-    );
-  const repository = await fetchRepositoryHead(url, opts.deadline);
-  const headMs = Date.now() - t0;
+  const repository = await fetchRepositoryHead(url);
   const store = getStore();
   await store.saveRepository(repository);
 
@@ -54,15 +46,18 @@ export async function analyzeRepository(
     && Array.isArray(existing.analysis.overview.technologies)
   ) {
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
-    timing("stored", { github_head: headMs });
     return { analysis: existing.analysis, cached: true };
+  }
+
+  const pre = await savePrecomputed(repository);
+  if (pre) {
+    if (opts.userId) await linkUserRepository(opts.userId, repository.id, pre.id);
+    return { analysis: pre, cached: true };
   }
 
   // 새로 분석해야 할 때만 AI 설정을 확인하고 파일을 받는다(키가 없으면 GitHub 파일 요청도 아낀다).
   assertAiConfigured();
-  const t1 = Date.now();
-  const snapshot = await fetchSnapshot(repository, opts.deadline);
-  const snapshotMs = Date.now() - t1;
+  const snapshot = await fetchSnapshot(repository);
   if (snapshot.files.length === 0) {
     throw new AppError("repo_empty", "분석할 수 있는 소스 파일을 찾지 못했어요.");
   }
@@ -78,13 +73,10 @@ export async function analyzeRepository(
     .filter(Boolean)
     .join("\n");
 
-  const t2 = Date.now();
   const out = await generate(
     overviewSchema,
     overviewPrompt(meta, index.formatFiles(index.paths(), config.maxTotalBytes * 2)),
-    opts.deadline,
   );
-  const aiMs = Date.now() - t2;
 
   const verified: Feature[] = [];
   for (const f of out.features.slice(0, 5)) {
@@ -136,11 +128,21 @@ export async function analyzeRepository(
     locate_examples: out.locate_examples,
   };
 
-  const t3 = Date.now();
   await store.saveAnalysis({ analysis, snapshot });
   if (opts.userId) await linkUserRepository(opts.userId, repository.id, analysis.id);
-  timing("no", { github_head: headMs, github_files: snapshotMs, ai: aiMs, db_save: Date.now() - t3 });
   return { analysis, cached: false };
+}
+
+// 같은 저장소·같은 commit을 미리 분석해 둔 결과가 있으면 새 분석으로 저장한다(기능별 결과·위치 찾기 예시도 함께).
+async function savePrecomputed(repository: Analysis["repository"]): Promise<Analysis | null> {
+  const pre = getPrecomputed();
+  const r = pre?.stored.analysis.repository;
+  if (!pre || !r || r.id.toLowerCase() !== repository.id.toLowerCase() || r.commit_sha !== repository.commit_sha) return null;
+  const analysis: Analysis = { ...pre.stored.analysis, id: randomUUID(), mode: "repository", created_at: new Date().toISOString(), repository };
+  const store = getStore();
+  await store.saveAnalysis({ analysis, snapshot: pre.stored.snapshot });
+  for (const [key, payload] of Object.entries(pre.artifacts)) await store.saveArtifact(analysis.id, key, payload);
+  return analysis;
 }
 
 async function load(analysisId: string): Promise<StoredAnalysis> {
@@ -176,7 +178,7 @@ export async function locateChanges(analysisId: string, query: string): Promise<
   const result: LocateResult = {
     query: normalized,
     locations,
-    notice: locations.length ? null : "입력한 문장과 맞는 위치를 찾지 못했어요.",
+    notice: locations.length ? null : "찾지 못했습니다. '기능' 목록에서 흐름을 확인해 보세요.",
   };
   // 못 찾은 결과는 저장하지 않는다(다음에 같은 문장으로 다시 찾을 수 있게).
   if (locations.length > 0) await getStore().saveArtifact(analysisId, key, result);
@@ -208,12 +210,8 @@ async function cached<T>(analysisId: string, featureId: string, kind: Kind, buil
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
   const paths = index.relatedPaths(feature.code_references.map((r) => r.path));
   const files = index.formatFiles(paths, config.featureContextBytes);
-  const t0 = Date.now();
   const value = await build({ feature, index, files });
-  const t1 = Date.now();
   await store.saveArtifact(analysisId, key, value);
-  // B4: 기능별 결과를 처음 만들 때 걸린 시간(저장된 결과를 쓰면 남기지 않는다)
-  console.info(`[feature] ${key} cached=no build=${t1 - t0}ms db_save=${Date.now() - t1}ms`);
   return value;
 }
 
@@ -290,16 +288,8 @@ export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
   });
 }
 
-// FR-08: 수정 미션. 서비스는 코드를 고치지 않고, 점수는 '채점하기'(gradeMission)에서 AI가 추정한다.
-const EXERCISE_DISCLAIMER = "CodeBack은 코드를 대신 고치거나 push하지 않아요. 점수는 코드를 실행하지 않고 AI가 추정해요.";
-
-// 예전에 저장된 미션에도 지금 안내 문구를 붙여서 돌려준다.
-export async function getExercise(analysisId: string, featureId: string): Promise<Exercise> {
-  const exercise = await buildExercise(analysisId, featureId);
-  return { ...exercise, disclaimer: EXERCISE_DISCLAIMER };
-}
-
-function buildExercise(analysisId: string, featureId: string): Promise<Exercise> {
+// FR-08
+export function getExercise(analysisId: string, featureId: string): Promise<Exercise> {
   return cached(analysisId, featureId, "exercise", async ({ feature, index, files }) => {
     const out = await generate(
       exerciseSchema,
@@ -322,7 +312,7 @@ function buildExercise(analysisId: string, featureId: string): Promise<Exercise>
         { level: "code", text: out.hints.code },
       ],
       acceptance_checks: out.acceptance_checks,
-      disclaimer: EXERCISE_DISCLAIMER,
+      disclaimer: "완료 체크는 자기 보고이며 실행 결과를 보증하지 않음",
     };
   });
 }
@@ -338,7 +328,7 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
   return { analysis: stored.analysis, lessons };
 }
 
-// FR-08: 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
+// FR-08(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
 // 점수는 채운 조건의 비율(0~100)로 계산한다.
 export type MissionGrade = {
   feature_id: string;
@@ -352,8 +342,6 @@ export type MissionGrade = {
 };
 
 const MAX_SUBMISSION = 8_000;
-const GRADE_CONTEXT_LINES = 12;
-const GRADE_MAX_LINES = 60;
 
 export async function gradeMission(analysisId: string, featureId: string, code: string): Promise<MissionGrade> {
   const submitted = typeof code === "string" ? code.replace(/\r\n/g, "\n").trim() : "";
@@ -361,7 +349,7 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
   if (submitted.length > MAX_SUBMISSION) {
     throw new AppError("invalid_request", `고친 부분만 ${MAX_SUBMISSION.toLocaleString()}자 이내로 붙여 넣어 주세요.`);
   }
-  // FR-08(FR-09를 합침): 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않고 지운 뒤 다시 보내라고 안내한다.
+  // FR-09: 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않는다.
   if (redactSecrets(submitted).redacted > 0) {
     throw new AppError("invalid_request", "비밀값(API 키·토큰 등)으로 보이는 문자열이 있어요. 지운 뒤 다시 보내 주세요.");
   }
@@ -369,14 +357,9 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
   findFeature(stored, featureId);
   const exercise = await getExercise(analysisId, featureId);
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
-  // 앞뒤 3줄만 보내면 입력란·함수의 다른 속성이 안 보여 AI가 추측해 감점했다(B3).
-  // 수정 위치 앞뒤 12줄까지 넓히되, 위치마다 최대 60줄로 자른다(저장소 전체는 보내지 않는다).
   const original = exercise.target_references
     .map((r) => {
-      const wide = index.excerpt(r, GRADE_CONTEXT_LINES);
-      const ex = wide && wide.lines.length > GRADE_MAX_LINES
-        ? index.excerpt(r, Math.max(3, Math.floor((GRADE_MAX_LINES - (r.end_line - r.start_line + 1)) / 2)))
-        : wide;
+      const ex = index.excerpt(r);
       const lines = ex ? ex.lines.map((l, i) => `${ex.start_line + i}| ${l}`).join("\n") : r.snippet;
       return `// ${r.path} (${r.start_line}~${r.end_line}행)\n${lines}`;
     })

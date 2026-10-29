@@ -32,18 +32,6 @@ export async function linkUserRepository(userId: string, repoId: string, analysi
   );
 }
 
-// 채점처럼 분석을 새로 하지 않는 요청에서 쓴다. 목록에 없을 때만 넣고,
-// 이미 있으면 기록의 분석 결과(commit)와 '마지막으로 본 시각'을 바꾸지 않는다(FR-13).
-export async function ensureUserRepository(userId: string, repoId: string, analysisId: string): Promise<void> {
-  const sql = getSql();
-  if (!sql) return;
-  await sql(
-    `INSERT INTO user_repositories (user_id, repo_id, analysis_id) VALUES ($1, lower($2), $3)
-     ON CONFLICT (user_id, repo_id) DO NOTHING`,
-    [userId, repoId, analysisId],
-  );
-}
-
 export async function listUserRepositories(userId: string): Promise<UserRepository[]> {
   const sql = getSql();
   if (!sql) return [];
@@ -98,7 +86,7 @@ export type FeatureRecord = {
   title: string;
   quiz_correct: number;
   quiz_total: number;
-  // 수정 미션 AI 채점(FR-08) 결과. 채점한 적이 없으면 null·0.
+  // AI 채점(FR-08 개정) 결과. 채점한 적이 없으면 null·0.
   mission_best_score: number | null;
   mission_last_score: number | null;
   mission_graded: number;
@@ -123,8 +111,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
   if (!sql) return [];
   const [repos, attempts, scores] = await Promise.all([
     sql<Omit<LearningRecord, "quiz_correct" | "quiz_total" | "mission_avg_score" | "features"> & { features: { id: string; title: string }[] }>(
-      // 분석 날짜는 보여 주는 commit의 분석 결과가 만들어진 시각이다. 채점·다시 보기로는 바뀌지 않는다.
-      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, a.created_at AS analyzed_at, ur.last_viewed_at,
+      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, ur.last_viewed_at AS analyzed_at, ur.last_viewed_at,
               COALESCE((SELECT json_agg(json_build_object('id', f->>'id', 'title', f->>'title'))
                           FROM jsonb_array_elements(a.analysis->'features') f), '[]'::json) AS features
          FROM user_repositories ur
@@ -174,7 +161,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
   });
 }
 
-// FR-08: 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
+// FR-08(개정): 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
 export async function recordMissionScore(input: {
   userId: string;
   analysisId: string;

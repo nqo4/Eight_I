@@ -5,13 +5,10 @@ import { useEffect, useState } from "react";
 import { FeatureCard } from "@/components/FeatureCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
-import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 import { ErrorBox, Loading, refLabel, secondaryBtn, techViews } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
 import type { Layer, LocateResult } from "@/server/types";
 
-// 분석 결과 화면: 저장소·commit(FR-01), 파일 수(FR-02), 프로젝트 소개(FR-03), 사용한 기술·기능 목록(FR-04),
-// '어디를 고쳐야 해?'(FR-11), '학습 노트 내려받기'(FR-12).
 // FR-03: 폴더 역할은 화면·서버·DB·설정 중 하나. 판단 근거를 찾지 못한 폴더(other)는 '확인 불가'.
 const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "확인 불가" };
 const locateTag = { ui: "화면", server: "서버", db: "DB" } as const;
@@ -67,11 +64,11 @@ export default function OverviewPage() {
         description="코드 전체가 아니라 내가 아는 기술과 기능에서 시작하면 훨씬 쉬워요. 아래 '사용한 기술'이나 '기능' 목록에서 하나를 골라 보세요."
       />
 
-      <div className="flex w-full flex-col gap-4 rounded-12 bg-brand-purple-soft px-4 py-4 sm:px-6 sm:py-5">
+      <div className="flex w-full flex-col gap-4 rounded-12 bg-brand-purple-soft px-6 py-5">
         <dl className="flex flex-wrap items-end gap-x-10 gap-y-3">
           <div className="flex flex-col gap-1">
             <dt className="text-xs font-bold text-text-muted">저장소</dt>
-            <dd data-testid="repo-name" className="text-xl font-bold break-all text-text-primary">
+            <dd data-testid="repo-name" className="text-xl font-bold text-text-primary">
               {repo.id}
             </dd>
           </div>
@@ -83,7 +80,7 @@ export default function OverviewPage() {
           </div>
           <div className="flex flex-col gap-1">
             <dt className="text-xs font-bold text-text-muted">분석 기준 commit</dt>
-            <dd data-testid="repo-commit" className="font-mono text-sm break-all">
+            <dd data-testid="repo-commit" className="font-mono text-sm">
               {repo.commit_sha}
             </dd>
           </div>
@@ -144,9 +141,9 @@ export default function OverviewPage() {
           {analysis.overview.directories.length === 0 ? (
             <p className="text-sm text-text-muted">확인된 주요 폴더가 없어요.</p>
           ) : (
-            <ul className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2">
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
               {analysis.overview.directories.map((d) => (
-                <li key={d.path} data-testid="directory" className="flex min-w-0 flex-wrap items-baseline gap-2 text-sm sm:flex-nowrap">
+                <li key={d.path} data-testid="directory" className="flex min-w-0 items-baseline gap-2 text-sm">
                   <span className="shrink-0 font-mono font-bold break-all text-text-primary">{d.path}</span>
                   <span className="shrink-0 rounded-8 bg-surface px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{layerTag[d.layer ?? "other"]}</span>
                   <span className="min-w-0 text-text-muted">{d.role}</span>
@@ -162,9 +159,9 @@ export default function OverviewPage() {
         )}
       </div>
 
-      <section aria-label="어디를 고쳐야 해?" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-4 py-4 sm:px-6 sm:py-5">
+      <section aria-label="어디를 고쳐야 해?" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-6 py-5">
         <h2 className="text-lg font-bold text-text-primary">어디를 고쳐야 해?</h2>
-        <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+        <div className="flex w-full items-center gap-3">
           <input
             type="text"
             aria-label="어디를 고쳐야 해?"
@@ -201,24 +198,21 @@ export default function OverviewPage() {
                       <span className="font-mono text-sm font-bold break-all text-brand-purple-ink">{refLabel(l.reference)}</span>
                       <span className="rounded-8 bg-brand-purple-soft px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{locateTag[l.layer]}</span>
                     </div>
-                    <p data-testid="locate-reason" className="text-sm leading-6 text-pretty">{l.reason}</p>
+                    <p className="text-sm leading-6 text-pretty">{l.reason}</p>
                     {l.excerpt && (
                       // 원래 코드만 보여 주고, 바꿔야 하는 줄만 하이라이트한다(고친 코드는 보여 주지 않음).
                       <pre data-testid="code-excerpt" className="mt-1 overflow-x-auto rounded-8 bg-text-primary py-3 font-mono text-xs leading-6 text-surface">
-                        <div className="flex justify-end px-4 pb-2">
-                          <LanguageTag path={l.reference.path} />
-                        </div>
-                        {highlightLines(l.excerpt.lines.join("\n"), l.reference.path).map((tokens, j) => {
+                        {l.excerpt.lines.map((line, j) => {
                           const n = l.excerpt!.start_line + j;
                           const mark = n >= l.reference.start_line && n <= l.reference.end_line;
                           return (
                             <div
                               key={n}
                               data-highlight={mark || undefined}
-                              className={`flex gap-4 px-4 ${mark ? "bg-yellow-mark/25 font-bold" : "opacity-70"}`}
+                              className={`flex gap-4 px-4 ${mark ? "bg-yellow-mark/25 font-bold text-surface" : "text-surface/70"}`}
                             >
                               <span className="w-8 shrink-0 text-right text-surface/50 select-none">{n}</span>
-                              <span className="whitespace-pre">{tokens.length ? <Tokens tokens={tokens} as="code" /> : " "}</span>
+                              <span className="whitespace-pre">{line || " "}</span>
                             </div>
                           );
                         })}
@@ -262,9 +256,9 @@ export default function OverviewPage() {
         </span>
       </div>
 
-      <section aria-label="기능" className="grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+      <section aria-label="기능" className="grid w-full grid-cols-2 gap-3">
         {analysis.features.length === 0 && (
-          <p role="note" className="text-sm md:col-span-2 text-text-muted">
+          <p role="note" className="col-span-2 text-sm text-text-muted">
             기능을 찾지 못했습니다. 기능 목록 대신 위의 사용한 기술부터 살펴보세요{analysis.features_notice ? ` — ${analysis.features_notice}` : ""}
           </p>
         )}

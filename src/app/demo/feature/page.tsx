@@ -33,7 +33,7 @@ export default function FeaturePage() {
   return (
     <>
       <PageIntro eyebrow="SELECTED FEATURE" title={feature.title} description={feature.summary} />
-      <section aria-label="선택한 기능" className="flex w-full max-w-[960px] flex-col gap-4 rounded-12 border border-brand-purple bg-surface px-5 py-5 sm:px-7 sm:py-6">
+      <section aria-label="선택한 기능" className="flex w-full max-w-[960px] flex-col gap-4 rounded-12 border border-brand-purple bg-surface px-7 py-6">
         <h2 data-testid="feature-title" className="text-2xl font-bold text-text-primary">
           {feature.title}
         </h2>
@@ -42,7 +42,7 @@ export default function FeaturePage() {
         </p>
         <div className="flex flex-col gap-1.5">
           <h3 className="text-xs font-bold text-text-muted">근거 파일</h3>
-          <ul data-testid="feature-files" className="flex flex-col gap-1 font-mono text-sm break-all text-brand-purple-ink">
+          <ul data-testid="feature-files" className="flex flex-col gap-1 font-mono text-sm text-brand-purple-ink">
             {feature.code_references.map((r) => (
               <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
             ))}

@@ -3,7 +3,6 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output } from "ai";
 import type { z } from "zod";
 import { config } from "./config";
-import type { AnalysisDeadline } from "./deadline";
 import { AppError } from "./errors";
 
 const SYSTEM = `너는 바이브코딩으로 만든 프로젝트를 초보 개발자가 이해하도록 돕는 코드 분석가다.
@@ -43,9 +42,8 @@ export function assertAiConfigured() {
   }
 }
 
-export async function generate<T>(schema: z.ZodType<T>, prompt: string, deadline?: AnalysisDeadline): Promise<T> {
+export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise<T> {
   assertAiConfigured();
-  const started = Date.now();
   try {
     const result = await generateText({
       model: selectModel(),
@@ -54,12 +52,11 @@ export async function generate<T>(schema: z.ZodType<T>, prompt: string, deadline
       output: Output.object({ schema }),
       maxOutputTokens: config.aiMaxOutputTokens,
       maxRetries: 1,
-      timeout: deadline ? deadline.timeout(config.aiTimeoutMs) : config.aiTimeoutMs,
-      abortSignal: deadline?.signal,
+      timeout: config.aiTimeoutMs,
     });
     // 팀 예산($10)이 한정돼 있어 호출마다 토큰 사용량을 남긴다.
     console.info(
-      `[ai] ${config.aiModel} input=${result.usage.inputTokens ?? "?"} output=${result.usage.outputTokens ?? "?"} tokens ms=${Date.now() - started}`,
+      `[ai] ${config.aiModel} input=${result.usage.inputTokens ?? "?"} output=${result.usage.outputTokens ?? "?"} tokens`,
     );
     return result.output;
   } catch (err) {
@@ -84,8 +81,7 @@ function toAppError(err: unknown): AppError {
       { status: status ?? null, reason: e?.name ?? null },
     );
   }
-  // 오류 이름·상태와 메시지 앞부분만 남긴다. 모델 출력(제출 코드가 섞일 수 있음)은 로그에 남기지 않는다.
-  console.error("[ai] generation failed:", e?.name, status ?? "", e?.message?.slice(0, 200));
-  if (e?.name === "AI_NoObjectGeneratedError") console.error("[ai] schema validation failed; output length:", e.cause?.message?.length ?? 0);
+  console.error("[ai] generation failed:", e?.name, status ?? "", e?.message?.slice(0, 300));
+  if (e?.name === "AI_NoObjectGeneratedError") console.error("[ai] schema validation:", e.cause?.message?.slice(-2500));
   return new AppError("ai_failed", "AI 분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
 }

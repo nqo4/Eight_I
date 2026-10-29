@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { MissionGrader } from "@/components/demo/MissionGrader";
-import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Exercise } from "@/server/types";
 
-// FR-08 직접 수정 미션: 변경 목표·예상 수정 위치·'현재 코드 → 목표'·힌트(하나씩)·채점 기준.
 const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "코드 힌트" } as const;
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
@@ -26,10 +24,10 @@ export function Mission() {
   const ex = data.exercise;
 
   return (
-    <section aria-label="직접 바꿔보기" className="grid w-full grid-cols-1 items-start gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="flex min-w-0 flex-col items-start gap-[18px] rounded-12 border border-line bg-surface px-5 py-5 sm:px-[30px] sm:py-7">
+    <section aria-label="직접 바꿔보기" className="grid w-full grid-cols-[minmax(0,1fr)_400px] items-start gap-[18px]">
+      <div className="flex min-w-0 flex-col items-start gap-[18px] rounded-12 border border-line bg-surface px-[30px] py-7">
         <p className={label}>{ex.kind === "observe" ? "관찰 미션" : "작은 수정 미션"}</p>
-        <p data-testid="exercise-goal" className="text-lg leading-8 font-bold text-balance text-text-primary sm:text-[22px] sm:leading-9">
+        <p data-testid="exercise-goal" className="text-[22px] leading-9 font-bold text-balance text-text-primary">
           {ex.instruction}
         </p>
         <div className="flex w-full flex-col gap-1.5 rounded-8 bg-brand-purple-soft px-4 py-3">
@@ -41,24 +39,13 @@ export function Mission() {
           </ul>
         </div>
         {ex.target_references[0] && (
-          <div className="grid w-full grid-cols-1 items-stretch gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3">
             <div className="flex min-w-0 flex-col gap-1.5 rounded-8 bg-text-primary px-4 py-3 text-surface">
-              <p className="flex items-center justify-between gap-3 text-xs font-bold text-surface/70">
-                현재 코드
-                <LanguageTag path={ex.target_references[0].path} />
-              </p>
-              <pre className="overflow-auto font-mono text-sm leading-6">
-                {highlightLines(ex.target_references[0].snippet, ex.target_references[0].path)
-                  .slice(0, 3)
-                  .map((tokens, i) => (
-                    <div key={i}>
-                      <Tokens tokens={tokens} />
-                    </div>
-                  ))}
-              </pre>
+              <p className="text-xs font-bold text-surface/70">현재 코드</p>
+              <pre className="overflow-auto font-mono text-sm leading-6">{ex.target_references[0].snippet.split("\n").slice(0, 3).join("\n")}</pre>
               <p className="font-mono text-xs break-all text-surface/70">{refLabel(ex.target_references[0])}</p>
             </div>
-            <span aria-hidden className="rotate-90 self-center justify-self-center text-sm font-bold text-brand-purple-ink sm:rotate-0">→</span>
+            <span aria-hidden className="self-center text-sm font-bold text-brand-purple-ink">→</span>
             <div className="flex min-w-0 flex-col gap-1.5 rounded-8 bg-brand-purple-soft px-4 py-3">
               <p className="text-xs font-bold text-text-muted">목표</p>
               <p className="text-sm leading-6 text-pretty">{ex.instruction}</p>
@@ -91,7 +78,7 @@ export function Mission() {
         )}
       </div>
 
-      <aside aria-labelledby="mission-criteria" className="flex min-w-0 flex-col items-start gap-3 rounded-12 border border-line bg-surface px-5 py-5 sm:px-[26px] sm:py-7">
+      <aside aria-labelledby="mission-criteria" className="flex min-w-0 flex-col items-start gap-3 rounded-12 border border-line bg-surface px-[26px] py-7">
         <p className={label}>채점 기준</p>
         <h2 id="mission-criteria" className="text-lg font-bold text-text-primary">
           이 조건으로 점수를 매겨요

@@ -58,7 +58,7 @@ npx playwright install chromium
 npx playwright test
 ```
 
-공개 저장소 `nextjs/saas-starter`를 처음 분석할 때는 실제 AI를 호출하고, 같은 commit을 다시 분석하면 DB에 저장된 결과를 재사용합니다. 로그인하지 않은 GitHub 요청은 IP당 시간당 60번까지라, 같은 PC에서 E2E를 여러 번 돌리면 '요청 한도' 오류가 날 수 있습니다.
+샘플 저장소 `nextjs/saas-starter`의 같은 commit은 `data/demo/demo.json`에 미리 분석해 둔 결과를 씁니다. 로그인하지 않은 GitHub 요청은 IP당 시간당 60번까지라, 같은 PC에서 E2E를 여러 번 돌리면 '요청 한도' 오류가 날 수 있습니다.
 
 ## 환경변수
 

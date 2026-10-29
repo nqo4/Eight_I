@@ -12,9 +12,9 @@ export function LearningSidebar() {
   const doneCount = learningSteps.filter((step) => progress.steps[step.key]).length;
 
   return (
-    <aside className="flex w-full flex-col items-start gap-2 bg-brand-purple-soft px-4 py-3 sm:px-8 xl:w-[260px] xl:shrink-0 xl:gap-2.5 xl:px-5 xl:pt-8 xl:pb-6">
+    <aside className="flex w-[260px] shrink-0 flex-col items-start gap-2.5 bg-brand-purple-soft px-5 pt-8 pb-6">
       <p className="font-manrope text-xs font-bold tracking-wider text-brand-purple-ink">LEARNING MAP</p>
-      <nav aria-label="학습 단계" className="flex w-full gap-2 overflow-x-auto pb-1 xl:flex-col xl:gap-2.5 xl:overflow-visible xl:pb-0">
+      <nav aria-label="학습 단계" className="flex w-full flex-col gap-2.5">
         {learningSteps.map((step, index) => {
           const current = index === currentIndex;
           const done = Boolean(progress.steps[step.key]);
@@ -24,7 +24,7 @@ export function LearningSidebar() {
               key={step.href}
               href={step.href}
               aria-current={current ? "step" : undefined}
-              className={`flex shrink-0 items-center gap-2 rounded-8 px-3 py-2 xl:w-full xl:shrink xl:gap-2.5 xl:px-3.5 xl:py-3 transition-colors hover:bg-surface ${
+              className={`flex w-full items-center gap-2.5 rounded-8 px-3.5 py-3 transition-colors hover:bg-surface ${
                 current ? "bg-surface ring-1 ring-brand-purple" : "bg-surface/60"
               }`}
             >
@@ -32,18 +32,18 @@ export function LearningSidebar() {
                 {done ? "✓" : step.number}
               </span>
               <span className="flex min-w-0 flex-col gap-0.5">
-                <span className={`text-sm font-bold whitespace-nowrap xl:whitespace-normal ${current ? "text-text-primary" : "text-text-muted"}`}>
+                <span className={`text-sm font-bold ${current ? "text-text-primary" : "text-text-muted"}`}>
                   {step.title}
                   {done && <span className="sr-only"> (완료)</span>}
                 </span>
-                <span className="hidden text-xs text-text-muted xl:inline">{current ? "지금 보는 단계" : step.caption}</span>
+                <span className="text-xs text-text-muted">{current ? "지금 보는 단계" : step.caption}</span>
               </span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-6 hidden w-full flex-col items-start gap-1.5 rounded-12 bg-surface px-4 py-3.5 xl:flex">
+      <div className="mt-6 flex w-full flex-col items-start gap-1.5 rounded-12 bg-surface px-4 py-3.5">
         <p className="text-xs font-bold text-text-muted">이 기능에서 끝낸 단계</p>
         <p className="font-manrope text-xl font-extrabold text-brand-purple-ink">
           {doneCount} / {learningSteps.length}

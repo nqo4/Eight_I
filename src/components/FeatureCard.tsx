@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type FeatureCardProps = {
   number: string;
   title: string;
@@ -5,12 +7,13 @@ type FeatureCardProps = {
   files: string[];
   evidenceCount: number;
   selected?: boolean;
+  // 팀원 /learn 화면은 링크(href)로, /demo 화면은 같은 화면 안에서 선택(onSelect)으로 쓴다.
   onSelect?: () => void;
+  href?: string;
 };
 
-// FR-04 '기능' 목록의 한 항목. 누르면 기능 상세(FR-15)로 간다.
 // Figma: CB / Feature Card — 코드 근거가 있는 기능을 선택하는 카드.
-export function FeatureCard({ number, title, description, files, evidenceCount, selected = false, onSelect }: FeatureCardProps) {
+export function FeatureCard({ number, title, description, files, evidenceCount, selected = false, onSelect, href }: FeatureCardProps) {
   const className = `flex min-w-0 flex-col items-start gap-2.5 rounded-12 border bg-surface px-[22px] pt-5 pb-[18px] text-left transition-colors hover:border-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple ${
     selected ? "border-brand-purple ring-1 ring-brand-purple" : "border-line"
   }`;
@@ -38,6 +41,13 @@ export function FeatureCard({ number, title, description, files, evidenceCount, 
       </div>
     </>
   );
+  if (href) {
+    return (
+      <Link href={href} data-testid="feature-card" className={className}>
+        {body}
+      </Link>
+    );
+  }
   return (
     <button type="button" data-testid="feature-card" aria-pressed={selected} onClick={onSelect} className={className}>
       {body}

@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { invalidateUser, refreshUser } from "@/lib/auth";
 
-// FR-10 회원가입·로그인 화면. 입력란마다 이유를 보여 주고, 계정·세션은 서버(src/server/auth.ts)가 만든다.
 type Mode = "login" | "signup";
 type Field = "name" | "email" | "password";
 type Errors = Partial<Record<Field, string>>;
@@ -28,14 +26,15 @@ type InputFieldProps = {
   id: Field;
   label: string;
   type: string;
+  value: string;
   placeholder: string;
   autoComplete: string;
   error?: string;
-  onChange: () => void;
+  onChange: (value: string) => void;
   trailing?: React.ReactNode;
 };
 
-function InputField({ id, label, type, placeholder, autoComplete, error, onChange, trailing }: InputFieldProps) {
+function InputField({ id, label, type, value, placeholder, autoComplete, error, onChange, trailing }: InputFieldProps) {
   return (
     <div className="flex w-full flex-col items-start gap-[8px]">
       <label htmlFor={id} className="text-[11px] leading-[16px] font-bold text-text-primary">
@@ -50,11 +49,12 @@ function InputField({ id, label, type, placeholder, autoComplete, error, onChang
           id={id}
           name={id}
           type={type}
+          value={value}
           placeholder={placeholder}
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
-          onChange={onChange}
+          onChange={(event) => onChange(event.target.value)}
           className="min-w-0 flex-1 bg-transparent text-[13px] leading-[20px] text-text-primary outline-none placeholder:text-text-muted"
         />
         {trailing}
@@ -70,6 +70,7 @@ function InputField({ id, label, type, placeholder, autoComplete, error, onChang
 
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
+  const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -77,20 +78,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   const isSignup = mode === "signup";
 
-  const update = (field: Field) => () => {
+  const update = (field: Field) => (value: string) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
     setServerError(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Read the DOM so input entered before hydration or by autofill is preserved.
-    const formData = new FormData(event.currentTarget);
-    const values: Record<Field, string> = {
-      name: String(formData.get("name") ?? ""),
-      email: String(formData.get("email") ?? ""),
-      password: String(formData.get("password") ?? ""),
-    };
     const nextErrors = validate(mode, values);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -107,8 +102,6 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setServerError(body?.error?.message ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
-      invalidateUser();
-      await refreshUser();
       router.push("/");
       router.refresh();
     } catch {
@@ -134,6 +127,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             id="name"
             label="이름"
             type="text"
+            value={values.name}
             placeholder="홍길동"
             autoComplete="name"
             error={errors.name}
@@ -144,6 +138,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           id="email"
           label="이메일"
           type="email"
+          value={values.email}
           placeholder="you@example.com"
           autoComplete="email"
           error={errors.email}
@@ -153,6 +148,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           id="password"
           label="비밀번호"
           type={showPassword ? "text" : "password"}
+          value={values.password}
           placeholder={`${MIN_PASSWORD_LENGTH}자 이상`}
           autoComplete={isSignup ? "new-password" : "current-password"}
           error={errors.password}

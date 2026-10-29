@@ -2,20 +2,21 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CodeReference, Overview } from "@/server/types";
 import type { ApiError } from "@/components/session/Session";
-import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 
 export const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple";
 export const secondaryBtn = `inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-8 border border-line bg-surface px-4 py-2 text-sm font-bold text-text-primary transition-colors hover:border-brand-purple disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
 
 // FR-04 '사용한 기술'. 예전 분석(technologies 없음)은 설정 파일로 확인한 stack으로 보여 준다.
-// 기술마다 근거 파일이 1개 이상 있어야 하므로, 근거가 없는(설정 파일로 확인하지 못한) 기술은 넣지 않는다.
 export type TechView = { name: string; role: string | null; concept: string | null; references: CodeReference[] };
 
 export function techViews(o: Overview): TechView[] {
   if (o.technologies && o.technologies.length > 0) return o.technologies;
-  return o.stack.flatMap((s) =>
-    s.status === "confirmed" && s.evidence ? [{ name: s.name, role: s.note, concept: null, references: [s.evidence] }] : [],
-  );
+  return o.stack.map((s) => ({
+    name: s.name,
+    role: s.note,
+    concept: null,
+    references: s.status === "confirmed" && s.evidence ? [s.evidence] : [],
+  }));
 }
 
 export function refLabel(r: CodeReference) {
@@ -40,16 +41,13 @@ export function CodeExcerpt({ r, highlight = false }: { r: CodeReference; highli
     >
       <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-surface/10 px-5 py-2.5 font-mono text-xs text-surface/70">
         <span>{refLabel(r)}</span>
-        <span className="flex items-center gap-3">
-          <LanguageTag path={r.path} />
-          {r.commit_sha.slice(0, 7)}
-        </span>
+        <span>{r.commit_sha.slice(0, 7)}</span>
       </figcaption>
       <pre className="max-h-96 overflow-auto px-5 py-3 font-mono text-sm leading-6">
-        {highlightLines(r.snippet, r.path).map((tokens, i) => (
+        {r.snippet.split("\n").map((line, i) => (
           <div key={i}>
             <span className="mr-4 inline-block w-10 select-none text-right text-surface/40">{r.start_line + i}</span>
-            <Tokens tokens={tokens} />
+            {line}
           </div>
         ))}
       </pre>

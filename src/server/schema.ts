@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS repositories (
   checked_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 분석 결과(개요·기능 목록)와 분석에 쓴 파일 내용. 저장소 + commit 하나당 하나.
+-- 분석 결과(개요·기능 카드)와 분석에 쓴 파일 내용. 저장소 + commit 하나당 하나.
 CREATE TABLE IF NOT EXISTS analyses (
   id TEXT PRIMARY KEY,
   repo_id TEXT NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS quiz_attempts_user ON quiz_attempts (user_id, analysis_id, feature_id);
--- FR-07·FR-08: 퀴즈와 수정 미션 점수를 한 표에서 관리한다. kind = 'quiz' | 'mission'.
+-- FR-07·FR-08(개정): 퀴즈와 수정 미션 점수를 한 표에서 관리한다. kind = 'quiz' | 'mission'.
 -- 미션은 question_id = 'mission', chosen_index 없음, score(0~100, AI 추정 채점), is_correct = 성공 조건을 모두 채움.
 ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'quiz';
 ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS score INT;

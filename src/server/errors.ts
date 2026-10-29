@@ -7,7 +7,6 @@ export type ErrorCode =
   | "repo_empty"
   | "github_rate_limited"
   | "github_unavailable"
-  | "github_auth_failed"
   | "ai_not_configured"
   | "ai_access_denied"
   | "ai_timeout"
@@ -28,7 +27,6 @@ const STATUS: Record<ErrorCode, number> = {
   repo_empty: 422,
   github_rate_limited: 429,
   github_unavailable: 502,
-  github_auth_failed: 502,
   ai_not_configured: 503,
   ai_access_denied: 503,
   ai_timeout: 504,

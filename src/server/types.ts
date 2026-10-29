@@ -59,7 +59,7 @@ export type Overview = {
   // FR-03: 폴더 역할. layer는 화면·서버·DB·설정 구분
   directories: { path: string; role: string; layer: Layer }[];
   support: { status: "supported" | "limited"; reason: string | null };
-  // FR-03: 소개의 근거 파일(README 등). README 없이 코드로만 추정하면 intro_inferred=true('AI 추정')
+  // FR-03(2026-10-29 22:41 개정): 소개의 근거 파일(README 등). README 없이 코드로만 추정하면 intro_inferred=true('AI 추정')
   intro_sources?: string[];
   intro_inferred?: boolean;
   // FR-04 '사용한 기술': 기술마다 이 프로젝트에서 맡은 역할, 핵심 개념 설명, 쓰인 코드 위치(검증된 경로·라인)
@@ -127,7 +127,7 @@ export type Lesson = {
   }[];
   // FR-06: '왜 이렇게 만들었나'. 코드로 확인할 수 없는 이유는 inferred=true('AI 추정')
   design_reasons: { reason: string; reference: CodeReference | null; inferred: boolean }[];
-  // FR-06 기능 설명을 쉽게: 사용자가 하는 행동 → 바뀌기 전/후 → 관련 코드 한 줄
+  // FR-06 기능 설명을 쉽게: 사용자가 하는 행동 → 바뀌기 전/후 → 관련 코드 한 줄(팀원 배포본의 설명 방식)
   walkthrough?: { action: string; before: string; after: string; key_line: CodeReference | null };
 };
 
@@ -159,7 +159,7 @@ export type FeatureDetail = {
   feature: Feature;
 };
 
-// FR-11 고칠 위치 찾기 결과. 위치마다 이유와 원래 코드 발췌(바꿀 줄만 하이라이트)를 주고, 고친 코드는 주지 않는다.
+// FR-11 고칠 위치 찾기 결과. 코드는 보여 주지 않고 위치와 이유만 준다.
 export type LocateResult = {
   query: string;
   locations: {

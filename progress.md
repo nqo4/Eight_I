@@ -38,10 +38,10 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [x] 학생이 개인 로그인으로 우리 팀 → 문제 정의를 열어 캔버스 표시 확인(Agent는 화면을 열 수 없음, 약 1분 캐시)
 - [x] 핵심 사용자 흐름·기능별 동작 규칙·완료 조건·제외 범위를 팀과 확인 (대회 흐름 S1~S7, 정적 피드백 FR-09는 P1이라 제외)
 - [x] 로그인 필요 여부와 역할 이름(흐름 account·docker 시드 계정 역할 이름으로 씀) 결정 (2026-10-29 개정: 로그인 필수 FR-10, 역할 '학습자', S2~S8 account: 학습자, S1은 회원가입부터)
-- [x] 첫 화면에서 알려 줄 것(로그인하지 않은 사람이 `/`에서 볼 서비스 이름·하는 일)을 학생과 정함 (서비스 이름 CodeBack, 한 줄: AI로 만든 프로젝트를 기능에서 코드까지 배우는 학습 서비스, 당시 버튼 '내 프로젝트 분석하기'·'샘플로 체험하기'; 사전 생성 체험은 제거됨)
+- [x] 첫 화면에서 알려 줄 것(로그인하지 않은 사람이 `/`에서 볼 서비스 이름·하는 일)을 학생과 정함 (서비스 이름 CodeBack, 한 줄: AI로 만든 프로젝트를 기능에서 코드까지 배우는 학습 서비스, 버튼 '내 프로젝트 분석하기'·'샘플로 체험하기')
 - [x] 주 사용 플랫폼(desktop·mobile·both)과 실제 사용 장면에 근거한 platformReason 작성 (desktop)
 - [x] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push (7개 S1~S7, 모두 홈에서 시작, 제목은 '학습자가 …'로 example 규칙에 맞춤, js-yaml 파싱 확인)
-- [x] 서비스의 AI 호출 필요 여부 확인 (필요: FR-03~FR-08의 구조 요약·기능 추출·설명·퀴즈·미션 생성. 사전 생성 샘플 모드는 제거되어 최초 분석은 실시간 AI 호출)
+- [x] 서비스의 AI 호출 필요 여부 확인 (필요: FR-03~FR-08의 구조 요약·기능 추출·설명·퀴즈·미션 생성. S1만 실시간 분석, 샘플 모드는 사전 생성 결과)
 - [x] README 등 기존 문서에 확인된 구현 설계 기록, 기본 브랜치 push (README, docs/api.md의 API·DB 표·서버 구조)
 - 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml , https://github.com/nqo4/Eight_I/blob/main/docs/scenarios.yaml / 양식 정렬 commit a482da8 / 남은 것: 팀 자체 측정 수치 없음(인터뷰 예정), README 구현 설계 기록
 
@@ -69,7 +69,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [ ] 학생이 AI_GATEWAY_API_KEY를 로컬·배포 환경과 GitHub Secrets에 직접 설정, .env.example에는 이름만 기록 (배포 환경 설정됨: 배포 /api/status ai.configured=true. GitHub Secrets는 아직 비어 있음. .env.example은 이름만)
 - [x] 서버에서 Gateway 호출, 접근 제한·예산 부족·지연·실패 처리 (src/server/ai.ts: ai_not_configured·ai_access_denied·ai_timeout·ai_failed 안내)
 - [ ] 팀 예산 안의 작은 실제 요청으로 연결 확인
-- 키 값을 제외한 설정·연결 확인 결과 / 준비 대기 사항: 배포 환경 키 설정 확인. GitHub Secrets 등록과 팀 사용액 확인은 학생 대기. E2E 저장소(nextjs/saas-starter)의 사전 생성 결과는 제거됨. 최초 분석에는 AI 키가 필요하고 같은 commit은 DB 결과 재사용
+- 키 값을 제외한 설정·연결 확인 결과 / 준비 대기 사항: 배포 환경 키 설정 확인. GitHub Secrets 등록과 팀 사용액 확인은 학생 대기. E2E 샘플 저장소(nextjs/saas-starter 6e33e58)는 미리 분석한 결과(data/demo/demo.json)를 써서 키 없이도 통과
 
 ## 5. 핵심 기능 구현
 
@@ -94,7 +94,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [x] test.skip·test.fixme·test.only·조건부 return·실패를 삼키는 try/catch 없음 (spec 검색 0건)
 - [x] page.route·route.fulfill·routeFromHAR·routeWebSocket·addInitScript·화면 글자를 바꾸는 page.evaluate 없음 (spec 검색 0건)
 - [x] 흐름에 필요한 선행 데이터는 앱 시드로, 업로드 자료는 e2e/fixtures/에 커밋, 앞 흐름이 만든 데이터에 기대지 않음 (시드 계정 + 흐름마다 저장소를 새로 분석)
-- [x] AI 기능은 실제 응답을 기다려 확인, 흐름 하나가 로컬에서 1분 안 (당시 흐름당 1~5초. 사전 생성 결과는 제거됨. 최초 분석은 실제 AI 응답 대기, 같은 commit은 DB 결과 재사용)
+- [x] AI 기능은 실제 응답을 기다려 확인, 흐름 하나가 로컬에서 1분 안 (흐름당 1~5초. 샘플 저장소 commit이 미리 분석한 결과와 같으면 저장 결과 사용, 다르면 실제 AI 응답 대기)
 - [x] viewport를 spec에서 바꾸지 않음, platform의 화면(both면 둘 다)에서 통과
 - [x] globalSetup·storageState 등 playwright.config.ts에만 있는 설정에 기대지 않음
 - [x] `docker compose down -v`, `docker compose up -d --build` 뒤 `npx playwright test`로 모든 흐름 통과 (빈 DB 앱에서 8/8, 19.4초)
