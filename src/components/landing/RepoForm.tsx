@@ -101,7 +101,7 @@ export function RepoForm() {
           </button>
         </form>
       )}
-      {needLogin && <LoginRequired feature="내 프로젝트 분석" onClose={closeLogin} />}
+      {needLogin && !user && <LoginRequired feature="내 프로젝트 분석" onClose={closeLogin} />}
       {busy && <Loading slow={busy === "analyze"} />}
       {error && (
         <ErrorBox

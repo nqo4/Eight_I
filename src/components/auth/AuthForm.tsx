@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { logIn, signUp } from "@/lib/auth";
 
 type Mode = "login" | "signup";
 type Field = "name" | "email" | "password";
@@ -74,7 +73,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const isSignup = mode === "signup";
@@ -82,28 +81,31 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const update = (field: Field) => (value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setServerError(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors = validate(mode, values);
     setErrors(nextErrors);
-    setFormError(null);
     if (Object.keys(nextErrors).length > 0) return;
     setSubmitting(true);
+    setServerError(null);
     try {
-      if (isSignup) {
-        if ((await signUp(values)) === "exists") {
-          setErrors({ email: "이미 가입된 이메일이에요. 로그인해 주세요." });
-          return;
-        }
-      } else if (!(await logIn(values))) {
-        setFormError("이메일 또는 비밀번호가 맞지 않아요.");
+      const res = await fetch(isSignup ? "/api/auth/signup" : "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isSignup ? values : { email: values.email, password: values.password }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setServerError(body?.error?.message ?? "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
       router.push("/");
+      router.refresh();
     } catch {
-      setFormError("이 브라우저에서는 로그인 정보를 저장할 수 없어요. 저장 공간 설정을 확인해 주세요.");
+      setServerError("서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.");
     } finally {
       setSubmitting(false);
     }
@@ -162,9 +164,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
           }
         />
 
-        {formError && (
-          <p role="alert" className="text-[10px] leading-[15px] text-status-red">
-            {formError}
+        {serverError && (
+          <p role="alert" className="text-[11px] leading-[16px] text-status-red">
+            {serverError}
           </p>
         )}
 
@@ -172,7 +174,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
           type="submit"
           label={isSignup ? "회원가입" : "로그인"}
           disabled={submitting}
-          className="mt-[8px] w-full disabled:opacity-60"
+          className="mt-[8px] w-full"
         />
       </form>
 

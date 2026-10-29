@@ -1,5 +1,5 @@
-import { AuthNav } from "@/components/auth/AuthNav";
 import { Brand } from "@/components/Brand";
+import { AuthNav } from "@/components/auth/AuthNav";
 import { RepoForm } from "@/components/landing/RepoForm";
 import { learningSteps } from "@/lib/demo";
 

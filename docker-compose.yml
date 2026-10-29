@@ -1,7 +1,8 @@
 # 주최 측 실행과 CI가 이 파일로 앱을 빌드하고 띄운다(키트 docker-compose.example.yml 기준).
 # - 서비스 이름 app과 "3000:3000"은 바꾸지 않는다. 앱은 컨테이너 안 0.0.0.0:3000에서 받는다.
 # - app 말고는 ports·container_name이 없고, env_file을 쓰지 않는다.
-# - 로그인이 없는 서비스라 SEED_USER_* 시드 계정은 두지 않는다(docs/scenarios.yaml: account 미사용).
+# - 회원가입·로그인(FR-13)이 있어 시드 계정을 둔다. 채점기가 SEED_USER_EMAIL·SEED_USER_PASSWORD를 E2E에 넘긴다.
+#   앱이 뜨면서 이 계정을 만든다(src/instrumentation.ts). 학습 흐름(S1~S8)은 로그인 없이도 동작한다.
 # - 앱은 처음 요청 때 DB 표를 스스로 만든다. 샘플 데이터는 저장소의 data/demo/demo.json에서 읽는다.
 services:
   app:
@@ -14,6 +15,9 @@ services:
     environment:
       RELEASE_ID: ${RELEASE_ID:-dev}
       DATABASE_URL: postgres://app:app@db:5432/app
+      SEED_USER_EMAIL: student@example.com
+      SEED_USER_PASSWORD: loopthon-2026
+      SEED_USER_NAME: 체험 학습자
       # 서버는 이 이름으로만 AI 키를 읽는다. 비어 있어도 앱은 뜬다(AI 분석만 안내 메시지).
       AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
       # 로컬 테스트 전용. 비어 있으면(채점·CI) AI Gateway를 쓴다.

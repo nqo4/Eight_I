@@ -8,6 +8,8 @@ import type { Analysis, Repository, Snapshot } from "./types";
 export type StoredAnalysis = { analysis: Analysis; snapshot: Snapshot };
 
 export interface AnalysisStore {
+  // 저장소 종류. 번들(라우트·instrumentation)마다 클래스 사본이 따로 있어 instanceof로는 판별할 수 없다.
+  readonly kind: "postgres" | "memory";
   // 저장소의 최신 commit·최종 수정 날짜를 기록한다(분석할 때마다 갱신).
   saveRepository(repo: Repository): Promise<void>;
   saveAnalysis(entry: StoredAnalysis): Promise<void>;
@@ -19,6 +21,7 @@ export interface AnalysisStore {
 }
 
 class MemoryStore implements AnalysisStore {
+  readonly kind = "memory";
   private analyses = new Map<string, StoredAnalysis>();
   private artifacts = new Map<string, unknown>();
   private repositories = new Map<string, Repository>();
@@ -48,6 +51,7 @@ class MemoryStore implements AnalysisStore {
 }
 
 class PostgresStore implements AnalysisStore {
+  readonly kind = "postgres";
   private pool: Pool;
   private ready: Promise<void>;
 
@@ -120,14 +124,11 @@ export function getStore(): AnalysisStore {
 // Postgres일 때만 SQL 실행 함수를 돌려준다(메모리 저장소면 null).
 export function getSql(): PostgresStore["q"] | null {
   const store = getStore();
-  return store instanceof PostgresStore ? store.q.bind(store) : null;
+  return store.kind === "postgres" ? (store as PostgresStore).q.bind(store) : null;
 }
 
 export async function checkStore(): Promise<"postgres" | "memory"> {
   const store = getStore();
-  if (store instanceof PostgresStore) {
-    await store.getAnalysis("__ping__");
-    return "postgres";
-  }
-  return "memory";
+  if (store.kind === "postgres") await store.getAnalysis("__ping__");
+  return store.kind;
 }

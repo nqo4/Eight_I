@@ -17,7 +17,6 @@ const STEPS: { key: StepKey; label: string }[] = [
   { key: "mission", label: "미션" },
 ];
 
-const dateFmt = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 const dateTimeFmt = new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 type StudyRecord = ReturnType<typeof readHistory>[number];
@@ -169,8 +168,6 @@ function SignedIn({ user }: { user: User }) {
             <dd className="font-bold text-text-primary">{user.name}</dd>
             <dt className="text-text-muted">이메일</dt>
             <dd className="font-mono break-all text-text-primary">{user.email}</dd>
-            <dt className="text-text-muted">가입일</dt>
-            <dd className="text-text-primary">{dateFmt.format(new Date(user.created_at))}</dd>
           </dl>
         </div>
         <Stat label="학습한 저장소" value={`${records.length}개`} />

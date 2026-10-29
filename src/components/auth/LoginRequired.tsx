@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 
 const REDIRECT_MS = 2000;
@@ -11,16 +11,22 @@ export function LoginRequired({ feature, onClose }: { feature: string; onClose: 
   const router = useRouter();
   const loginRef = useRef<HTMLButtonElement>(null);
 
+  // 이동하기 전에 안내를 닫는다. 닫지 않으면 홈으로 돌아왔을 때 화면 상태가 복원되면서 안내가 다시 떠 또 이동한다.
+  const goLogin = useCallback(() => {
+    onClose();
+    router.push("/login");
+  }, [onClose, router]);
+
   useEffect(() => {
     loginRef.current?.focus();
-    const timer = window.setTimeout(() => router.push("/login"), REDIRECT_MS);
+    const timer = window.setTimeout(goLogin, REDIRECT_MS);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => {
       window.clearTimeout(timer);
       window.removeEventListener("keydown", onKey);
     };
-  }, [router, onClose]);
+  }, [goLogin, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-6" onClick={onClose}>
@@ -54,7 +60,7 @@ export function LoginRequired({ feature, onClose }: { feature: string; onClose: 
           >
             취소
           </button>
-          <PrimaryButton ref={loginRef} label="지금 로그인하기" onClick={() => router.push("/login")} />
+          <PrimaryButton ref={loginRef} label="지금 로그인하기" onClick={goLogin} />
         </div>
       </div>
     </div>
