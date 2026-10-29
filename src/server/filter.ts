@@ -17,6 +17,7 @@ const EXCLUDED_DIRS = new Set([
 
 const LOCKFILES = new Set([
   "package-lock.json",
+  "npm-shrinkwrap.json",
   "yarn.lock",
   "pnpm-lock.yaml",
   "bun.lockb",

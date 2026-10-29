@@ -32,7 +32,15 @@ export async function analyzeRepository(
   url: string,
   opts: { userId?: string } = {},
 ): Promise<{ analysis: Analysis; cached: boolean }> {
+  // B4: 어느 단계가 느린지 보려고 단계별 시간을 서버 로그에 남긴다(저장소 이름·commit·시간만).
+  const t0 = Date.now();
+  const timing = (cached: string, parts: Record<string, number>) =>
+    console.info(
+      `[analyze] ${repository.id}@${repository.commit_sha.slice(0, 7)} cached=${cached} `
+        + Object.entries(parts).map(([k, v]) => `${k}=${v}ms`).join(" ") + ` total=${Date.now() - t0}ms`,
+    );
   const repository = await fetchRepositoryHead(url);
+  const headMs = Date.now() - t0;
   const store = getStore();
   await store.saveRepository(repository);
 
@@ -46,18 +54,22 @@ export async function analyzeRepository(
     && Array.isArray(existing.analysis.overview.technologies)
   ) {
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
+    timing("stored", { github_head: headMs });
     return { analysis: existing.analysis, cached: true };
   }
 
   const pre = await savePrecomputed(repository);
   if (pre) {
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, pre.id);
+    timing("precomputed", { github_head: headMs });
     return { analysis: pre, cached: true };
   }
 
   // 새로 분석해야 할 때만 AI 설정을 확인하고 파일을 받는다(키가 없으면 GitHub 파일 요청도 아낀다).
   assertAiConfigured();
+  const t1 = Date.now();
   const snapshot = await fetchSnapshot(repository);
+  const snapshotMs = Date.now() - t1;
   if (snapshot.files.length === 0) {
     throw new AppError("repo_empty", "분석할 수 있는 소스 파일을 찾지 못했어요.");
   }
@@ -73,10 +85,12 @@ export async function analyzeRepository(
     .filter(Boolean)
     .join("\n");
 
+  const t2 = Date.now();
   const out = await generate(
     overviewSchema,
     overviewPrompt(meta, index.formatFiles(index.paths(), config.maxTotalBytes * 2)),
   );
+  const aiMs = Date.now() - t2;
 
   const verified: Feature[] = [];
   for (const f of out.features.slice(0, 5)) {
@@ -128,8 +142,10 @@ export async function analyzeRepository(
     locate_examples: out.locate_examples,
   };
 
+  const t3 = Date.now();
   await store.saveAnalysis({ analysis, snapshot });
   if (opts.userId) await linkUserRepository(opts.userId, repository.id, analysis.id);
+  timing("no", { github_head: headMs, github_files: snapshotMs, ai: aiMs, db_save: Date.now() - t3 });
   return { analysis, cached: false };
 }
 
@@ -210,8 +226,12 @@ async function cached<T>(analysisId: string, featureId: string, kind: Kind, buil
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
   const paths = index.relatedPaths(feature.code_references.map((r) => r.path));
   const files = index.formatFiles(paths, config.featureContextBytes);
+  const t0 = Date.now();
   const value = await build({ feature, index, files });
+  const t1 = Date.now();
   await store.saveArtifact(analysisId, key, value);
+  // B4: 기능별 결과를 처음 만들 때 걸린 시간(저장된 결과를 쓰면 남기지 않는다)
+  console.info(`[feature] ${key} cached=no build=${t1 - t0}ms db_save=${Date.now() - t1}ms`);
   return value;
 }
 
@@ -350,6 +370,8 @@ export type MissionGrade = {
 };
 
 const MAX_SUBMISSION = 8_000;
+const GRADE_CONTEXT_LINES = 12;
+const GRADE_MAX_LINES = 60;
 
 export async function gradeMission(analysisId: string, featureId: string, code: string): Promise<MissionGrade> {
   const submitted = typeof code === "string" ? code.replace(/\r\n/g, "\n").trim() : "";
@@ -365,9 +387,14 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
   findFeature(stored, featureId);
   const exercise = await getExercise(analysisId, featureId);
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
+  // 앞뒤 3줄만 보내면 입력란·함수의 다른 속성이 안 보여 AI가 추측해 감점했다(B3).
+  // 수정 위치 앞뒤 12줄까지 넓히되, 위치마다 최대 60줄로 자른다(저장소 전체는 보내지 않는다).
   const original = exercise.target_references
     .map((r) => {
-      const ex = index.excerpt(r);
+      const wide = index.excerpt(r, GRADE_CONTEXT_LINES);
+      const ex = wide && wide.lines.length > GRADE_MAX_LINES
+        ? index.excerpt(r, Math.max(3, Math.floor((GRADE_MAX_LINES - (r.end_line - r.start_line + 1)) / 2)))
+        : wide;
       const lines = ex ? ex.lines.map((l, i) => `${ex.start_line + i}| ${l}`).join("\n") : r.snippet;
       return `// ${r.path} (${r.start_line}~${r.end_line}행)\n${lines}`;
     })

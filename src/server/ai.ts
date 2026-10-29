@@ -44,6 +44,7 @@ export function assertAiConfigured() {
 
 export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise<T> {
   assertAiConfigured();
+  const started = Date.now();
   try {
     const result = await generateText({
       model: selectModel(),
@@ -56,7 +57,7 @@ export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise
     });
     // 팀 예산($10)이 한정돼 있어 호출마다 토큰 사용량을 남긴다.
     console.info(
-      `[ai] ${config.aiModel} input=${result.usage.inputTokens ?? "?"} output=${result.usage.outputTokens ?? "?"} tokens`,
+      `[ai] ${config.aiModel} input=${result.usage.inputTokens ?? "?"} output=${result.usage.outputTokens ?? "?"} tokens ms=${Date.now() - started}`,
     );
     return result.output;
   } catch (err) {
@@ -81,7 +82,8 @@ function toAppError(err: unknown): AppError {
       { status: status ?? null, reason: e?.name ?? null },
     );
   }
-  console.error("[ai] generation failed:", e?.name, status ?? "", e?.message?.slice(0, 300));
-  if (e?.name === "AI_NoObjectGeneratedError") console.error("[ai] schema validation:", e.cause?.message?.slice(-2500));
+  // 오류 이름·상태와 메시지 앞부분만 남긴다. 모델 출력(제출 코드가 섞일 수 있음)은 로그에 남기지 않는다.
+  console.error("[ai] generation failed:", e?.name, status ?? "", e?.message?.slice(0, 200));
+  if (e?.name === "AI_NoObjectGeneratedError") console.error("[ai] schema validation failed; output length:", e.cause?.message?.length ?? 0);
   return new AppError("ai_failed", "AI 분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
 }

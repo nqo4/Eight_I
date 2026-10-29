@@ -1,6 +1,6 @@
 import { requireUserId } from "@/server/auth";
 import { AppError } from "@/server/errors";
-import { linkUserRepository, recordMissionScore } from "@/server/history";
+import { ensureUserRepository, recordMissionScore } from "@/server/history";
 import { handle, ok, readJson } from "@/server/http";
 import { getAnalysis, gradeMission } from "@/server/service";
 
@@ -17,7 +17,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/analyses/[analy
     if (!body || typeof body.code !== "string") throw new AppError("invalid_request", "'code'에 고친 코드를 넣어 주세요.");
     const grade = await gradeMission(analysisId, featureId, body.code);
     const { saved } = await recordMissionScore({ userId, analysisId, featureId, score: grade.score, passed: grade.passed });
-    if (saved) await linkUserRepository(userId, (await getAnalysis(analysisId)).repository.id, analysisId);
+    // 채점은 분석 날짜·기록의 commit을 바꾸지 않는다(목록에 없을 때만 추가).
+    if (saved) await ensureUserRepository(userId, (await getAnalysis(analysisId)).repository.id, analysisId);
     return ok({ grade, saved });
   });
 }

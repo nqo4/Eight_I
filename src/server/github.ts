@@ -49,22 +49,56 @@ async function request(url: string, init?: RequestInit): Promise<Response> {
       signal: AbortSignal.timeout(config.githubTimeoutMs),
       cache: "no-store",
     });
-  } catch {
+  } catch (err) {
+    const name = (err as { name?: string })?.name ?? "Error";
+    let path = url;
+    try {
+      path = new URL(url).pathname;
+    } catch {}
+    // 응답을 받기 전에 끊긴 경우(네트워크 장애·시간 초과). 한도 초과·저장소 없음과 구분된다.
+    console.error(`[github] github_unavailable network=${name} path=${path} token=${config.githubToken ? "yes" : "no"}`);
     throw new AppError("github_unavailable", "GitHub에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
+}
+
+// GitHub 실패 원인을 나중에 구분할 수 있게 서버 로그에 남긴다(B1).
+// 원본 상태·남은 한도·reset 시각·요청 ID·토큰 사용 여부만 남기고, 토큰 값이나 응답 본문은 남기지 않는다.
+function logGithubFailure(res: Response, code: string) {
+  const h = res.headers;
+  let path = res.url;
+  try {
+    path = new URL(res.url).pathname;
+  } catch {}
+  console.error(
+    `[github] ${code} status=${res.status} path=${path} remaining=${h.get("x-ratelimit-remaining") ?? "-"}`
+      + ` reset=${h.get("x-ratelimit-reset") ?? "-"} retry_after=${h.get("retry-after") ?? "-"}`
+      + ` request_id=${h.get("x-github-request-id") ?? "-"} token=${config.githubToken ? "yes" : "no"}`,
+  );
 }
 
 function checkStatus(res: Response) {
   if (res.ok) return;
   const remaining = res.headers.get("x-ratelimit-remaining");
-  if (res.status === 429 || (res.status === 403 && remaining === "0")) {
+  // 기본 한도 소진(remaining=0)과 짧은 시간에 몰린 요청 제한(403 + retry-after) 모두 한도 초과로 본다.
+  if (res.status === 429 || (res.status === 403 && (remaining === "0" || res.headers.has("retry-after")))) {
+    logGithubFailure(res, "github_rate_limited");
     const reset = Number(res.headers.get("x-ratelimit-reset"));
+    const retryAfter = Number(res.headers.get("retry-after"));
+    const resetAt = Number.isFinite(reset) && reset > 0
+      ? new Date(reset * 1000)
+      : Number.isFinite(retryAfter) && retryAfter > 0 ? new Date(Date.now() + retryAfter * 1000) : null;
     throw new AppError(
       "github_rate_limited",
       "GitHub 요청 한도를 넘었어요. 잠시 후 다시 시도해 주세요.",
-      Number.isFinite(reset) && reset > 0 ? { reset_at: new Date(reset * 1000).toISOString() } : undefined,
+      resetAt ? { reset_at: resetAt.toISOString() } : undefined,
     );
   }
+  if (res.status === 401) {
+    // 서버에 넣은 GITHUB_TOKEN이 틀렸거나 만료됐다. 사용자 탓이 아니므로 운영자 확인을 안내한다.
+    logGithubFailure(res, "github_auth_failed");
+    throw new AppError("github_auth_failed", "서버의 GitHub 연결 설정에 문제가 있어요. 운영진이나 팀에 알려 주세요.");
+  }
+  if (res.status !== 404 && res.status !== 409) logGithubFailure(res, "github_unavailable");
   if (res.status === 404) {
     // 토큰 없이 비공개 저장소를 요청해도 GitHub는 404를 준다.
     throw new AppError(
