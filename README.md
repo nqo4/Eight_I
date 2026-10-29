@@ -6,6 +6,7 @@ SUMTECH 2026 루프톤 팀 서비스 저장소입니다.
 
 - 문제정의·기능 명세: `docs/problem.yaml` (작성 예정)
 - 사용자 핵심 흐름: `docs/scenarios.yaml` (작성 예정)
+- 백엔드 API 명세(프런트 목업 기준): `docs/api.md`
 
 ## 설치·실행
 
