@@ -5,8 +5,8 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 ## 현재 상태
 
 - 실제 서비스 저장소 폴더: C:\Users\user\OneDrive\Documents\8I\Eight_I
-- 현재 단계 / 다음 행동: 1단계 완료 — 학생이 이어 가자고 하면 2단계(종이 문제정의 기록 받기)
-- 학생에게 확인할 내용: 종이 문제정의 기록
+- 현재 단계 / 다음 행동: 2단계 — 팀 문서를 대회 양식으로 옮겨 push(cbd80af), 대시보드 표시 확인과 빈 칸 채우기
+- 학생에게 확인할 내용: 대시보드 문제 정의 화면 표시 여부, platform·platformReason, why_ours
 
 ## 1. GitHub 준비
 
@@ -25,7 +25,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 ## 2. 문제정의 기록 → 문제 다지기 → 해법 찾기 → 기능 명세
 
 - [ ] 종이 기록 수령(학생이 채팅에 옮겨 적거나 사진 첨부)
-- [ ] problem.example.yaml을 참고해 docs/problem.yaml 작성
+- [x] problem.example.yaml을 참고해 docs/problem.yaml 작성 (팀이 준 문서를 양식 키로 옮김)
 - [ ] 원문 의도와 불명확한 내용 확인, 없는 근거는 빈칸 유지
 - [ ] 2-A 문제 다지기: 캔버스 칸을 질문으로 다짐(Agent가 해법·후보·예시 답을 먼저 내지 않음, 학생 답이 없는 칸은 "학생 답 대기")
 - [ ] 팀원 경험을 언제·어떤 장면·어떻게 대응했는지까지 experiences에 기록
@@ -42,7 +42,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [ ] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push
 - [ ] 서비스의 AI 호출 필요 여부 확인
 - [ ] README 등 기존 문서에 확인된 구현 설계 기록, 기본 브랜치 push
-- 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸:
+- 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml / cbd80af61145cd9e4d46d371184bd333314f2e5e / 학생 답 대기: alternatives[].why_ours, experiences, sources, insight, FR-03·FR-10 input, scenarios platform·platformReason, 흐름 3~8개 선택(현재 8개, S7은 P1)
 
 ## 3. 최소 화면 docker 실행·CI·첫 배포
 
