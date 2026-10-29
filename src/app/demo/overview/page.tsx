@@ -9,6 +9,8 @@ import { ErrorBox, Loading, refLabel, secondaryBtn, techViews } from "@/componen
 import { api, useSession, type ApiError } from "@/components/session/Session";
 import type { Layer, LocateResult } from "@/server/types";
 
+// 분석 결과 화면: 저장소·commit(FR-01), 파일 수(FR-02), 프로젝트 소개(FR-03), 사용한 기술·기능 목록(FR-04),
+// '어디를 고쳐야 해?'(FR-11), '학습 노트 내려받기'(FR-12).
 // FR-03: 폴더 역할은 화면·서버·DB·설정 중 하나. 판단 근거를 찾지 못한 폴더(other)는 '확인 불가'.
 const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "확인 불가" };
 const locateTag = { ui: "화면", server: "서버", db: "DB" } as const;

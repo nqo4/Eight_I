@@ -44,7 +44,7 @@ function RecordCard({ record }: { record: LearningRecord }) {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 저장소를 누르면 다시 분석하지 않고 그 commit 기준 분석 결과를 연다(FR-13).
+  // '분석 결과 보기'를 누르면 다시 분석하지 않고 그 commit 기준 분석 결과를 연다(FR-13).
   const open = async () => {
     setOpening(true);
     setError(null);

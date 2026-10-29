@@ -7,6 +7,7 @@ import { useFeatureResource, useSession } from "@/components/session/Session";
 import { saveQuizAttempt } from "@/lib/records";
 import type { CodeReference, Lesson, Quiz as QuizData } from "@/server/types";
 
+// FR-07 이해도 퀴즈: 보기를 고르고 '정답 확인'을 누르면 정답 여부·이유·코드 위치를 보여 준다.
 const overlaps = (a: CodeReference, b: CodeReference) =>
   a.path === b.path && a.start_line <= b.end_line && b.start_line <= a.end_line;
 

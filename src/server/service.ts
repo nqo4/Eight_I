@@ -24,7 +24,7 @@ import {
 import { getStore, type StoredAnalysis } from "./store";
 import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateResult, Quiz, StackItem } from "./types";
 
-// FR-01~04: 저장소를 읽고 개요와 기능 카드를 만든다.
+// FR-01~04: 저장소를 읽고 프로젝트 소개, 사용한 기술, 기능 목록을 만든다.
 // 최신 commit을 먼저 확인해서, 이미 분석한 commit이면(= 그 뒤로 GitHub에 변경이 없으면)
 // 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려준다.
 // userId가 있으면 그 사용자의 '내가 분석한 저장소' 목록에도 남긴다.
@@ -178,7 +178,7 @@ export async function locateChanges(analysisId: string, query: string): Promise<
   const result: LocateResult = {
     query: normalized,
     locations,
-    notice: locations.length ? null : "찾지 못했습니다. '기능' 목록에서 흐름을 확인해 보세요.",
+    notice: locations.length ? null : "입력한 문장과 맞는 위치를 찾지 못했어요.",
   };
   // 못 찾은 결과는 저장하지 않는다(다음에 같은 문장으로 다시 찾을 수 있게).
   if (locations.length > 0) await getStore().saveArtifact(analysisId, key, result);
@@ -288,8 +288,16 @@ export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
   });
 }
 
-// FR-08
-export function getExercise(analysisId: string, featureId: string): Promise<Exercise> {
+// FR-08: 수정 미션. 서비스는 코드를 고치지 않고, 점수는 '채점하기'(gradeMission)에서 AI가 추정한다.
+const EXERCISE_DISCLAIMER = "CodeBack은 코드를 대신 고치거나 push하지 않아요. 점수는 코드를 실행하지 않고 AI가 추정해요.";
+
+// 예전에 저장된 미션(미리 분석해 둔 샘플 포함)에도 지금 안내 문구를 붙여서 돌려준다.
+export async function getExercise(analysisId: string, featureId: string): Promise<Exercise> {
+  const exercise = await buildExercise(analysisId, featureId);
+  return { ...exercise, disclaimer: EXERCISE_DISCLAIMER };
+}
+
+function buildExercise(analysisId: string, featureId: string): Promise<Exercise> {
   return cached(analysisId, featureId, "exercise", async ({ feature, index, files }) => {
     const out = await generate(
       exerciseSchema,
@@ -312,7 +320,7 @@ export function getExercise(analysisId: string, featureId: string): Promise<Exer
         { level: "code", text: out.hints.code },
       ],
       acceptance_checks: out.acceptance_checks,
-      disclaimer: "완료 체크는 자기 보고이며 실행 결과를 보증하지 않음",
+      disclaimer: EXERCISE_DISCLAIMER,
     };
   });
 }
@@ -328,7 +336,7 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
   return { analysis: stored.analysis, lessons };
 }
 
-// FR-08(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
+// FR-08: 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
 // 점수는 채운 조건의 비율(0~100)로 계산한다.
 export type MissionGrade = {
   feature_id: string;
@@ -349,7 +357,7 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
   if (submitted.length > MAX_SUBMISSION) {
     throw new AppError("invalid_request", `고친 부분만 ${MAX_SUBMISSION.toLocaleString()}자 이내로 붙여 넣어 주세요.`);
   }
-  // FR-09: 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않는다.
+  // FR-08(FR-09를 합침): 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않고 지운 뒤 다시 보내라고 안내한다.
   if (redactSecrets(submitted).redacted > 0) {
     throw new AppError("invalid_request", "비밀값(API 키·토큰 등)으로 보이는 문자열이 있어요. 지운 뒤 다시 보내 주세요.");
   }

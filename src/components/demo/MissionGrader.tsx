@@ -6,6 +6,7 @@ import { ErrorBox, Loading } from "@/components/demo/ui";
 import type { ApiError } from "@/components/session/Session";
 import { gradeMission, type MissionGrade } from "@/lib/records";
 
+// FR-08 수정 미션 채점: 고친 코드를 붙여 넣고 '채점하기' → 0~100점 AI 추정 점수와 피드백(통과·실패, 조건별 결과는 보여 주지 않음).
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 // 점수만 보여 준다(통과·실패, 조건별 충족 여부는 표시하지 않음).

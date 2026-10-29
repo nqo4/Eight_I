@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 
+// FR-10 회원가입·로그인 화면. 입력란마다 이유를 보여 주고, 계정·세션은 서버(src/server/auth.ts)가 만든다.
 type Mode = "login" | "signup";
 type Field = "name" | "email" | "password";
 type Errors = Partial<Record<Field, string>>;

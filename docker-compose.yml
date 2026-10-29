@@ -22,6 +22,8 @@ services:
       AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
       # 로컬 테스트 전용. 비어 있으면(채점·CI) AI Gateway를 쓴다.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # 읽기 전용 GitHub 토큰(선택). 있으면 GitHub 요청 한도가 IP당 60회/시간에서 토큰당 5,000회/시간으로 늘어난다.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy

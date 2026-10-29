@@ -7,6 +7,7 @@ import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, stripNumber } f
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Flow } from "@/server/types";
 
+// FR-05 기능 동작 흐름: 화면·상태/로직·서버/API·DB 요약, 단계별 파일 카드, '다음 단계'·'이전 단계', 확인 못 한 연결은 'AI 추정'.
 const layerName: Record<string, string> = {
   ui: "화면",
   state_logic: "상태·로직",

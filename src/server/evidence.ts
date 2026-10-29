@@ -135,7 +135,7 @@ function joinPath(dir: string, rel: string) {
   return out.join("/");
 }
 
-// FR-03: package.json에서 확인되는 기술만 confirmed로 둔다(근거 파일·라인 포함).
+// FR-04 '사용한 기술'의 근거: package.json에서 확인되는 기술만 confirmed로 둔다(근거 파일·라인 포함). FR-03 기술 스택 요약은 이 이름만 쓴다.
 const KNOWN: { pkg: string; name: string }[] = [
   { pkg: "next", name: "Next.js" },
   { pkg: "react", name: "React" },

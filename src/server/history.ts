@@ -86,7 +86,7 @@ export type FeatureRecord = {
   title: string;
   quiz_correct: number;
   quiz_total: number;
-  // AI 채점(FR-08 개정) 결과. 채점한 적이 없으면 null·0.
+  // 수정 미션 AI 채점(FR-08) 결과. 채점한 적이 없으면 null·0.
   mission_best_score: number | null;
   mission_last_score: number | null;
   mission_graded: number;
@@ -161,7 +161,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
   });
 }
 
-// FR-08(개정): 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
+// FR-08: 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
 export async function recordMissionScore(input: {
   userId: string;
   analysisId: string;

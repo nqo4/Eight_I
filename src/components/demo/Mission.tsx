@@ -6,6 +6,7 @@ import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui"
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Exercise } from "@/server/types";
 
+// FR-08 직접 수정 미션: 변경 목표·예상 수정 위치·'현재 코드 → 목표'·힌트(하나씩)·채점 기준.
 const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "코드 힌트" } as const;
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 

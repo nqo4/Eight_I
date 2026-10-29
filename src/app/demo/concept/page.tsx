@@ -8,6 +8,7 @@ import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn } from "@/compon
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Lesson } from "@/server/types";
 
+// FR-06 Top-down 학습: 기능 설명 → 파일 역할 → 중요한 코드 → 핵심 개념, '쉬운 설명 펼치기', '왜 이렇게 만들었나'.
 const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-7 py-6";
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 

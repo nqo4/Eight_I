@@ -12,7 +12,8 @@
 | 화면 동작 (docs/scenarios.yaml) | API |
 | --- | --- |
 | 'GitHub 프로젝트 분석하기' → URL 입력 → '분석 시작' (S1) | `POST /api/repositories/analyze` |
-| 기능 카드 누르기 (S2) | `GET /api/analyses/{analysisId}/features/{featureId}` |
+| '사용한 기술'에서 기술 누르기 (S2) | 따로 부르지 않음. 분석 결과의 `analysis.overview.technologies`로 보여 줌 |
+| '기능' 목록에서 기능 누르기 (S3~S6) | `GET /api/analyses/{analysisId}/features/{featureId}` |
 | '이 기능 어떻게 동작해?' (S3) | `GET .../features/{featureId}/flow` |
 | '이 코드 배우기' (S4) | `GET .../features/{featureId}/lesson` |
 | '이해도 확인' (S5) | `POST` 또는 `GET .../features/{featureId}/quiz` |
@@ -44,7 +45,7 @@
 - `analysis.overview.intro_inferred`: 검증된 `intro_sources`에 README 계열 파일이 없으면 `true`입니다. 이때 소개 옆에 'AI 추정'을 표시합니다.
 - `analysis.overview.technologies[]`: '사용한 기술' 목록. `name`(기술 이름), `role`(이 프로젝트에서 맡은 역할), `concept`(초보자를 위한 짧은 핵심 개념 설명), `references`(검증된 `CodeReference` 1~3개)를 반환합니다. package.json의 의존성 라인과 실제 사용 코드 라인을 근거로 요청하며, 유효하지 않은 참조와 검증된 참조가 하나도 없는 기술은 제외합니다. 기술을 선택하면 역할·개념·파일 경로·라인을 보여 줍니다.
 - 위 소개 근거·추정 여부·기술 목록은 이전에 캐시한 분석에는 없을 수 있는 선택 필드입니다. 기존 `stack`, `directories`, `locate_examples`는 계속 제공합니다.
-- `analysis.features`: 기능 카드. 최대 5개이고 각 카드에 근거 코드가 1개 이상 있습니다.
+- `analysis.features`: '기능' 목록. 2~5개이고 기능마다 근거 코드가 1개 이상 있습니다. 근거가 확인된 기능이 2개보다 적으면 빈 배열이고 `features_notice`에 이유가 들어갑니다.
 - `analysis.overview.directories[]`: `path`, `role`, `layer`(`ui`·`server`·`db`·`config`·`other`). 실제 분석 파일이 있는 폴더만 표시합니다.
 - `analysis.stats.skipped_sensitive`: `.env*`·비밀키·인증서 등 민감 파일 제외 수. `skipped_by_filter`에 포함됩니다.
 - `analysis.locate_examples`: 고칠 위치 찾기용 짧은 한국어 변경 요청 2~3개(이 저장소에 맞는 문장).
@@ -62,7 +63,7 @@
 응답 `200` `{ "result": LocateResult }`:
 - `query`: 유니코드 NFC·앞뒤 공백 제거·연속 공백을 한 칸으로 정규화한 요청
 - `locations[]`: `reference`(실제 snapshot으로 검증한 파일·라인·원본 발췌), `layer`(`ui`·`server`·`db`), `reason`
-- `notice`: 찾았으면 `null`; 없으면 `"찾지 못했습니다. 기능 카드에서 흐름을 확인해 보세요."`이고 `locations`는 빈 배열
+- `notice`: 찾았으면 `null`; 없으면 `"입력한 문장과 맞는 위치를 찾지 못했어요."`이고 `locations`는 빈 배열. 화면은 그 아래에 '이 기능부터 살펴보세요:'와 기능 버튼을 보여 줍니다(FR-11).
 
 분석 ID와 정규화한 요청별로 찾은 결과를 캐시합니다(찾지 못한 결과는 저장하지 않아 다음에 다시 찾습니다). 수정된 코드나 붙여 넣을 코드를 반환하지 않습니다.
 
@@ -105,8 +106,8 @@
 - `instruction`: 변경 목표
 - `target_references`: 예상 수정 위치
 - `hints[]`: `minimal` → `concept` → `code` 순서로 하나씩 보여 줍니다.
-- `acceptance_checks[]`: 성공 조건 체크박스
-- `disclaimer`: "완료 체크는 자기 보고이며 실행 결과를 보증하지 않음". 완료 표시 옆에 보여 줍니다.
+- `acceptance_checks[]`: 성공 조건. 화면 오른쪽에 '채점 기준'으로 보여 주고, '채점하기'는 이 조건으로 점수를 매깁니다.
+- `disclaimer`: "CodeBack은 코드를 대신 고치거나 push하지 않아요. 점수는 코드를 실행하지 않고 AI가 추정해요." 예전에 저장된 미션에도 이 문구로 돌려줍니다.
 
 ### 내 학습 기록 (FR-13)
 
@@ -172,7 +173,7 @@
 | `users` | 이름(`name`), 이메일(`username` 칸에 소문자로 저장, 중복 금지), 비밀번호 해시(`password_hash`, 원문 저장 안 함), 가입·수정 시각 |
 | `sessions` | 로그인 유지용 세션. 토큰의 해시, 사용자, 만료 시각(7일) |
 | `repositories` | GitHub 주소, 기본 브랜치, 마지막으로 확인한 최신 commit, **최종 수정 날짜**(`last_commit_at`), 확인한 시각 |
-| `analyses` | 저장소 + commit 하나당 분석 결과(개요·기능 카드)와 분석에 쓴 파일 내용 |
+| `analyses` | 저장소 + commit 하나당 분석 결과(개요·기능 목록)와 분석에 쓴 파일 내용 |
 | `analysis_artifacts` | 기능별 결과: 동작 흐름, 개념 학습(**코드 정리 내용**), 퀴즈(**문제와 정답**), 수정 미션 |
 | `user_repositories` | 사용자가 분석한 저장소 목록(처음 추가한 시각, 마지막으로 본 시각, 최신 분석 결과) |
 | `quiz_attempts` | 퀴즈 답과 수정 미션 점수(`kind` = `quiz`·`mission`). 퀴즈는 고른 보기·정답 여부, 미션은 `score`(0~100)·통과 여부 (FR-07·FR-08·FR-13) |
@@ -192,7 +193,7 @@
 | `AI_GATEWAY_API_KEY` | (없음) | AI Gateway 키. 대시보드 자료 → API 키 |
 | `AI_MODEL` | `anthropic/claude-haiku-5.5` | Gateway 모델 식별자 |
 | `DATABASE_URL` | (없음 → 메모리) | Postgres 주소. 배포 환경에서는 필요 |
-| `GITHUB_TOKEN` | (없음) | 있으면 GitHub 요청 한도가 늘어남(읽기 전용 토큰) |
+| `GITHUB_TOKEN` | (없음) | 있으면 GitHub 요청 한도가 IP당 60회/시간에서 토큰당 5,000회/시간으로 늘어남(읽기 전용 토큰). docker-compose.yml도 이 값을 앱에 넘김 |
 | `ANALYZE_MAX_FILES` | 80 | 한 저장소에서 읽을 최대 파일 수 |
 | `ANALYZE_MAX_TOTAL_BYTES` | 250000 | 한 저장소에서 읽을 최대 총 크기 |
 | `ANALYZE_MAX_FILE_BYTES` | 40000 | 이보다 큰 파일은 건너뜀 |
