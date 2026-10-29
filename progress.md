@@ -5,8 +5,8 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 ## 현재 상태
 
 - 실제 서비스 저장소 폴더: C:\Users\user\OneDrive\Documents\8I\Eight_I
-- 현재 단계 / 다음 행동: 2단계 — problem.yaml·scenarios.yaml v1.0 동결(why_ours·insight·FR input·platform·흐름 7개 확정). 다음: 학생이 experiences·personas·sources 모양 확인 → 3단계(Docker·CI·배포) 뼈대
-- 학생에게 확인할 내용: experiences(팀원 경험 장면), personas, sources 항목 모양(키트 example 확인), S1용 소형 공개 샘플 저장소 선택, 키트 파일 위치(docker-compose.example.yml·workflows·e2e)
+- 현재 단계 / 다음 행동: 2단계 — 종이 캔버스 원문 반영 v1.1(personas·experiences·sources 5건·insight·5 Whys·해법 reason 채움, [사람 확인] 15곳 표시). 다음: 학생이 [사람 확인] 칸 확인 후 표시 제거 → 대시보드 캔버스 재확인 → 3단계(Docker·CI·배포)
+- 학생에게 확인할 내용: problem.yaml의 [사람 확인] 15곳(statement 한 문장 점검, why_ours 학생 말, experiences 날짜·발화자·인용 허락, 팀 자체 수치), personas·experiences·sources 항목 키가 키트 example과 같은지, S1용 소형 공개 샘플 저장소, 키트 파일 위치
 - 브랜치 규칙: 매시 정각 채점, 18시는 문서 점수만 → main에는 문서만, 기술 개발(Next.js·Docker·CI)은 dev 브랜치. 합칠 시점은 학생이 정함
 
 ## 1. GitHub 준비
@@ -25,13 +25,13 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 
 ## 2. 문제정의 기록 → 문제 다지기 → 해법 찾기 → 기능 명세
 
-- [ ] 종이 기록 수령(학생이 채팅에 옮겨 적거나 사진 첨부)
+- [x] 종이 기록 수령(학생이 채팅에 옮겨 적거나 사진 첨부) (사진 5장: 앞면 ①~⑥, 뒷면 1~4)
 - [x] problem.example.yaml을 참고해 docs/problem.yaml 작성 (팀이 준 문서를 양식 키로 옮김)
-- [ ] 원문 의도와 불명확한 내용 확인, 없는 근거는 빈칸 유지
-- [ ] 2-A 문제 다지기: 캔버스 칸을 질문으로 다짐(Agent가 해법·후보·예시 답을 먼저 내지 않음, 학생 답이 없는 칸은 "학생 답 대기")
-- [ ] 팀원 경험을 언제·어떤 장면·어떻게 대응했는지까지 experiences에 기록
-- [ ] 외부 자료는 열리는 URL을 sources에 그대로 적고 원문이 주장을 직접 뒷받침하는지 확인, 출처 없는 수치 없음
-- [ ] 문제가 '우리 기능이 없어서'가 아니라 실제 상황·행동으로 서술됐는지 확인
+- [x] 원문 의도와 불명확한 내용 확인, 없는 근거는 빈칸 유지 (종이에서 비어 있던 ④ 잃은 시간·횟수, WHY 3~5, 해법 reason, 통찰 1~3은 외부 출처 또는 (?)·[사람 확인]으로 표시)
+- [x] 2-A 문제 다지기: 캔버스 칸을 질문으로 다짐(Agent가 해법·후보·예시 답을 먼저 내지 않음, 학생 답이 없는 칸은 "학생 답 대기") (학생 확인이 필요한 칸은 값 앞에 [사람 확인] 표시)
+- [x] 팀원 경험을 언제·어떤 장면·어떻게 대응했는지까지 experiences에 기록 (팀원 1명의 경험 2건 E1·E2, 날짜·발화자·인용 허락은 [사람 확인])
+- [x] 외부 자료는 열리는 URL을 sources에 그대로 적고 원문이 주장을 직접 뒷받침하는지 확인, 출처 없는 수치 없음 (SRC-1~5: 면접관 글, 직능연 726명 조사, 조선일보, Stack Overflow 2025, Anthropic 실험; 모든 수치에 SRC 표기)
+- [x] 문제가 '우리 기능이 없어서'가 아니라 실제 상황·행동으로 서술됐는지 확인 (context 3시점·experiences 행동 서술)
 - [x] 2-B 해법 찾기: 학생이 낸 해법과 결정을 solution_paths에, 기존 대안 대신 이 해법이어야 하는 이유를 학생 말로 why_ours에 작성 (팀 원본 문장으로 채움, 학생 확인 필요)
 - [x] 2-C features에 학생이 고른 해법의 기능별 입력·결과·완료 조건 작성 (FR-03·FR-10 input 채움)
 - [x] YAML 문법 검사, 등록된 레포의 기본 브랜치에 docs/problem.yaml push
@@ -43,7 +43,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [x] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push (7개, 모두 홈에서 시작, Bun.YAML 파싱 확인)
 - [x] 서비스의 AI 호출 필요 여부 확인 (필요: FR-03~FR-08의 구조 요약·기능 추출·설명·퀴즈·미션 생성. S1만 실시간 분석, 샘플 모드는 사전 생성 결과)
 - [ ] README 등 기존 문서에 확인된 구현 설계 기록, 기본 브랜치 push
-- 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml / cbd80af61145cd9e4d46d371184bd333314f2e5e / 학생 답 대기: alternatives[].why_ours, experiences, sources, insight, FR-03·FR-10 input, scenarios platform·platformReason, 흐름 3~8개 선택(현재 8개, S7은 P1)
+- 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml , https://github.com/nqo4/Eight_I/blob/main/docs/scenarios.yaml / v1.1 commit은 git log 참고 / 남은 것: problem.yaml의 [사람 확인] 15곳, personas·experiences·sources 키 이름이 키트 example과 같은지 대시보드에서 확인, 팀 자체 측정 수치 없음(인터뷰 예정)
 
 ## 3. 최소 화면 docker 실행·CI·첫 배포
 
