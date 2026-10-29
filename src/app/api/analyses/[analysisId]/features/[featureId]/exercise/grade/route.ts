@@ -1,8 +1,8 @@
 import { requireUserId } from "@/server/auth";
 import { AppError } from "@/server/errors";
-import { linkUserRepository, recordMissionScore } from "@/server/history";
+import { recordMissionScore } from "@/server/history";
 import { handle, ok, readJson } from "@/server/http";
-import { getAnalysis, gradeMission } from "@/server/service";
+import { gradeMission } from "@/server/service";
 
 export const maxDuration = 60;
 
@@ -17,7 +17,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/analyses/[analy
     if (!body || typeof body.code !== "string") throw new AppError("invalid_request", "'code'에 고친 코드를 넣어 주세요.");
     const grade = await gradeMission(analysisId, featureId, body.code);
     const { saved } = await recordMissionScore({ userId, analysisId, featureId, score: grade.score, passed: grade.passed });
-    if (saved) await linkUserRepository(userId, (await getAnalysis(analysisId)).repository.id, analysisId);
     return ok({ grade, saved });
   });
 }

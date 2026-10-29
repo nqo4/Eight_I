@@ -49,7 +49,7 @@ export async function listUserRepositories(userId: string): Promise<UserReposito
 
 // 정답 여부는 화면이 보낸 값이 아니라 서버에 저장된 퀴즈로 판정한다.
 export async function recordQuizAttempt(input: {
-  userId: string | null;
+  userId: string;
   analysisId: string;
   quiz: Quiz;
   questionId: string;
@@ -62,7 +62,7 @@ export async function recordQuizAttempt(input: {
   }
   const is_correct = input.chosenIndex === q.answer_index;
   const sql = getSql();
-  if (!sql || !input.userId) return { is_correct, answer_index: q.answer_index, saved: false };
+  if (!sql) throw new AppError("auth_unavailable", "지금은 기록을 저장할 수 없어요(DB 연결 없음).");
   await sql(
     `INSERT INTO quiz_attempts (user_id, analysis_id, feature_id, question_id, chosen_index, is_correct)
      VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -76,7 +76,7 @@ export async function listQuizAttempts(userId: string, analysisId: string, featu
   if (!sql) return [];
   return sql<QuizAttempt>(
     `SELECT question_id, chosen_index, is_correct, created_at FROM quiz_attempts
-      WHERE user_id = $1 AND analysis_id = $2 AND feature_id = $3 AND kind = 'quiz' ORDER BY created_at`,
+      WHERE user_id = $1 AND analysis_id = $2 AND feature_id = $3 AND kind = 'quiz' ORDER BY created_at ASC, id ASC`,
     [userId, analysisId, featureId],
   );
 }
@@ -124,12 +124,12 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
     sql<{ analysis_id: string; feature_id: string; is_correct: boolean }>(
       `SELECT DISTINCT ON (analysis_id, feature_id, question_id) analysis_id, feature_id, is_correct
          FROM quiz_attempts WHERE user_id = $1 AND kind = 'quiz'
-        ORDER BY analysis_id, feature_id, question_id, created_at`,
+        ORDER BY analysis_id, feature_id, question_id, created_at ASC, id ASC`,
       [userId],
     ),
     sql<{ analysis_id: string; feature_id: string; best: number; last: number; graded: number }>(
       `SELECT analysis_id, feature_id, max(score)::int AS best,
-              (array_agg(score ORDER BY created_at DESC))[1]::int AS last, count(*)::int AS graded
+              (array_agg(score ORDER BY created_at DESC, id DESC))[1]::int AS last, count(*)::int AS graded
          FROM quiz_attempts WHERE user_id = $1 AND kind = 'mission' AND score IS NOT NULL
         GROUP BY analysis_id, feature_id`,
       [userId],
@@ -170,7 +170,7 @@ export async function recordMissionScore(input: {
   passed: boolean;
 }): Promise<{ saved: boolean }> {
   const sql = getSql();
-  if (!sql) return { saved: false };
+  if (!sql) throw new AppError("auth_unavailable", "지금은 기록을 저장할 수 없어요(DB 연결 없음).");
   await sql(
     `INSERT INTO quiz_attempts (user_id, analysis_id, feature_id, question_id, chosen_index, is_correct, kind, score)
      VALUES ($1, $2, $3, 'mission', NULL, $4, 'mission', $5)`,

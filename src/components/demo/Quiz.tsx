@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder } from "@/components/demo/ui";
-import { useFeatureResource, useSession } from "@/components/session/Session";
+import { useFeatureResource, useSession, type ApiError } from "@/components/session/Session";
 import { saveQuizAttempt } from "@/lib/records";
 import type { CodeReference, Lesson, Quiz as QuizData } from "@/server/types";
 
@@ -17,6 +18,9 @@ export function Quiz() {
   const { analysis, feature, record, progress, loadError } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ quiz: QuizData }>("quiz");
   const lesson = useFeatureResource<{ lesson: Lesson }>("lesson");
+  const submitting = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<{ questionId: string; chosenIndex: number; error: ApiError } | null>(null);
   const picked = progress.quizView?.picked ?? {};
   const checked = progress.quizView?.checked ?? {};
   const setQuiz = (nextPicked: Record<string, number>, nextChecked: Record<string, boolean>, extra?: (p: typeof progress) => typeof progress) =>
@@ -41,22 +45,39 @@ export function Quiz() {
       {q.questions.map((item, qi) => {
         const done = checked[item.id];
         const correct = picked[item.id] === item.answer_index;
-        const check = () => {
+        const check = async (chosenIndex = picked[item.id]) => {
+          if (submitting.current || !analysis || !feature) return;
+          submitting.current = true;
+          setBusy(true);
+          setSaveError(null);
           const nextChecked = { ...checked, [item.id]: true };
-          // 문항별 첫 시도만 내 학습 기록(서버)에 남긴다. 화면의 정답 표시와 같은 기준이다.
-          if (!(item.id in progress.quiz) && analysis && feature) {
-            saveQuizAttempt(analysis.id, feature.id, item.id, picked[item.id]);
+          try {
+            // 첫 답은 서버 저장이 확인된 뒤 확정한다.
+            if (!(item.id in progress.quiz)) {
+              await saveQuizAttempt(analysis.id, feature.id, item.id, chosenIndex);
+            }
+            setQuiz({ ...picked, [item.id]: chosenIndex }, nextChecked, (p) => ({
+              ...p,
+              quiz: item.id in p.quiz ? p.quiz : { ...p.quiz, [item.id]: chosenIndex === item.answer_index },
+              steps: q.questions.every((x) => nextChecked[x.id]) ? { ...p.steps, quiz: true } : p.steps,
+            }));
+          } catch (e) {
+            const error = e as ApiError;
+            setSaveError({
+              questionId: item.id,
+              chosenIndex,
+              error: { ...error, retryable: error.retryable || error.code === "internal_error" || error.code === "auth_unavailable" },
+            });
+          } finally {
+            submitting.current = false;
+            setBusy(false);
           }
-          setQuiz(picked, nextChecked, (p) => ({
-            ...p,
-            quiz: item.id in p.quiz ? p.quiz : { ...p.quiz, [item.id]: picked[item.id] === item.answer_index },
-            steps: q.questions.every((x) => nextChecked[x.id]) ? { ...p.steps, quiz: true } : p.steps,
-          }));
         };
         const related = done && !correct ? relatedConcept(item.references) : null;
         return (
           <fieldset
             key={item.id}
+            disabled={busy}
             data-testid="quiz-question"
             aria-labelledby={`quiz-q-${item.id}`}
             className="flex min-w-0 flex-col items-start gap-4 rounded-16 border border-line bg-surface px-5 pt-6 pb-5 sm:px-10 sm:pt-8 sm:pb-7"
@@ -80,7 +101,7 @@ export function Quiz() {
                     <input
                       type="radio"
                       name={item.id}
-                      disabled={done}
+                      disabled={done || busy}
                       checked={active}
                       onChange={() => setQuiz({ ...picked, [item.id]: ci }, checked)}
                       className="size-5 shrink-0 accent-brand-purple"
@@ -98,9 +119,12 @@ export function Quiz() {
             </div>
             {!done && (
               <div className="flex flex-wrap items-center gap-3">
-                <PrimaryButton label="정답 확인" disabled={picked[item.id] === undefined} onClick={check} />
+                <PrimaryButton label="정답 확인" disabled={busy || picked[item.id] === undefined} onClick={() => check()} />
                 {picked[item.id] === undefined && <span className="text-sm text-text-muted">보기를 하나 고르면 확인할 수 있어요</span>}
               </div>
+            )}
+            {saveError?.questionId === item.id && (
+              <ErrorBox error={saveError.error} onRetry={busy ? undefined : () => check(saveError.chosenIndex)} />
             )}
             {done && (
               <div data-testid="quiz-result" className="flex w-full flex-col gap-3 rounded-8 bg-brand-purple-soft p-4">
