@@ -6,7 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Analysis, Exercise, Feature, Flow } from "@/server/types";
 
-export type ApiError = { message: string; retryable: boolean };
+// code는 서버 오류 코드(src/server/errors.ts). 'login_required'면 화면에 '로그인하기'를 함께 보여 준다.
+export type ApiError = { message: string; retryable: boolean; code?: string };
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -98,9 +99,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const last = readJson<{ analysisId: string; featureId: string | null; repo?: string }>(LAST_KEY);
     let a: Analysis | null = null;
     if (last?.analysisId) {
+      let failed: ApiError | null = null;
       a = await api<{ analysis: Analysis }>(`/api/analyses/${encodeURIComponent(last.analysisId)}`)
         .then((r) => r.analysis)
-        .catch(() => null);
+        .catch((e: ApiError) => ((failed = e), null));
+      // 로그인이 풀려 못 불러온 경우는 '다시 분석' 대신 로그인하라고 안내한다.
+      if (!a && (failed as ApiError | null)?.code === "login_required") {
+        setLoadError(failed);
+        return;
+      }
     }
     if (!a) {
       setLoadError({

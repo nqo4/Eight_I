@@ -68,12 +68,17 @@ export function ErrorBox({ error, onRetry, home }: { error: ApiError; onRetry?: 
   return (
     <div role="alert" className="flex w-full flex-col gap-3 rounded-12 bg-status-red-soft p-4 text-status-red">
       <p className="font-bold">{error.message}</p>
-      {((error.retryable && onRetry) || home) && (
+      {((error.retryable && onRetry) || home || error.code === "login_required") && (
         <div className="flex flex-wrap gap-2">
           {error.retryable && onRetry && (
             <button type="button" className={secondaryBtn} onClick={onRetry}>
               다시 시도
             </button>
+          )}
+          {error.code === "login_required" && (
+            <Link href="/login" className={secondaryBtn}>
+              로그인하기
+            </Link>
           )}
           {home && (
             <Link href="/" className={secondaryBtn}>
