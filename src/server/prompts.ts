@@ -78,12 +78,18 @@ export const quizSchema = z.object({
         references: z.array(ref).describe("답의 근거가 되는 코드 1~2곳"),
       }),
     )
-    .describe("이 기능의 코드에 대한 객관식 1~3문제. 일반 상식 문제는 내지 않는다"),
+    .describe(
+      "이 기능의 코드에 대한 객관식 1~3문제. 시험이 아니라 '예상해 보기' 연습이다. '이 값을 바꾸면 화면에서 무엇이 달라질까?', '이 조건이 거짓이면 사용자는 무엇을 보게 될까?'처럼 코드를 바꿀 때의 결과를 예상하게 묻는다. 학습 설명 문장을 그대로 되묻지 않고, 일반 상식 문제는 내지 않는다",
+    ),
 });
 
 export const exerciseSchema = z.object({
   kind: z.enum(["modify", "observe"]).describe("안전한 작은 수정 과제를 낼 근거가 부족하면 observe"),
-  instruction: z.string().describe("구체적인 변경 목표 한두 문장"),
+  instruction: z
+    .string()
+    .describe(
+      "구체적인 변경 목표 한두 문장. 초보자가 5~10분 안에 할 수 있고, 고친 뒤 화면에서 전후 차이를 눈으로 볼 수 있는 변경을 고른다(문구·숫자 한도·조건·이동 경로 등). 스키마·보안 설정처럼 화면에 안 보이는 변경은 피한다",
+    ),
   targets: z.array(ref).describe("수정할 것으로 예상되는 위치 1~3곳"),
   hints: z
     .object({
@@ -92,7 +98,9 @@ export const exerciseSchema = z.object({
       code: z.string().describe("어느 코드를 보면 되는지 알려 주는 힌트(정답 코드는 쓰지 않음)"),
     })
     .describe("단계별 힌트"),
-  acceptance_checks: z.array(z.string()).describe("사용자가 직접 확인할 성공 조건 2~4개"),
+  acceptance_checks: z
+    .array(z.string())
+    .describe("사용자가 자기 앱을 실행해 화면에서 직접 확인할 성공 조건 2~3개. '~하면 화면에 ~가 보인다' 형태"),
 });
 
 export function featurePrompt(task: string, feature: { title: string; summary: string }, files: string) {

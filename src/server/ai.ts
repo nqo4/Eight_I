@@ -1,4 +1,5 @@
 // AI Gateway 호출. 키는 서버 환경변수 AI_GATEWAY_API_KEY에서만 읽는다(AI SDK가 자동으로 읽음).
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output } from "ai";
 import type { z } from "zod";
 import { config } from "./config";
@@ -14,7 +15,20 @@ const SYSTEM = `너는 바이브코딩으로 만든 프로젝트를 초보 개�
 - 코드를 대신 고쳐 주지 않는다.`;
 
 export function aiConfigured(): boolean {
-  return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+  return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.OPENROUTER_API_KEY);
+}
+
+// 로컬 테스트용: OPENROUTER_API_KEY가 있을 때만 OpenRouter로 보낸다. 채점·배포는 이 키가 없어 AI Gateway를 쓴다.
+function selectModel() {
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (!openRouterKey) return config.aiModel;
+  const openRouter = createOpenAICompatible({
+    name: "openrouter",
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: openRouterKey,
+    supportsStructuredOutputs: true,
+  });
+  return openRouter(config.aiModel);
 }
 
 export function assertAiConfigured() {
@@ -30,7 +44,7 @@ export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise
   assertAiConfigured();
   try {
     const result = await generateText({
-      model: config.aiModel,
+      model: selectModel(),
       system: SYSTEM,
       prompt,
       output: Output.object({ schema }),

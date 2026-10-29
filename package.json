@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.80",
     "ai": "^7.0.156",
     "next": "16.4.3",
     "pg": "^8.23.1",

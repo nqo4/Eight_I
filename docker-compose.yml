@@ -16,6 +16,8 @@ services:
       DATABASE_URL: postgres://app:app@db:5432/app
       # 서버는 이 이름으로만 AI 키를 읽는다. 비어 있어도 앱은 뜬다(AI 분석만 안내 메시지).
       AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}
+      # 로컬 테스트 전용. 비어 있으면(채점·CI) AI Gateway를 쓴다.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
