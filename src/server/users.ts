@@ -1,4 +1,4 @@
-// 사용자(이름·아이디·비밀번호)와 로그인 세션. 아직 API에는 연결하지 않았다(로그인 화면과 함께 연결 예정).
+// 사용자(이름·아이디·비밀번호)와 로그인 세션. /api/auth/*가 auth.ts를 거쳐 쓴다(아이디 = 이메일 소문자).
 // 비밀번호는 scrypt로 해시해 저장하고, 원문은 어디에도 남기지 않는다.
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
