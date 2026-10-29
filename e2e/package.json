@@ -6,6 +6,7 @@
     "browsers": "playwright install --with-deps chromium"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.63.0",
+    "pdfjs-dist": "4.10.38"
   }
 }

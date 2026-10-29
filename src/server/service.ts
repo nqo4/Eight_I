@@ -298,3 +298,17 @@ export function getExercise(analysisId: string, featureId: string): Promise<Exer
     };
   });
 }
+
+// FR-12: 학습 노트에 넣을 내용. 저장된 결과만 읽는다(새로 만들지 않음 → AI 비용 0).
+export async function getNoteInput(analysisId: string): Promise<{ analysis: Analysis; lessons: Record<string, Lesson | null> }> {
+  const stored = await load(analysisId);
+  const lessons: Record<string, Lesson | null> = {};
+  for (const f of stored.analysis.features) {
+    const key = `${f.id}:lesson`;
+    lessons[f.id] =
+      analysisId === DEMO_ID
+        ? ((getDemo().artifacts[key] as Lesson | undefined) ?? null)
+        : await getStore().getArtifact<Lesson>(analysisId, key);
+  }
+  return { analysis: stored.analysis, lessons };
+}
