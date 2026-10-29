@@ -109,7 +109,7 @@ export async function currentUserId(req: Request): Promise<string | null> {
 
 export async function requireUserId(req: Request): Promise<string> {
   const id = await currentUserId(req);
-  if (!id) throw new AppError("login_required", "로그인하면 내 학습 기록을 볼 수 있어요.");
+  if (!id) throw new AppError("login_required", "로그인이 필요해요. 로그인한 뒤 다시 시도해 주세요.");
   return id;
 }
 
