@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder, stripNumber } from "@/components/demo/ui";
+import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, stripNumber } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import type { Flow } from "@/server/types";
 
@@ -39,7 +39,15 @@ export function FlowSteps() {
   if (!data || !feature) return <Loading slow={slow} />;
 
   const steps = [...data.flow.steps].sort((a, b) => a.order - b.order).map((s) => ({ ...s, title: stripNumber(s.title) }));
-  const step = steps[open];
+  if (steps.length === 0) {
+    return (
+      <section aria-label="동작 흐름" className="flex w-full flex-col items-start gap-3">
+        <p role="note" className="text-sm text-text-muted">이 기능의 동작 흐름을 코드에서 확인하지 못했어요. 개념 학습에서 관련 코드를 먼저 살펴보세요.</p>
+        <PrimaryButton label="이 코드 배우기" onClick={() => router.push("/demo/concept")} />
+      </section>
+    );
+  }
+  const step = steps[Math.min(open, steps.length - 1)];
   const isLast = open === steps.length - 1;
   const finished = revealed >= steps.length;
   const inferred = (order: number) => data.flow.links.find((l) => l.to === order)?.confidence !== "verified";
@@ -47,17 +55,6 @@ export function FlowSteps() {
   const goNext = () => setView(open + 1, Math.max(revealed, open + 2), steps.length);
   const setOpen = (i: number) => setView(i, revealed, steps.length);
 
-  // 보류(기획 검토): 문서에 없는 기능 — 기획검토-보류목록.md A1 (다음 단계 먼저 맞혀 보기)
-  const next = steps[open + 1];
-  const canPredict = next && open + 1 >= revealed && progress.flow[open + 1] === undefined;
-  const options = next
-    ? (() => {
-        const others = [...new Set(steps.filter((_, j) => j !== open + 1 && j !== open).map((s) => s.title))];
-        const pool = [next.title, ...seededOrder(others.length, feature.id + open).slice(0, 2).map((k) => others[k])];
-        return seededOrder(pool.length, `${feature.id}o${open}`).map((k) => pool[k]);
-      })()
-    : [];
-  const guessed = progress.flow[open];
 
   return (
     <section aria-label="동작 흐름" className="flex w-full flex-col gap-5">
@@ -95,7 +92,7 @@ export function FlowSteps() {
                   {shown ? ` · ${layerName[s.layer] ?? s.layer}` : ""}
                   {shown && i > 0 && inferred(s.order) ? " · AI 추정" : ""}
                 </span>
-                <span className="text-sm font-bold text-text-primary">{shown ? s.title : "다음에 무슨 일이?"}</span>
+                <span className="text-sm font-bold text-text-primary">{shown ? s.title : "아직 열리지 않았어요"}</span>
                 {shown && <span className="font-mono text-xs break-all text-text-muted">{refLabel(s.reference)}</span>}
               </button>
             </li>
@@ -112,36 +109,8 @@ export function FlowSteps() {
           <p className="font-manrope text-xs font-bold text-brand-purple-ink">
             지금 보는 코드 · {open + 1}/{steps.length}단계
           </p>
-          {guessed !== undefined && (
-            <p data-testid="prediction-result" className={`text-sm font-bold ${guessed ? "text-status-green-ink" : "text-status-red"}`}>
-              {guessed ? "맞혔어요!" : "아쉬워요. 실제로는 이 단계예요."}
-            </p>
-          )}
           <p className="text-xl leading-8 font-bold text-text-primary">{step.title}</p>
           <p className="text-sm leading-6 text-text-muted">{step.description}</p>
-
-          {canPredict && (
-            <div role="group" aria-label="다음에 일어날 일 예측" className="flex w-full flex-col gap-2 rounded-8 bg-brand-purple-soft p-3.5">
-              <p className="text-sm font-bold text-text-primary">다음에 무슨 일이 일어날까요? 먼저 맞혀 보세요(선택).</p>
-              {options.map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  className="rounded-8 border border-line bg-surface px-3 py-2 text-left text-sm hover:border-brand-purple"
-                  onClick={() => {
-                    record((p) => ({
-                      ...p,
-                      flow: { ...p.flow, [open + 1]: o === next.title },
-                      flowView: { open: open + 1, revealed: Math.max(revealed, open + 2) },
-                      steps: Math.max(revealed, open + 2) >= steps.length ? { ...p.steps, flow: true } : p.steps,
-                    }));
-                  }}
-                >
-                  {o}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="flex flex-wrap items-center gap-2.5">
             {open > 0 && (

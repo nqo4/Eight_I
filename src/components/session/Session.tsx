@@ -23,7 +23,6 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export type StepKey = "overview" | "flow" | "concept" | "quiz" | "mission";
 
 export type Progress = {
-  flow: Record<number, boolean>; // 흐름 예측(보류 A1): 단계 번호 → 맞힘
   quiz: Record<string, boolean>; // 연습 문제 첫 시도: 문제 id → 맞힘
   done: boolean; // 미션 완료 표시(자기 보고)
   // 실제로 끝낸 단계. 화면 위치와 따로 기록해 '미션만 열었는데 50% 완료' 같은 표시를 막는다.
@@ -32,7 +31,7 @@ export type Progress = {
   quizView?: { picked: Record<string, number>; checked: Record<string, boolean> };
   missionChecks?: Record<number, boolean>;
 };
-const emptyProgress: Progress = { flow: {}, quiz: {}, done: false, steps: {} };
+const emptyProgress: Progress = { quiz: {}, done: false, steps: {} };
 
 // 화면 진행 상태는 저장소·커밋별로 브라우저에 남긴다. 퀴즈·미션 결과는 서버의 '내 학습 기록'(FR-13)에도 남는다.
 export const LOCAL_PREFIX = "codeback:v1:";
