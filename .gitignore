@@ -29,3 +29,10 @@ Thumbs.db
 
 # 대회 양식 예시 파일
 *.example.yaml
+
+# Next.js·TypeScript
+.pnp
+.pnp.*
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
