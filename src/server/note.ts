@@ -8,7 +8,7 @@ const FONT_DIR = join(process.cwd(), "assets", "fonts");
 const REGULAR = join(FONT_DIR, "NanumGothic-Regular.ttf");
 const BOLD = join(FONT_DIR, "NanumGothic-Bold.ttf");
 
-const LAYER: Record<string, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "기타" };
+const LAYER: Record<string, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "확인 불가" };
 
 export type NoteInput = { analysis: Analysis; lessons: Record<string, Lesson | null> };
 
