@@ -5,8 +5,8 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 ## 현재 상태
 
 - 실제 서비스 저장소 폴더: C:\Users\user\OneDrive\Documents\8I\Eight_I
-- 현재 단계 / 다음 행동: 2단계 — 종이 캔버스 원문 + 바이브코딩 실태 논문(arXiv 2510.00328) 반영 v1.2(sources 6건, docs/sources.md 추가, [사람 확인] 14곳). 다음: 학생이 [사람 확인] 칸 확인 후 표시 제거 → 대시보드 캔버스 재확인 → 3단계(Docker·CI·배포)
-- 학생에게 확인할 내용: problem.yaml의 [사람 확인] 14곳(statement 한 문장 점검, why_ours 학생 말, experiences 날짜·발화자·인용 허락, 팀 자체 수치), personas·experiences·sources 항목 키가 키트 example과 같은지, S1용 소형 공개 샘플 저장소, 키트 파일 위치
+- 현재 단계 / 다음 행동: 2단계 거의 완료 — [사람 확인] 표시 제거(6bdcd33), problem.yaml·scenarios.yaml을 키트 example 양식 키에 맞춰 재작성(a482da8, 팀 원본 PRD·UX 섹션 삭제, 흐름 S1~S7), *.example.yaml은 .gitignore. 다음: 대시보드 캔버스·흐름 재확인 → README 구현 설계 기록 → 3단계(Docker·CI·배포, dev 브랜치)
+- 학생에게 확인할 내용: 대시보드에서 캔버스·흐름 S1~S7 표시, S1용 소형 공개 샘플 저장소, dev 브랜치의 옛 scenarios.yaml(S8)과 main 합칠 때 충돌 정리
 - 브랜치 규칙: 매시 정각 채점, 18시는 문서 점수만 → main에는 문서만, 기술 개발(Next.js·Docker·CI)은 dev 브랜치. 합칠 시점은 학생이 정함
 
 ## 1. GitHub 준비
@@ -36,14 +36,14 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [x] 2-C features에 학생이 고른 해법의 기능별 입력·결과·완료 조건 작성 (FR-03·FR-10 input 채움)
 - [x] YAML 문법 검사, 등록된 레포의 기본 브랜치에 docs/problem.yaml push
 - [x] 학생이 개인 로그인으로 우리 팀 → 문제 정의를 열어 캔버스 표시 확인(Agent는 화면을 열 수 없음, 약 1분 캐시)
-- [x] 핵심 사용자 흐름·기능별 동작 규칙·완료 조건·제외 범위를 팀과 확인 (대회 흐름 S1~S6·S8, SC-07은 P1 제외)
+- [x] 핵심 사용자 흐름·기능별 동작 규칙·완료 조건·제외 범위를 팀과 확인 (대회 흐름 S1~S7, 정적 피드백 FR-09는 P1이라 제외)
 - [x] 로그인 필요 여부와 역할 이름(흐름 account·docker 시드 계정 역할 이름으로 씀) 결정 (로그인 없음, account 미사용)
 - [x] 첫 화면에서 알려 줄 것(로그인하지 않은 사람이 `/`에서 볼 서비스 이름·하는 일)을 학생과 정함 (서비스 이름 CodeBack, 한 줄: AI로 만든 프로젝트를 기능에서 코드까지 배우는 학습 서비스, 버튼 '내 프로젝트 분석하기'·'샘플로 체험하기')
 - [x] 주 사용 플랫폼(desktop·mobile·both)과 실제 사용 장면에 근거한 platformReason 작성 (desktop)
-- [x] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push (7개, 모두 홈에서 시작, Bun.YAML 파싱 확인)
+- [x] 사용자 핵심 흐름 3~8개를 scenarios.example.yaml 참고해 docs/scenarios.yaml에 작성(steps는 화면의 메뉴·버튼 이름으로 한 줄에 한 동작, 로그인 흐름은 account 지정), YAML 파서로 형식 확인 후 기본 브랜치 push (7개 S1~S7, 모두 홈에서 시작, 제목은 '학습자가 …'로 example 규칙에 맞춤, js-yaml 파싱 확인)
 - [x] 서비스의 AI 호출 필요 여부 확인 (필요: FR-03~FR-08의 구조 요약·기능 추출·설명·퀴즈·미션 생성. S1만 실시간 분석, 샘플 모드는 사전 생성 결과)
 - [ ] README 등 기존 문서에 확인된 구현 설계 기록, 기본 브랜치 push
-- 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml , https://github.com/nqo4/Eight_I/blob/main/docs/scenarios.yaml / v1.1 commit은 git log 참고 / 남은 것: problem.yaml의 [사람 확인] 14곳, personas·experiences·sources 키 이름이 키트 example과 같은지 대시보드에서 확인, 팀 자체 측정 수치 없음(인터뷰 예정)
+- 문제정의·구현 설계 링크 / commit SHA / 확인할 빈칸: https://github.com/nqo4/Eight_I/blob/main/docs/problem.yaml , https://github.com/nqo4/Eight_I/blob/main/docs/scenarios.yaml / 양식 정렬 commit a482da8 / 남은 것: 팀 자체 측정 수치 없음(인터뷰 예정), README 구현 설계 기록
 
 ## 3. 최소 화면 docker 실행·CI·첫 배포
 
