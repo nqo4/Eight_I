@@ -41,6 +41,20 @@ export function Mission() {
             ))}
           </ul>
         </div>
+        {ex.target_references[0] && (
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3">
+            <div className="flex min-w-0 flex-col gap-1.5 rounded-8 bg-text-primary px-4 py-3 text-surface">
+              <p className="text-xs font-bold text-surface/70">현재 코드</p>
+              <pre className="overflow-auto font-mono text-sm leading-6">{ex.target_references[0].snippet.split("\n").slice(0, 3).join("\n")}</pre>
+              <p className="font-mono text-xs break-all text-surface/70">{refLabel(ex.target_references[0])}</p>
+            </div>
+            <span aria-hidden className="self-center text-sm font-bold text-brand-purple-ink">→</span>
+            <div className="flex min-w-0 flex-col gap-1.5 rounded-8 bg-brand-purple-soft px-4 py-3">
+              <p className="text-xs font-bold text-text-muted">목표</p>
+              <p className="text-sm leading-6 text-pretty">{ex.instruction}</p>
+            </div>
+          </div>
+        )}
         <div className="flex w-full flex-col gap-2">
           <p className="text-sm font-bold text-text-primary">막혔나요? 힌트를 하나씩 열어 보세요</p>
           <ol data-testid="exercise-hints" className="flex flex-col gap-2">
