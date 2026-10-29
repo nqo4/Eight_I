@@ -4,13 +4,12 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { LoginRequired } from "@/components/auth/LoginRequired";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { ErrorBox, Loading, secondaryBtn } from "@/components/demo/ui";
+import { ErrorBox, Loading } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
 import { useCurrentUser } from "@/lib/auth";
 import type { Analysis } from "@/server/types";
 
-// 홈의 시작 방법: 로그인한 사용자가 공개 GitHub 저장소를 분석하거나(FR-01·FR-10),
-// 로그인 없이 '샘플로 체험하기'로 미리 분석해 둔 공개 샘플을 본다.
+// 홈의 시작 방법: 로그인한 사용자가 공개 GitHub 저장소를 분석한다(FR-01·FR-10).
 export function RepoForm() {
   const router = useRouter();
   const { setAnalysis } = useSession();
@@ -23,21 +22,6 @@ export function RepoForm() {
   const user = useCurrentUser();
   const [needLogin, setNeedLogin] = useState(false);
   const closeLogin = useCallback(() => setNeedLogin(false), []);
-
-  // 샘플 체험 중임을 알리는 쿠키. 학습 화면 이동만 허용하고, 볼 수 있는 데이터는 샘플뿐이다(src/proxy.ts).
-  async function startDemo() {
-    setBusy(true);
-    setError(null);
-    try {
-      document.cookie = "codeback_demo=1; Path=/; Max-Age=86400; SameSite=Lax";
-      const { analysis } = await api<{ analysis: Analysis }>("/api/demo");
-      setAnalysis(analysis);
-      router.push("/demo/overview");
-    } catch (e) {
-      setError(e as ApiError);
-      setBusy(false);
-    }
-  }
 
   async function analyze() {
     setBusy(true);
@@ -71,10 +55,6 @@ export function RepoForm() {
               requestAnimationFrame(() => inputRef.current?.focus());
             }}
           />
-          <button type="button" className={secondaryBtn} disabled={busy} onClick={startDemo}>
-            샘플로 체험하기
-          </button>
-          <span className="text-sm text-text-muted">로그인 없이 준비된 샘플로 바로 해 봐요</span>
         </div>
       ) : (
         <form

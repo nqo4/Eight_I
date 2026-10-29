@@ -1,4 +1,4 @@
-import { requireUserUnlessDemo } from "@/server/auth";
+import { requireUserId } from "@/server/auth";
 import { connection } from "next/server";
 import { handle, ok } from "@/server/http";
 import { getFeature } from "@/server/service";
@@ -7,8 +7,8 @@ import { getFeature } from "@/server/service";
 export async function GET(req: Request, ctx: RouteContext<"/api/analyses/[analysisId]/features/[featureId]">) {
   await connection();
   return handle(async () => {
+    await requireUserId(req);
     const { analysisId, featureId } = await ctx.params;
-    await requireUserUnlessDemo(req, analysisId);
     return ok(await getFeature(analysisId, featureId));
   });
 }

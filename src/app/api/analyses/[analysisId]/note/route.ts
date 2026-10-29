@@ -1,4 +1,4 @@
-import { requireUserUnlessDemo } from "@/server/auth";
+import { requireUserId } from "@/server/auth";
 import { connection } from "next/server";
 import { handle } from "@/server/http";
 import { noteFileName, renderLearningNote } from "@/server/note";
@@ -8,8 +8,8 @@ import { getNoteInput } from "@/server/service";
 export async function GET(req: Request, ctx: RouteContext<"/api/analyses/[analysisId]/note">) {
   await connection();
   return handle(async () => {
+    await requireUserId(req);
     const { analysisId } = await ctx.params;
-    await requireUserUnlessDemo(req, analysisId);
     const input = await getNoteInput(analysisId);
     const pdf = await renderLearningNote(input);
     const name = noteFileName(input.analysis);

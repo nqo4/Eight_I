@@ -118,10 +118,6 @@
 
 `POST /api/repositories/analyze`는 로그인해야 부를 수 있고, 분석한 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
 
-### `GET /api/demo` — 샘플로 체험하기 (로그인 없음)
-
-`{ "analysis": Analysis }` (`analysis.id`는 `"demo"`, `mode`는 `"demo"`). 미리 분석해 둔 공개 샘플(`data/demo/demo.json`)이라 GitHub·AI를 부르지 않아요. 이후 `/api/analyses/demo/...` 주소는 로그인 없이 쓸 수 있어요(다른 분석은 로그인 필요). 샘플의 '어디를 고쳐야 해?'는 예시 문장만 받아요. 화면은 `codeback_demo` 쿠키로 학습 화면 이동을 허용해요(`src/proxy.ts`).
-
 ### `POST .../features/{featureId}/exercise/grade` `{ code }` — 수정 미션 채점 (FR-08 개정, 로그인 필요)
 
 사용자가 자기 개발 환경에서 고친 코드(바꾼 부분, 최대 8,000자)를 붙여 넣으면 AI가 성공 조건마다 채웠는지 판단해요. 코드는 실행하지 않아요(AI 추정).
@@ -130,7 +126,7 @@
 
 - `score`: 채운 조건의 비율(0~100), `passed`: 모든 조건을 채움
 - 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않고 `invalid_request`
-- 점수는 `quiz_attempts`에 `kind = 'mission'`으로 남아요(샘플은 남기지 않음). 제출할 때마다 AI 비용이 들어요(약 $0.001~0.003).
+- 점수는 `quiz_attempts`에 `kind = 'mission'`으로 남아요. 제출할 때마다 AI 비용이 들어요(약 $0.001~0.003).
 
 ### `GET /api/status`
 

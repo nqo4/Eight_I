@@ -75,7 +75,7 @@ export type Feature = {
 
 export type Analysis = {
   id: string;
-  mode: "repository" | "demo"; // demo = 샘플로 체험하기(로그인 없이 보는 미리 분석한 샘플)
+  mode: "repository";
   created_at: string;
   repository: Repository;
   overview: Overview;

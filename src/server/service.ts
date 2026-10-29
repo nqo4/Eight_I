@@ -326,23 +326,6 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
   return { analysis: stored.analysis, lessons };
 }
 
-// '샘플로 체험하기': 미리 분석해 둔 공개 샘플(data/demo/demo.json)을 고정 id "demo"로 DB에 한 번 넣고 돌려준다.
-// 로그인 없이 볼 수 있고, GitHub·AI를 부르지 않는다. 학습 기록에는 남기지 않는다.
-export const DEMO_ID = "demo";
-
-export async function getDemoAnalysis(): Promise<Analysis> {
-  const store = getStore();
-  const existing = await store.getAnalysis(DEMO_ID);
-  if (existing) return existing.analysis;
-  const pre = getPrecomputed();
-  if (!pre) throw new AppError("demo_not_ready", "샘플 프로젝트가 아직 준비되지 않았어요.");
-  const analysis: Analysis = { ...pre.stored.analysis, id: DEMO_ID, mode: "demo" };
-  await store.saveRepository(analysis.repository);
-  await store.saveAnalysis({ analysis, snapshot: pre.stored.snapshot });
-  for (const [key, payload] of Object.entries(pre.artifacts)) await store.saveArtifact(DEMO_ID, key, payload);
-  return analysis;
-}
-
 // FR-08(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
 // 점수는 채운 조건의 비율(0~100)로 계산한다.
 export type MissionGrade = {
