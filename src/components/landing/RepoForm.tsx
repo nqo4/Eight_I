@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { LoginRequired } from "@/components/auth/LoginRequired";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ErrorBox, Loading, secondaryBtn } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
+import { useCurrentUser } from "@/lib/auth";
 import type { Analysis } from "@/server/types";
 
 // 홈의 두 시작 방법: 내 공개 저장소 분석(S1) 또는 샘플로 체험하기(S2~S7).
@@ -16,6 +18,10 @@ export function RepoForm() {
   const [busy, setBusy] = useState<"demo" | "analyze" | null>(null);
   const [error, setError] = useState<{ error: ApiError; from: "demo" | "analyze" } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // 내 저장소 분석은 로그인 후에만 열린다. 샘플로 체험하기는 로그인 없이 쓸 수 있다.
+  const user = useCurrentUser();
+  const [needLogin, setNeedLogin] = useState(false);
+  const closeLogin = useCallback(() => setNeedLogin(false), []);
 
   async function start(from: "demo" | "analyze") {
     setBusy(from);
@@ -44,6 +50,10 @@ export function RepoForm() {
           <PrimaryButton
             label="내 프로젝트 분석하기"
             onClick={() => {
+              if (!user) {
+                setNeedLogin(true);
+                return;
+              }
               setOpen(true);
               requestAnimationFrame(() => inputRef.current?.focus());
             }}
@@ -58,6 +68,10 @@ export function RepoForm() {
           className="flex w-full flex-col items-start gap-2.5"
           onSubmit={(event) => {
             event.preventDefault();
+            if (!user) {
+              setNeedLogin(true);
+              return;
+            }
             start("analyze");
           }}
         >
@@ -87,6 +101,7 @@ export function RepoForm() {
           </button>
         </form>
       )}
+      {needLogin && <LoginRequired feature="내 프로젝트 분석" onClose={closeLogin} />}
       {busy && <Loading slow={busy === "analyze"} />}
       {error && (
         <ErrorBox

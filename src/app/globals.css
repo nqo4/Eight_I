@@ -52,3 +52,24 @@ body {
   background: var(--paper);
   color: var(--text-primary);
 }
+
+/* 로그인 필요 안내: 자동 이동까지 남은 시간 */
+@keyframes login-required-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+.login-required-bar {
+  animation-name: login-required-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-required-bar {
+    animation: none;
+    width: 100%;
+  }
+}

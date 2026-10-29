@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { logIn, signUp } from "@/lib/auth";
 
 type Mode = "login" | "signup";
 type Field = "name" | "email" | "password";
@@ -73,6 +74,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const isSignup = mode === "signup";
 
@@ -81,13 +84,29 @@ export function AuthForm({ mode }: { mode: Mode }) {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors = validate(mode, values);
     setErrors(nextErrors);
+    setFormError(null);
     if (Object.keys(nextErrors).length > 0) return;
-    // TODO: 인증 API가 연결되면 여기서 로그인/회원가입 요청을 보낸다
-    router.push("/demo/overview");
+    setSubmitting(true);
+    try {
+      if (isSignup) {
+        if ((await signUp(values)) === "exists") {
+          setErrors({ email: "이미 가입된 이메일이에요. 로그인해 주세요." });
+          return;
+        }
+      } else if (!(await logIn(values))) {
+        setFormError("이메일 또는 비밀번호가 맞지 않아요.");
+        return;
+      }
+      router.push("/");
+    } catch {
+      setFormError("이 브라우저에서는 로그인 정보를 저장할 수 없어요. 저장 공간 설정을 확인해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -143,7 +162,18 @@ export function AuthForm({ mode }: { mode: Mode }) {
           }
         />
 
-        <PrimaryButton type="submit" label={isSignup ? "회원가입" : "로그인"} className="mt-[8px] w-full" />
+        {formError && (
+          <p role="alert" className="text-[10px] leading-[15px] text-status-red">
+            {formError}
+          </p>
+        )}
+
+        <PrimaryButton
+          type="submit"
+          label={isSignup ? "회원가입" : "로그인"}
+          disabled={submitting}
+          className="mt-[8px] w-full disabled:opacity-60"
+        />
       </form>
 
       <div className="h-px w-full bg-line" />

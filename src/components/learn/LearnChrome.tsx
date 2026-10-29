@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { AuthNav } from "@/components/auth/AuthNav";
 import { Brand } from "@/components/Brand";
 import { getAnalysis } from "@/lib/api";
 import { useLoad } from "./states";
@@ -20,6 +21,8 @@ export function LearnHeader() {
           {`현재 프로젝트  ·  ${data ? data.repository.id : "불러오는 중"}`}
         </span>
         <span className="text-[10px] leading-[16px] text-status-green">{demo ? "●  데모 모드" : "●  실제 저장소 분석"}</span>
+        <span aria-hidden className="h-5 w-px bg-line" />
+        <AuthNav />
       </div>
     </header>
   );
