@@ -1,4 +1,4 @@
-// FR-12: 학습 노트를 PDF로 만든다. 이미 저장된 분석 결과만 쓰고 AI·GitHub는 부르지 않는다(비용 0).
+// F12: 학습 노트를 PDF로 만든다. 이미 저장된 분석 결과만 쓰고 AI·GitHub는 부르지 않는다(비용 0).
 // 한글을 위해 나눔고딕(OFL, assets/fonts/OFL.txt)을 PDF에 넣는다.
 import { join } from "node:path";
 import PDFDocument from "pdfkit";

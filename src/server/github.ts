@@ -1,4 +1,4 @@
-// FR-01: 공개 GitHub 저장소의 기본 브랜치 파일을 읽는다. 코드는 읽기만 하고 실행하지 않는다.
+// F1: 공개 GitHub 저장소의 기본 브랜치 파일을 읽는다. 코드는 읽기만 하고 실행하지 않는다.
 import { config } from "./config";
 import { AppError } from "./errors";
 import { looksBinary, priority, redactSecrets, skipReason } from "./filter";
@@ -126,7 +126,7 @@ export async function fetchRepositoryHead(input: string): Promise<Repository> {
   };
 }
 
-// 분석할 파일을 고르고 내용을 받는다(FR-02).
+// 분석할 파일을 고르고 내용을 받는다(F2).
 export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
   const { owner, name: repo, commit_sha } = repository;
   const base = `${API}/repos/${owner}/${repo}`;

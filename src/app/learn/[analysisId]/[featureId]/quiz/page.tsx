@@ -9,7 +9,7 @@ import { getQuiz } from "@/lib/api";
 
 const KEYS = ["A", "B", "C", "D", "E"];
 
-// 이해도 퀴즈(FR-07). 보기를 고르고 '정답 확인'을 누르면 정답·해설·근거 코드를 보여 준다.
+// 이해도 퀴즈(F7). 보기를 고르고 '정답 확인'을 누르면 정답·해설·근거 코드를 보여 준다.
 export default function QuizPage() {
   const { analysisId, featureId } = useParams<{ analysisId: string; featureId: string }>();
   const { data: quiz, error, reload } = useLoad(`quiz:${analysisId}:${featureId}`, () => getQuiz(analysisId, featureId));

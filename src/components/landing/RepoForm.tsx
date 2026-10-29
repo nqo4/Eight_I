@@ -9,7 +9,7 @@ import { api, useSession, type ApiError } from "@/components/session/Session";
 import { useCurrentUser } from "@/lib/auth";
 import type { Analysis } from "@/server/types";
 
-// 홈의 시작 방법: 로그인한 사용자가 공개 GitHub 저장소를 분석한다(FR-01·FR-10).
+// 홈의 시작 방법: 로그인한 사용자가 공개 GitHub 저장소를 분석한다(F1·F10).
 export function RepoForm() {
   const router = useRouter();
   const { setAnalysis } = useSession();
@@ -18,7 +18,7 @@ export function RepoForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // 내 저장소 분석은 로그인 후에만 열린다(FR-10).
+  // 내 저장소 분석은 로그인 후에만 열린다(F10).
   const user = useCurrentUser();
   const [needLogin, setNeedLogin] = useState(false);
   const closeLogin = useCallback(() => setNeedLogin(false), []);

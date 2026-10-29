@@ -11,7 +11,7 @@ CodeBack은 AI로 만든 공개 GitHub 프로젝트를 넣으면 쓰인 기술�
 
 | 파일 | 내용 |
 | --- | --- |
-| `docs/problem.yaml` | 문제정의 캔버스와 기능 명세(FR-01~FR-15) |
+| `docs/problem.yaml` | 문제정의 캔버스와 기능 명세(F1~F15) |
 | `docs/scenarios.yaml` | 핵심 흐름 S1~S8(desktop). 버튼 이름의 기준 |
 | `docs/sources.md` | 문서에 쓴 수치의 출처와 확인일 |
 | `docs/api.md` | API 명세, DB 표, 서버 설정 |

@@ -34,7 +34,7 @@ export type Progress = {
 };
 const emptyProgress: Progress = { quiz: {}, done: false, steps: {} };
 
-// 화면 진행 상태는 저장소·커밋별로 브라우저에 남긴다. 퀴즈·미션 결과는 서버의 '내 학습 기록'(FR-13)에도 남는다.
+// 화면 진행 상태는 저장소·커밋별로 브라우저에 남긴다. 퀴즈·미션 결과는 서버의 '내 학습 기록'(F13)에도 남는다.
 export const LOCAL_PREFIX = "codeback:v1:";
 const LAST_KEY = `${LOCAL_PREFIX}last`;
 const progressKey = (a: Analysis) => `${LOCAL_PREFIX}progress:${a.repository.id}@${a.repository.commit_sha}`;
@@ -61,7 +61,7 @@ type Session = {
   feature: Feature | null;
   setAnalysis: (a: Analysis) => void;
   selectFeature: (f: Feature) => void;
-  // FR-14: '사용한 기술'에서 고른 기술 이름
+  // F14: '사용한 기술'에서 고른 기술 이름
   techName: string | null;
   selectTech: (name: string) => void;
   progress: Progress;

@@ -5,7 +5,7 @@ import { locateChanges } from "@/server/service";
 
 export const maxDuration = 60;
 
-// POST /api/analyses/{analysisId}/locate (FR-11)
+// POST /api/analyses/{analysisId}/locate (F11)
 export async function POST(req: Request, ctx: { params: Promise<{ analysisId: string }> }) {
   return handle(async () => {
     await requireUserId(req);

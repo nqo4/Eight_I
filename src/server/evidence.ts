@@ -49,7 +49,7 @@ export class SnapshotIndex {
     return raws.map((r) => this.ref(r)).filter((r): r is CodeReference => r !== null);
   }
 
-  // FR-11: 바꿔야 하는 줄 앞뒤로 context줄씩 붙인 원래 코드. 줄 번호는 원래 파일 기준.
+  // F11: 바꿔야 하는 줄 앞뒤로 context줄씩 붙인 원래 코드. 줄 번호는 원래 파일 기준.
   excerpt(ref: { path: string; start_line: number; end_line: number }, context = 3): { start_line: number; lines: string[] } | null {
     const entry = this.byPath.get(normalizePath(ref.path));
     if (!entry) return null;
@@ -135,7 +135,7 @@ function joinPath(dir: string, rel: string) {
   return out.join("/");
 }
 
-// FR-03: package.json에서 확인되는 기술만 confirmed로 둔다(근거 파일·라인 포함).
+// F3: package.json에서 확인되는 기술만 confirmed로 둔다(근거 파일·라인 포함).
 const KNOWN: { pkg: string; name: string }[] = [
   { pkg: "next", name: "Next.js" },
   { pkg: "react", name: "React" },

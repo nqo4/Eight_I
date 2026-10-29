@@ -6,7 +6,7 @@ import { PageIntro } from "@/components/demo/PageIntro";
 import { ErrorBox, Loading, useLoad } from "@/components/learn/states";
 import { getAnalysis } from "@/lib/api";
 
-// 프로젝트 개요와 기능 카드(FR-03·FR-04). 흐름 S1의 결과 화면, S2~S7의 시작 화면.
+// 프로젝트 개요와 기능 카드(F3·F4). 흐름 S1의 결과 화면, S2~S7의 시작 화면.
 export default function LearnOverviewPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
   const { data: a, error, reload } = useLoad(`analysis:${analysisId}`, () => getAnalysis(analysisId));

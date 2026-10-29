@@ -1,4 +1,4 @@
-// FR-02: 분석에 넣을 파일 고르기와 비밀값 가리기.
+// F2: 분석에 넣을 파일 고르기와 비밀값 가리기.
 
 const EXCLUDED_DIRS = new Set([
   "node_modules",

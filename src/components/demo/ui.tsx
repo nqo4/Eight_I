@@ -7,7 +7,7 @@ import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 export const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple";
 export const secondaryBtn = `inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-8 border border-line bg-surface px-4 py-2 text-sm font-bold text-text-primary transition-colors hover:border-brand-purple disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
 
-// FR-04 '사용한 기술'. 예전 분석(technologies 없음)은 설정 파일로 확인한 stack으로 보여 준다.
+// F4 '사용한 기술'. 예전 분석(technologies 없음)은 설정 파일로 확인한 stack으로 보여 준다.
 export type TechView = { name: string; role: string | null; concept: string | null; references: CodeReference[] };
 
 export function techViews(o: Overview): TechView[] {

@@ -9,7 +9,7 @@ import { useSession } from "@/components/session/Session";
 const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-5 py-5 sm:px-7 sm:py-6";
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
-// FR-14 기술 상세: '사용한 기술'에서 고른 기술의 역할·핵심 개념·쓰인 위치(파일 경로·라인과 코드 발췌).
+// F14 기술 상세: '사용한 기술'에서 고른 기술의 역할·핵심 개념·쓰인 위치(파일 경로·라인과 코드 발췌).
 export default function TechPage() {
   const { analysis, techName, ensure, loadError } = useSession();
 
