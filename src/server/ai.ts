@@ -3,6 +3,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output } from "ai";
 import type { z } from "zod";
 import { config } from "./config";
+import type { AnalysisDeadline } from "./deadline";
 import { AppError } from "./errors";
 
 const SYSTEM = `너는 바이브코딩으로 만든 프로젝트를 초보 개발자가 이해하도록 돕는 코드 분석가다.
@@ -42,7 +43,7 @@ export function assertAiConfigured() {
   }
 }
 
-export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise<T> {
+export async function generate<T>(schema: z.ZodType<T>, prompt: string, deadline?: AnalysisDeadline): Promise<T> {
   assertAiConfigured();
   const started = Date.now();
   try {
@@ -53,7 +54,8 @@ export async function generate<T>(schema: z.ZodType<T>, prompt: string): Promise
       output: Output.object({ schema }),
       maxOutputTokens: config.aiMaxOutputTokens,
       maxRetries: 1,
-      timeout: config.aiTimeoutMs,
+      timeout: deadline ? deadline.timeout(config.aiTimeoutMs) : config.aiTimeoutMs,
+      abortSignal: deadline?.signal,
     });
     // 팀 예산($10)이 한정돼 있어 호출마다 토큰 사용량을 남긴다.
     console.info(

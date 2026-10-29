@@ -1,5 +1,6 @@
 // FR-01: 공개 GitHub 저장소의 기본 브랜치 파일을 읽는다. 코드는 읽기만 하고 실행하지 않는다.
 import { config } from "./config";
+import type { AnalysisDeadline } from "./deadline";
 import { AppError } from "./errors";
 import { looksBinary, priority, redactSecrets, skipReason } from "./filter";
 import type { Repository, Snapshot, SnapshotFile } from "./types";
@@ -41,12 +42,13 @@ function headers(): HeadersInit {
   return h;
 }
 
-async function request(url: string, init?: RequestInit): Promise<Response> {
+async function request(url: string, init?: RequestInit, deadline?: AnalysisDeadline): Promise<Response> {
+  const timeout = AbortSignal.timeout(deadline ? deadline.timeout(config.githubTimeoutMs) : config.githubTimeoutMs);
   try {
     return await fetch(url, {
       ...init,
       headers: { ...headers(), ...init?.headers },
-      signal: AbortSignal.timeout(config.githubTimeoutMs),
+      signal: deadline ? AbortSignal.any([timeout, deadline.signal]) : timeout,
       cache: "no-store",
     });
   } catch (err) {
@@ -112,10 +114,14 @@ function checkStatus(res: Response) {
   throw new AppError("github_unavailable", `GitHub 응답 오류(${res.status})가 났어요. 잠시 후 다시 시도해 주세요.`);
 }
 
-async function getJson<T>(url: string): Promise<T> {
-  const res = await request(url);
+async function getJson<T>(url: string, deadline?: AnalysisDeadline): Promise<T> {
+  const res = await request(url, undefined, deadline);
   checkStatus(res);
-  return (await res.json()) as T;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new AppError("github_unavailable", "GitHub에서 응답을 받다가 연결이 끊겼어요. 잠시 후 다시 시도해 주세요.");
+  }
 }
 
 type RepoResponse = {
@@ -138,15 +144,15 @@ type TreeResponse = {
 
 // 저장소 정보와 기본 브랜치의 최신 commit·최종 수정 날짜만 확인한다(GitHub 요청 2번, 파일은 받지 않음).
 // 이 commit을 이미 분석했다면 파일을 다시 받지도, AI를 다시 부르지도 않는다.
-export async function fetchRepositoryHead(input: string): Promise<Repository> {
+export async function fetchRepositoryHead(input: string, deadline?: AnalysisDeadline): Promise<Repository> {
   const { owner, repo } = parseRepoUrl(input);
   const base = `${API}/repos/${owner}/${repo}`;
 
-  const info = await getJson<RepoResponse>(base);
+  const info = await getJson<RepoResponse>(base, deadline);
   if (info.private) {
     throw new AppError("repo_private", "비공개 저장소는 분석할 수 없어요. 공개 저장소만 지원해요.");
   }
-  const commit = await getJson<CommitResponse>(`${base}/commits/${encodeURIComponent(info.default_branch)}`);
+  const commit = await getJson<CommitResponse>(`${base}/commits/${encodeURIComponent(info.default_branch)}`, deadline);
   const [canonicalOwner, canonicalName] = info.full_name.split("/");
   return {
     id: info.full_name,
@@ -161,11 +167,11 @@ export async function fetchRepositoryHead(input: string): Promise<Repository> {
 }
 
 // 분석할 파일을 고르고 내용을 받는다(FR-02).
-export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
+export async function fetchSnapshot(repository: Repository, deadline?: AnalysisDeadline): Promise<Snapshot> {
   const { owner, name: repo, commit_sha } = repository;
   const base = `${API}/repos/${owner}/${repo}`;
   const commit = { sha: commit_sha };
-  const tree = await getJson<TreeResponse>(`${base}/git/trees/${commit.sha}?recursive=1`);
+  const tree = await getJson<TreeResponse>(`${base}/git/trees/${commit.sha}?recursive=1`, deadline);
 
   const blobs = tree.tree.filter((e) => e.type === "blob");
   let skippedByFilter = 0;
@@ -192,7 +198,7 @@ export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
     total += e.size ?? 0;
   }
 
-  const files = (await mapLimit(chosen, 8, (e) => fetchRaw(owner, repo, commit.sha, e.path))).filter(
+  const files = (await mapLimit(chosen, 8, (e) => fetchRaw(owner, repo, commit.sha, e.path, deadline))).filter(
     (f): f is SnapshotFile => f !== null,
   );
 
@@ -209,11 +215,11 @@ export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
   };
 }
 
-async function fetchRaw(owner: string, repo: string, sha: string, path: string): Promise<SnapshotFile | null> {
+async function fetchRaw(owner: string, repo: string, sha: string, path: string, deadline?: AnalysisDeadline): Promise<SnapshotFile | null> {
   const encoded = path.split("/").map(encodeURIComponent).join("/");
   const res = await request(`${RAW}/${owner}/${repo}/${sha}/${encoded}`, {
     headers: { Accept: "text/plain" },
-  });
+  }, deadline);
   // 404만 '받을 파일이 없음'으로 보고 뺀다. 429·5xx 등 일시 장애는 분석 전체를 실패시킨다(#6).
   // 빠진 파일로 분석이 성공하면 그 결과가 이 commit의 캐시로 남아 다음 요청에서도 계속 누락되기 때문이다.
   if (res.status === 404) {

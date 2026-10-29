@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
+import type { AnalysisDeadline } from "./deadline";
 import { getPrecomputed } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
@@ -30,7 +31,7 @@ import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateRe
 // userId가 있으면 그 사용자의 '내가 분석한 저장소' 목록에도 남긴다.
 export async function analyzeRepository(
   url: string,
-  opts: { userId?: string } = {},
+  opts: { userId?: string; deadline?: AnalysisDeadline } = {},
 ): Promise<{ analysis: Analysis; cached: boolean }> {
   // B4: 어느 단계가 느린지 보려고 단계별 시간을 서버 로그에 남긴다(저장소 이름·commit·시간만).
   const t0 = Date.now();
@@ -39,7 +40,7 @@ export async function analyzeRepository(
       `[analyze] ${repository.id}@${repository.commit_sha.slice(0, 7)} cached=${cached} `
         + Object.entries(parts).map(([k, v]) => `${k}=${v}ms`).join(" ") + ` total=${Date.now() - t0}ms`,
     );
-  const repository = await fetchRepositoryHead(url);
+  const repository = await fetchRepositoryHead(url, opts.deadline);
   const headMs = Date.now() - t0;
   const store = getStore();
   await store.saveRepository(repository);
@@ -68,7 +69,7 @@ export async function analyzeRepository(
   // 새로 분석해야 할 때만 AI 설정을 확인하고 파일을 받는다(키가 없으면 GitHub 파일 요청도 아낀다).
   assertAiConfigured();
   const t1 = Date.now();
-  const snapshot = await fetchSnapshot(repository);
+  const snapshot = await fetchSnapshot(repository, opts.deadline);
   const snapshotMs = Date.now() - t1;
   if (snapshot.files.length === 0) {
     throw new AppError("repo_empty", "분석할 수 있는 소스 파일을 찾지 못했어요.");
@@ -89,6 +90,7 @@ export async function analyzeRepository(
   const out = await generate(
     overviewSchema,
     overviewPrompt(meta, index.formatFiles(index.paths(), config.maxTotalBytes * 2)),
+    opts.deadline,
   );
   const aiMs = Date.now() - t2;
 
