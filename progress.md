@@ -6,7 +6,7 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 
 - 실제 서비스 저장소 폴더: C:\Users\user\OneDrive\Documents\8I\Eight_I
 - 현재 단계 / 다음 행동: 2단계 — 팀 문서를 대회 양식으로 옮겨 push(cbd80af), 대시보드 표시 확인과 빈 칸 채우기
-- 학생에게 확인할 내용: 대시보드 문제 정의 화면 표시 여부, platform·platformReason, why_ours
+- 학생에게 확인할 내용: platform·platformReason, why_ours, experiences, 흐름 선택, 보류/제외 상태
 
 ## 1. GitHub 준비
 
@@ -33,8 +33,8 @@ Agent가 서비스 저장소 루트의 `progress.md`로 복사해 이어 쓴다(
 - [ ] 문제가 '우리 기능이 없어서'가 아니라 실제 상황·행동으로 서술됐는지 확인
 - [ ] 2-B 해법 찾기: 학생이 낸 해법과 결정을 solution_paths에, 기존 대안 대신 이 해법이어야 하는 이유를 학생 말로 why_ours에 작성
 - [ ] 2-C features에 학생이 고른 해법의 기능별 입력·결과·완료 조건 작성
-- [ ] YAML 문법 검사, 등록된 레포의 기본 브랜치에 docs/problem.yaml push
-- [ ] 학생이 개인 로그인으로 우리 팀 → 문제 정의를 열어 캔버스 표시 확인(Agent는 화면을 열 수 없음, 약 1분 캐시)
+- [x] YAML 문법 검사, 등록된 레포의 기본 브랜치에 docs/problem.yaml push
+- [x] 학생이 개인 로그인으로 우리 팀 → 문제 정의를 열어 캔버스 표시 확인(Agent는 화면을 열 수 없음, 약 1분 캐시)
 - [ ] 핵심 사용자 흐름·기능별 동작 규칙·완료 조건·제외 범위를 팀과 확인
 - [ ] 로그인 필요 여부와 역할 이름(흐름 account·docker 시드 계정 역할 이름으로 씀) 결정
 - [ ] 첫 화면에서 알려 줄 것(로그인하지 않은 사람이 `/`에서 볼 서비스 이름·하는 일)을 학생과 정함
