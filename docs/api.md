@@ -107,6 +107,16 @@
 - `acceptance_checks[]`: 성공 조건 체크박스
 - `disclaimer`: "완료 체크는 자기 보고이며 실행 결과를 보증하지 않음". 완료 표시 옆에 보여 줍니다.
 
+### 내 학습 기록 (FR-13)
+
+| 주소 | 로그인 | 하는 일 |
+| --- | --- | --- |
+| `POST .../features/{featureId}/quiz/attempts` `{ question_id, chosen_index }` | 선택 | 서버가 저장된 퀴즈로 정답을 판정해 돌려주고, 로그인했으면 기록에 남겨요(`saved`) |
+| `POST .../features/{featureId}/exercise/complete` | 선택 | '완료로 표시'(자기 보고)를 기록에 남겨요. 로그인 전이면 `saved: false` |
+| `GET /api/me/records` | 필요 | 내가 분석한 저장소마다 퀴즈 맞힌 수·전체 수, 완료한 미션 수, 기능별 진행 상황 |
+
+`POST /api/repositories/analyze`를 로그인한 상태로 부르면 그 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
+
 ### `GET /api/status`
 
 `{ "ai": { "configured": boolean, "model": string }, "store": "postgres" | "memory", "demo_ready": boolean }`
@@ -150,13 +160,14 @@
 
 | 표 | 저장하는 것 |
 | --- | --- |
-| `users` | 이름(`name`), 아이디(`username`, 대소문자 무관 중복 금지), 비밀번호 해시(`password_hash`, 원문 저장 안 함), 가입·수정 시각 |
+| `users` | 이름(`name`), 이메일(`username` 칸에 소문자로 저장, 중복 금지), 비밀번호 해시(`password_hash`, 원문 저장 안 함), 가입·수정 시각 |
 | `sessions` | 로그인 유지용 세션. 토큰의 해시, 사용자, 만료 시각(7일) |
 | `repositories` | GitHub 주소, 기본 브랜치, 마지막으로 확인한 최신 commit, **최종 수정 날짜**(`last_commit_at`), 확인한 시각 |
 | `analyses` | 저장소 + commit 하나당 분석 결과(개요·기능 카드)와 분석에 쓴 파일 내용 |
 | `analysis_artifacts` | 기능별 결과: 동작 흐름, 개념 학습(**코드 정리 내용**), 퀴즈(**문제와 정답**), 수정 미션 |
 | `user_repositories` | 사용자가 분석한 저장소 목록(처음 추가한 시각, 마지막으로 본 시각, 최신 분석 결과) |
-| `quiz_attempts` | 사용자가 고른 퀴즈 답(고른 보기, 정답 여부, 시각). 정답 여부는 서버에 저장된 퀴즈로 판정 |
+| `quiz_attempts` | 사용자가 고른 퀴즈 답(고른 보기, 정답 여부, 시각). 정답 여부는 서버에 저장된 퀴즈로 판정 (FR-07·FR-13) |
+| `mission_completions` | 사용자가 '완료로 표시'한 수정 미션(기능별 한 줄, 완료 시각) (FR-08·FR-13) |
 
 **같은 저장소를 다시 분석할 때 (토큰 절약)**
 
@@ -164,7 +175,7 @@
 2. 그 commit으로 분석한 결과가 이미 있으면(= 그 사이 GitHub에 변경이 없으면) 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려줘요(`cached: true`).
 3. 변경이 있을 때만 파일을 받아 새로 분석해요. 기능별 흐름·학습·퀴즈·미션도 처음 열 때 한 번만 만들어요.
 
-로그인 API(회원가입·로그인·로그아웃, 내 저장소 목록, 퀴즈 답 저장)는 서버 함수까지 만들어 두었고(`src/server/users.ts`, `src/server/history.ts`), 로그인 화면이 정해지면 주소를 연결해요.
+회원가입·로그인(FR-10)은 `src/server/auth.ts`·`/api/auth/*`, 내 학습 기록(FR-13)은 `src/server/history.ts`·`/api/me/records`에 있어요.
 
 ## 서버 설정(환경변수)
 

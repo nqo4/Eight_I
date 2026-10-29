@@ -1,4 +1,4 @@
-// FR-10: '샘플로 체험하기'용 데이터. data/demo/demo.json은 scripts/build-demo.ts가 실제 공개 샘플 저장소를
+// '샘플로 체험하기'용 데이터(옛 FR-10 데모 모드. 2026-10-29 문서 개정에서 빠짐 — 팀이 정리할 때까지 유지). data/demo/demo.json은 scripts/build-demo.ts가 실제 공개 샘플 저장소를
 // 실제로 분석해서 만든 결과다(가짜 데이터를 손으로 쓰지 않는다). 데모는 GitHub·AI를 호출하지 않는다.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
