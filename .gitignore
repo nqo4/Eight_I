@@ -27,6 +27,9 @@ Thumbs.db
 *.log
 .vercel/
 
+# 대회 양식 예시 파일
+*.example.yaml
+
 # Next.js·TypeScript
 .pnp
 .pnp.*

@@ -21,5 +21,6 @@ export const config = {
   // 기능 하나의 상세(흐름·학습·퀴즈·미션)를 만들 때 넣을 파일 한도.
   featureContextBytes: intEnv("FEATURE_CONTEXT_BYTES", 80_000),
 
-  databaseUrl: process.env.DATABASE_URL || undefined,
+  // Vercel의 Neon 연결은 DATABASE_URL 말고 POSTGRES_URL 등의 이름으로도 넣어 준다.
+  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || undefined,
 };
