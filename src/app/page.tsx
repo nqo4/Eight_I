@@ -8,7 +8,7 @@ export default function Home() {
     <div className="flex w-full flex-col items-start bg-paper">
       <header className="flex h-[76px] w-full shrink-0 items-center justify-between border-b border-line bg-surface px-[36px]">
         <Brand />
-        <div className="flex items-start gap-[16px] font-bold whitespace-pre">
+        <div className="flex items-center gap-[16px] font-bold whitespace-pre">
           <span className="font-manrope text-[10px] leading-[16px] text-status-green">{`●  INTERACTIVE PROTOTYPE`}</span>
           <Link href="/demo/overview" className="text-[11px] leading-[18px] text-brand-purple hover:underline">
             {`데모 둘러보기  →`}
@@ -21,7 +21,7 @@ export default function Home() {
 
       <section className="flex h-[810px] w-full shrink-0 items-start gap-[54px] px-[72px] pt-[95px]">
         <div className="flex h-[640px] w-[620px] shrink-0 flex-col items-start gap-[20px]">
-          <div className="flex items-start gap-[10px]">
+          <div className="flex items-center gap-[10px]">
             <span className="rounded-12 bg-brand-purple px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-surface">
               01
             </span>
@@ -48,7 +48,7 @@ export default function Home() {
         </div>
 
         <div className="mt-[40px] flex h-[560px] w-[570px] shrink-0 flex-col items-start gap-[14px] rounded-16 bg-text-primary p-[24px]">
-          <div className="flex h-[34px] w-[522px] items-start justify-between whitespace-nowrap">
+          <div className="flex h-[34px] w-[522px] items-center justify-between whitespace-nowrap">
             <span className="font-mono text-[10px] leading-[16px] text-surface">CartButton.tsx</span>
             <span className="text-[9px] leading-[14px] font-bold text-status-green">● 확인된 코드</span>
           </div>

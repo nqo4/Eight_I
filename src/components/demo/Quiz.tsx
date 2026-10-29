@@ -60,7 +60,7 @@ export function Quiz() {
       })}
 
       {selected && (
-        <div className="flex h-[51px] w-[696px] shrink-0 items-start gap-[12px] rounded-8 bg-brand-purple-soft px-[16px] pt-[14px]">
+        <div className="flex h-[51px] w-[696px] shrink-0 items-center gap-[12px] rounded-8 bg-brand-purple-soft px-[16px]">
           <span
             className={`rounded-12 px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-surface ${
               isCorrect ? "bg-status-green" : "bg-text-muted"

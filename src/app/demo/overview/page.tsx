@@ -12,7 +12,7 @@ export default function OverviewPage() {
         description="코드 전체가 아니라 내가 아는 기능에서 시작하면 훨씬 쉬워요."
       />
 
-      <div className="flex w-full items-start gap-[20px] rounded-12 bg-brand-purple-soft px-[24px] py-[20px]">
+      <div className="flex w-full items-center gap-[20px] rounded-12 bg-brand-purple-soft px-[24px] py-[20px]">
         <span className="text-[26px] leading-[34px] whitespace-nowrap">🛒</span>
         <div className="flex flex-col items-start gap-[4px] text-text-primary">
           <p className="text-[17px] whitespace-nowrap leading-[24px] font-bold">CodeBack Demo Shop</p>
@@ -20,7 +20,7 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      <div className="flex w-full items-start justify-between">
+      <div className="flex w-full items-center justify-between">
         <h2 className="text-[18px] leading-[26px] font-bold whitespace-nowrap text-text-primary">어떤 기능부터 알아볼까요?</h2>
         <span className="rounded-12 bg-brand-purple-soft px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-brand-purple">
           {features.length}개 기능 발견

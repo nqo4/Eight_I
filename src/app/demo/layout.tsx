@@ -8,7 +8,7 @@ export default function DemoLayout({ children }: LayoutProps<"/demo">) {
       <div className="flex min-h-[948px] w-full flex-1 items-stretch">
         <LearningSidebar />
         <main className="flex min-w-0 flex-1 flex-col items-start gap-[22px] bg-paper px-[42px] pt-[24px] pb-[40px]">
-          <div className="flex w-full items-start gap-[10px] rounded-8 bg-brand-purple-soft px-[14px] py-[10px]">
+          <div className="flex w-full items-center gap-[10px] rounded-8 bg-brand-purple-soft px-[14px] py-[10px]">
             <span className="rounded-12 bg-brand-purple px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-surface">
               DEMO
             </span>

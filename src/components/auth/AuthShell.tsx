@@ -19,7 +19,7 @@ export function AuthShell({ step, eyebrow, title, description, children }: AuthS
 
       <main className="flex w-full flex-1 items-center justify-center gap-[96px] px-[72px] py-[80px]">
         <section className="flex w-[520px] shrink-0 flex-col items-start gap-[20px]">
-          <div className="flex items-start gap-[10px]">
+          <div className="flex items-center gap-[10px]">
             <span className="rounded-12 bg-brand-purple px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-surface">
               {step}
             </span>

@@ -21,7 +21,7 @@ export default function MissionPage() {
 
       <div className="flex w-full items-start gap-[18px]">
         <section className="flex h-[600px] w-[660px] shrink-0 flex-col items-start gap-[18px] rounded-12 border border-line bg-surface px-[30px] py-[28px]">
-          <div className="flex h-[24px] w-[600px] items-start justify-between">
+          <div className="flex h-[24px] w-[600px] items-center justify-between">
             <p className="font-manrope text-[9px] leading-[14px] font-bold whitespace-nowrap text-brand-purple">작은 수정 미션</p>
             <span className="rounded-12 bg-brand-purple-soft px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-brand-purple">
               난이도 · 쉬움

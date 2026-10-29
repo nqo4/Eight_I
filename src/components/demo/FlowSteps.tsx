@@ -13,7 +13,7 @@ export function FlowSteps() {
   const [selected, setSelected] = useState(1);
 
   return (
-    <div className="flex w-full items-start gap-[10px] whitespace-nowrap">
+    <div className="flex w-full items-center gap-[10px] whitespace-nowrap">
       {flowSteps.map((step, index) => (
         <Fragment key={step.label}>
           {index > 0 && <span className="font-manrope text-[14px] leading-[18px] font-bold text-brand-purple">→</span>}
