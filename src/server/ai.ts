@@ -51,12 +51,14 @@ function toAppError(err: unknown): AppError {
     return new AppError("ai_timeout", "AI 응답이 너무 오래 걸렸어요. 잠시 후 다시 시도해 주세요.");
   }
   const status = e?.statusCode;
-  if (status === 401 || status === 402 || status === 403) {
+  // Gateway 오류는 statusCode 없이 이름으로만 올 때가 있다(예: GatewayAuthenticationError).
+  const gatewayDenied = /^Gateway(Authentication|InsufficientFunds|Forbidden|ModelNotFound)/.test(e?.name ?? "");
+  if (status === 401 || status === 402 || status === 403 || gatewayDenied) {
     // 키 비활성·모델 접근 거절·예산 소진
     return new AppError(
       "ai_access_denied",
       "AI 사용이 거절됐어요(키·모델 권한 또는 예산 문제). 운영진이나 팀에 확인해 주세요.",
-      { status },
+      { status: status ?? null, reason: e?.name ?? null },
     );
   }
   console.error("[ai] generation failed:", e?.name, status ?? "", e?.message?.slice(0, 300));
