@@ -1,0 +1,16 @@
+# 주최 측 실행과 CI가 이 파일로 앱을 빌드하고 띄운다(키트 docker-compose.example.yml 기준).
+# - 서비스 이름 app과 "3000:3000"은 바꾸지 않는다. 앱은 컨테이너 안 0.0.0.0:3000에서 받는다.
+# - env_file·container_name을 쓰지 않는다. 앱 코드에 http://localhost:3000 같은 절대 주소를 쓰지 않는다.
+# - 로그인·저장 기능이 정해지면 db(postgres)와 SEED_USER_* 시드 계정을 키트 양식대로 추가한다.
+services:
+  app:
+    build:
+      context: .
+      args:
+        RELEASE_ID: ${RELEASE_ID:-dev}
+    ports:
+      - "3000:3000"
+    environment:
+      RELEASE_ID: ${RELEASE_ID:-dev}
+      # 서버는 이 이름으로만 AI 키를 읽는다. 비어 있어도 앱은 뜬다.
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:-}

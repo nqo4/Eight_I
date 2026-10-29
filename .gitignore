@@ -26,3 +26,10 @@ playwright-report/
 Thumbs.db
 *.log
 .vercel/
+
+# Next.js·TypeScript
+.pnp
+.pnp.*
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
