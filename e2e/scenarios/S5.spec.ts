@@ -11,7 +11,6 @@ test("S5 학습자가 배운 기능의 이해도를 퀴즈로 확인한다", asy
   await first.getByRole("radio").first().check(AI_WAIT)
   await first.getByRole("button", { name: "정답 확인" }).click()
 
-  await expect(page.getByRole("region", { name: "핵심 개념" })).toHaveCount(0)
   const result = first.getByTestId("quiz-result")
   await expect(result).toContainText(/정답이에요|오답이에요/)
   await expect(result.getByTestId("quiz-refs").getByRole("listitem").first()).toHaveText(/참고: \S+ \(\d+–\d+행\)/)

@@ -14,6 +14,7 @@ export type ErrorCode =
   | "analysis_not_found"
   | "feature_not_found"
   | "demo_not_ready"
+  | "demo_example_only"
   | "internal_error";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -31,6 +32,7 @@ const STATUS: Record<ErrorCode, number> = {
   analysis_not_found: 404,
   feature_not_found: 404,
   demo_not_ready: 503,
+  demo_example_only: 400,
   internal_error: 500,
 };
 

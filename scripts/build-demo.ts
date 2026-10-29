@@ -9,6 +9,7 @@ import {
   getExercise,
   getFlow,
   getLesson,
+  locateChanges,
   getQuiz,
 } from "../src/server/service";
 import { getStore } from "../src/server/store";
@@ -29,6 +30,13 @@ async function main() {
     artifacts[`${f.id}:quiz`] = await getQuiz(analysis.id, f.id);
     artifacts[`${f.id}:exercise`] = await getExercise(analysis.id, f.id);
     console.log(`  ${f.id} ${f.title}: 흐름·학습·퀴즈·미션 생성`);
+  }
+
+  for (const query of analysis.locate_examples) {
+    const result = await locateChanges(analysis.id, query);
+    if (result.locations.length === 0) throw new Error(`데모 예시의 코드 위치를 찾지 못했어요: ${query}`);
+    artifacts[`locate:${result.query}`] = result;
+    console.log(`  위치 찾기: ${query}, ${result.locations.length}곳`);
   }
 
   const stored = await getStore().getAnalysis(analysis.id);

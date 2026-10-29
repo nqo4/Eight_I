@@ -6,15 +6,47 @@ import { FeatureCard } from "@/components/FeatureCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
-import { useSession } from "@/components/session/Session";
+import { api, useSession, type ApiError } from "@/components/session/Session";
+import type { Analysis, Layer, LocateResult } from "@/server/types";
 
-const fileName = (path: string) => path.split("/").pop() ?? path;
+const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "기타" };
+const locateTag = { ui: "화면", server: "서버", db: "DB" } as const;
+
+function buildNote(a: Analysis) {
+  const r = a.repository;
+  const o = a.overview;
+  return [
+    `# ${r.id} 학습 노트`,
+    "",
+    `- 프로젝트: ${r.id}`,
+    `- 분석 기준 commit SHA: ${r.commit_sha}`,
+    `- 기본 브랜치: ${r.default_branch}`,
+    "",
+    "## 한 줄 소개",
+    o.summary,
+    "",
+    "## 기술 스택",
+    ...o.stack.map((s) => `- ${s.name}: ${s.evidence && s.status === "confirmed" ? s.evidence.path : "확인 불가"}`),
+    "",
+    "## 주요 폴더",
+    ...o.directories.map((d) => `- ${d.path} (${layerTag[d.layer ?? "other"]}): ${d.role}`),
+    "",
+    "## 기능 카드",
+    ...(a.features.length
+      ? a.features.flatMap((f) => [`### ${f.title}`, f.summary, ...f.code_references.map((c) => `- ${refLabel(c)}`), ""])
+      : ["기능을 찾지 못했습니다", ""]),
+  ].join("\n");
+}
 
 export default function OverviewPage() {
   const router = useRouter();
   const { analysis, feature, selectFeature, ensure, loadError, startDemo } = useSession();
   const detailRef = useRef<HTMLElement>(null);
   const [picked, setPicked] = useState(0);
+  const [query, setQuery] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [located, setLocated] = useState<LocateResult | null>(null);
+  const [locateError, setLocateError] = useState<ApiError | null>(null);
 
   useEffect(() => {
     if (picked) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -28,14 +60,44 @@ export default function OverviewPage() {
   if (!analysis) return <Loading />;
 
   const repo = analysis.repository;
-  const confirmed = analysis.overview.stack.filter((s) => s.status === "confirmed");
-  const unconfirmed = analysis.overview.stack.filter((s) => s.status === "unconfirmed");
+  const stats = analysis.stats;
+  const skipped = stats.total_files - stats.included_files;
+
+  const locate = async () => {
+    setLocating(true);
+    setLocateError(null);
+    try {
+      const r = await api<{ result: LocateResult }>(`/api/analyses/${encodeURIComponent(analysis.id)}/locate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      setLocated(r.result);
+    } catch (e) {
+      setLocated(null);
+      setLocateError(e as ApiError);
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const download = () => {
+    const blob = new Blob([buildNote(analysis)], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `codeback-${repo.owner}-${repo.name}-${repo.commit_sha.slice(0, 7)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <>
       <PageIntro
         eyebrow="PROJECT OVERVIEW"
-        title="먼저, 이 프로젝트를 한눈에 볼까요?"
+        title="먼저, 이 프로젝트의 구조를 볼까요?"
         description="코드 전체가 아니라 내가 아는 기능에서 시작하면 훨씬 쉬워요. 아래 기능 카드 중 하나를 골라 보세요."
       />
 
@@ -59,25 +121,49 @@ export default function OverviewPage() {
               {repo.commit_sha.slice(0, 12)}
             </dd>
           </div>
+          <button type="button" className={`${secondaryBtn} ml-auto`} onClick={download}>
+            학습 노트 내려받기
+          </button>
         </dl>
         <p data-testid="project-summary" className="text-lg font-bold text-pretty text-text-primary">
           {analysis.overview.summary}
         </p>
         <p className="text-sm leading-6 text-pretty text-text-muted">{analysis.overview.purpose}</p>
+        <p data-testid="analysis-stats" className="text-sm text-text-muted">
+          분석에 쓴 파일 {stats.included_files}개 · 제외 {skipped}개 · 민감 파일 제외 {stats.skipped_sensitive ?? 0}개
+        </p>
         <section aria-label="기술 스택" className="flex flex-col gap-2">
           <h2 className="text-xs font-bold text-text-muted">기술 스택</h2>
-          <ul className="flex flex-wrap gap-1.5">
-            {confirmed.map((s) => (
-              <li key={s.name} className="rounded-8 bg-surface px-2.5 py-1 text-xs font-bold text-brand-purple-ink" title={s.note ?? undefined}>
-                {s.name}
-              </li>
-            ))}
-            {unconfirmed.map((s) => (
-              <li key={s.name} className="rounded-8 border border-dashed border-text-muted/40 px-2.5 py-1 text-xs text-text-muted" title={s.note ?? undefined}>
-                {s.name} · 확인 불가
+          <ul className="flex flex-wrap gap-2">
+            {analysis.overview.stack.map((s) => (
+              <li
+                key={s.name}
+                title={s.note ?? undefined}
+                className={`flex flex-col gap-0.5 rounded-8 px-3 py-1.5 ${s.status === "confirmed" ? "bg-surface" : "border border-dashed border-text-muted/40"}`}
+              >
+                <span className={`text-sm font-bold ${s.status === "confirmed" ? "text-brand-purple-ink" : "text-text-muted"}`}>{s.name}</span>
+                <span className="font-mono text-xs break-all text-text-muted">
+                  {s.status === "confirmed" && s.evidence ? s.evidence.path : "확인 불가"}
+                </span>
               </li>
             ))}
           </ul>
+        </section>
+        <section aria-label="주요 폴더" className="flex flex-col gap-2">
+          <h2 className="text-xs font-bold text-text-muted">주요 폴더</h2>
+          {analysis.overview.directories.length === 0 ? (
+            <p className="text-sm text-text-muted">확인된 주요 폴더가 없어요.</p>
+          ) : (
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+              {analysis.overview.directories.map((d) => (
+                <li key={d.path} data-testid="directory" className="flex min-w-0 items-baseline gap-2 text-sm">
+                  <span className="shrink-0 font-mono font-bold break-all text-text-primary">{d.path}</span>
+                  <span className="shrink-0 rounded-8 bg-surface px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{layerTag[d.layer ?? "other"]}</span>
+                  <span className="min-w-0 text-text-muted">{d.role}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
         {analysis.overview.support.status === "limited" && analysis.overview.support.reason && (
           <p role="note" className="text-sm text-text-muted">
@@ -85,6 +171,79 @@ export default function OverviewPage() {
           </p>
         )}
       </div>
+
+      <section aria-label="어디를 고쳐야 해?" className="flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-6 py-5">
+        <h2 className="text-lg font-bold text-text-primary">어디를 고쳐야 해?</h2>
+        <div className="flex w-full items-center gap-3">
+          <input
+            type="text"
+            aria-label="어디를 고쳐야 해?"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && query.trim() && !locating) locate();
+            }}
+            placeholder="바꾸고 싶은 동작을 문장으로 적어 보세요"
+            className="min-h-11 min-w-0 flex-1 rounded-8 border border-line bg-surface px-4 text-sm text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
+          />
+          <PrimaryButton label="위치 찾기" disabled={!query.trim() || locating} onClick={locate} />
+        </div>
+        {(analysis.locate_examples ?? []).length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {(analysis.locate_examples ?? []).map((ex) => (
+              <li key={ex}>
+                <button type="button" className={secondaryBtn} onClick={() => setQuery(ex)}>
+                  {ex}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {locating && <Loading slow={analysis.mode !== "demo"} />}
+        {locateError && <p role="alert" className="text-sm font-bold text-status-red">{locateError.message}</p>}
+        {located && !locating && (
+          <div className="flex flex-col gap-2">
+            {located.locations.length > 0 && (
+              <ul data-testid="locate-result" className="flex flex-col divide-y divide-line">
+                {located.locations.map((l, i) => (
+                  <li key={`${l.reference.path}:${l.reference.start_line}:${i}`} className="flex flex-col gap-1 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm font-bold break-all text-brand-purple-ink">{refLabel(l.reference)}</span>
+                      <span className="rounded-8 bg-brand-purple-soft px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{locateTag[l.layer]}</span>
+                    </div>
+                    <p className="text-sm leading-6 text-pretty">{l.reason}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {located.locations.length === 0 && (
+              <div data-testid="locate-empty" className="flex flex-col gap-2">
+                <p role="note" className="text-sm text-text-muted">
+                  {located.notice ?? "입력한 문장과 맞는 위치를 찾지 못했어요."}
+                </p>
+                {analysis.features.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
+                    <span>이 기능부터 살펴보세요:</span>
+                    {analysis.features.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        className={secondaryBtn}
+                        onClick={() => {
+                          selectFeature(f);
+                          setPicked((n) => n + 1);
+                        }}
+                      >
+                        {f.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       <div className="flex w-full items-center justify-between">
         <h2 className="text-lg font-bold text-text-primary">어떤 기능부터 알아볼까요?</h2>
@@ -96,7 +255,7 @@ export default function OverviewPage() {
       <section aria-label="기능 목록" className="grid w-full grid-cols-2 gap-3">
         {analysis.features.length === 0 && (
           <p role="note" className="col-span-2 text-sm text-text-muted">
-            {analysis.features_notice ?? "코드 근거가 있는 기능을 찾지 못했어요."}
+            기능을 찾지 못했습니다{analysis.features_notice ? ` — ${analysis.features_notice}` : ""}
           </p>
         )}
         {analysis.features.map((f, i) => (
@@ -105,7 +264,7 @@ export default function OverviewPage() {
             number={String(i + 1).padStart(2, "0")}
             title={f.title}
             description={f.summary}
-            files={[...new Set(f.code_references.map((r) => fileName(r.path)))]}
+            files={[...new Set(f.code_references.map((r) => r.path))]}
             evidenceCount={f.code_references.length}
             selected={feature?.id === f.id}
             onSelect={() => {

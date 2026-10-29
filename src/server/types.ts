@@ -37,8 +37,13 @@ export type Snapshot = {
     skipped_by_filter: number;
     skipped_by_limit: number;
     truncated_tree: boolean;
+    // FR-02: .env·비밀키·인증서처럼 민감해서 AI 입력에서 뺀 파일 수(skipped_by_filter에 포함된 수)
+    skipped_sensitive: number;
   };
 };
+
+// FR-03·FR-11에서 쓰는 화면·서버·DB 구분
+export type Layer = "ui" | "server" | "db" | "config" | "other";
 
 export type StackItem = {
   name: string;
@@ -51,7 +56,8 @@ export type Overview = {
   summary: string; // 프로젝트 한 줄 소개
   purpose: string;
   stack: StackItem[];
-  directories: { path: string; role: string }[];
+  // FR-03: 폴더 역할. layer는 화면·서버·DB·설정 구분
+  directories: { path: string; role: string; layer: Layer }[];
   support: { status: "supported" | "limited"; reason: string | null };
 };
 
@@ -72,6 +78,8 @@ export type Analysis = {
   // 기능을 찾지 못했을 때 그 이유(FR-04). 기능이 있으면 null.
   features_notice: string | null;
   stats: Snapshot["stats"];
+  // FR-11: '어디를 고쳐야 해?' 입력란 아래 예시 문장(데모는 미리 만든 결과가 있는 문장)
+  locate_examples: string[];
 };
 
 export type FlowStep = {
@@ -112,6 +120,10 @@ export type Lesson = {
     easy_explanation: string; // '쉬운 설명 펼치기'
     references: CodeReference[];
   }[];
+  // FR-06: '왜 이렇게 만들었나'. 코드로 확인할 수 없는 이유는 inferred=true('AI 추정')
+  design_reasons: { reason: string; reference: CodeReference | null; inferred: boolean }[];
+  // FR-06 기능 설명을 쉽게: 사용자가 하는 행동 → 바뀌기 전/후 → 관련 코드 한 줄(팀원 배포본의 설명 방식)
+  walkthrough?: { action: string; before: string; after: string; key_line: CodeReference | null };
 };
 
 export type Quiz = {
@@ -140,4 +152,12 @@ export type Exercise = {
 export type FeatureDetail = {
   analysis_id: string;
   feature: Feature;
+};
+
+// FR-11 고칠 위치 찾기 결과. 코드는 보여 주지 않고 위치와 이유만 준다.
+export type LocateResult = {
+  query: string;
+  locations: { reference: CodeReference; layer: "ui" | "server" | "db"; reason: string }[];
+  // 찾지 못했을 때 안내 문구. 찾았으면 null
+  notice: string | null;
 };

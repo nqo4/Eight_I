@@ -94,6 +94,27 @@ export default function ConceptPage() {
                 ))}
               </ul>
             </section>
+            <section aria-label="왜 이렇게 만들었나" className={panel}>
+              <h2 className={label}>왜 이렇게 만들었나</h2>
+              {(data.lesson.design_reasons ?? []).length === 0 ? (
+                <p className="text-sm text-text-muted">이 기능에서 설명할 설계 이유를 찾지 못했어요.</p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-line">
+                  {(data.lesson.design_reasons ?? []).map((d, i) => (
+                    <li key={i} data-testid="design-reason" className="flex flex-col gap-1.5 py-3">
+                      <p className="text-sm leading-6 text-pretty">{d.reason}</p>
+                      {d.reference && !d.inferred ? (
+                        <p className="font-mono text-sm break-all text-brand-purple-ink">{refLabel(d.reference)}</p>
+                      ) : (
+                        <p>
+                          <span className="rounded-8 bg-brand-purple-soft px-2 py-1 text-xs font-bold text-brand-purple-ink">AI 추정</span>
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
             <div className="flex justify-end">
               <PrimaryButton label="이해했어요, 확인해 볼게요" onClick={toQuiz} />
             </div>

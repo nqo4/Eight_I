@@ -1,6 +1,6 @@
 // 백엔드 기능의 본체. 웹 프레임워크와 상관없이 호출할 수 있다(Next.js 라우트는 이 함수를 부르기만 한다).
 import { randomUUID } from "node:crypto";
-import { assertAiConfigured, generate } from "./ai";
+import { aiConfigured, assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
 import { getDemo } from "./demo";
 import { AppError } from "./errors";
@@ -12,12 +12,14 @@ import {
   featurePrompt,
   flowSchema,
   lessonSchema,
+  locatePrompt,
+  locateSchema,
   overviewPrompt,
   overviewSchema,
   quizSchema,
 } from "./prompts";
 import { getStore, type StoredAnalysis } from "./store";
-import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, Quiz, StackItem } from "./types";
+import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateResult, Quiz, StackItem } from "./types";
 
 export const DEMO_ID = "demo";
 
@@ -97,6 +99,7 @@ export async function analyzeRepository(
         ? null
         : out.features_notice || "코드에서 근거를 확인할 수 있는 기능을 찾지 못했어요. 지원 범위(React/Next.js)를 확인해 주세요.",
     stats: snapshot.stats,
+    locate_examples: out.locate_examples,
   };
 
   await store.saveAnalysis({ analysis, snapshot });
@@ -113,6 +116,36 @@ async function load(analysisId: string): Promise<StoredAnalysis> {
 
 export async function getAnalysis(analysisId: string): Promise<Analysis> {
   return (await load(analysisId)).analysis;
+}
+
+// FR-11: 분석별·정규화한 요청별로 위치 찾기 결과를 저장한다.
+export async function locateChanges(analysisId: string, query: string): Promise<LocateResult> {
+  if (typeof query !== "string" || query.trim().length === 0 || query.length > 200) {
+    throw new AppError("invalid_request", "'query'에 바꾸고 싶은 동작을 1~200자로 넣어 주세요.");
+  }
+  const normalized = query.normalize("NFC").trim().replace(/\s+/g, " ");
+  const stored = await load(analysisId);
+  const key = `locate:${normalized}`;
+  const demoHit = analysisId === DEMO_ID ? getDemo().artifacts[key] as LocateResult | undefined : undefined;
+  if (demoHit) return { ...demoHit, query: normalized };
+  const hit = analysisId === DEMO_ID ? null : await getStore().getArtifact<LocateResult>(analysisId, key);
+  if (hit) return hit;
+  if (analysisId === DEMO_ID && !aiConfigured()) {
+    throw new AppError("demo_example_only", "데모에서는 예시 문장으로 체험할 수 있어요");
+  }
+  const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
+  const out = await generate(locateSchema, locatePrompt(normalized, index.formatFiles(index.paths(), config.maxTotalBytes * 2)));
+  const locations = out.locations
+    .map((location) => ({ ...location, reference: index.ref(location.reference) }))
+    .filter((location): location is typeof location & { reference: NonNullable<typeof location.reference> } => location.reference !== null);
+  const result: LocateResult = {
+    query: normalized,
+    locations,
+    notice: locations.length ? null : "찾지 못했습니다. 기능 카드에서 흐름을 확인해 보세요.",
+  };
+  if (analysisId === DEMO_ID) getDemo().artifacts[key] = result;
+  else await getStore().saveArtifact(analysisId, key, result);
+  return result;
 }
 
 function findFeature(stored: StoredAnalysis, featureId: string): Feature {
@@ -156,7 +189,7 @@ export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
   return cached(analysisId, featureId, "flow", async ({ feature, index, files }) => {
     const out = await generate(
       flowSchema,
-      featurePrompt("사용자 동작부터 결과까지 코드가 어떤 순서로 이어지는지 단계별로 정리하라.", feature, files),
+      featurePrompt("사용자 동작부터 결과까지 코드가 어떤 순서로 이어지는지 단계별로 정리하라. 단계 제목은 코드 이름이 아니라 사용자의 행동과 화면에서 보이는 결과를 쉬운 한국어로 쓴다.", feature, files),
     );
     const steps = out.steps
       .map((s) => ({ ...s, reference: index.ref(s.reference) }))
@@ -177,14 +210,21 @@ export function getLesson(analysisId: string, featureId: string): Promise<Lesson
     const out = await generate(
       lessonSchema,
       featurePrompt(
-        "초보자가 이해하도록 1) 기능 설명 2) 파일 역할 3) 중요한 코드 4) 적용 개념 순서로 설명하라. 개념은 실제 코드에 쓰인 것만 고른다.",
+        "초보자가 이해하도록 1) 기능 설명 2) 파일 역할 3) 중요한 코드 4) 적용 개념 순서로 설명하라. 개념은 실제 코드에 쓰인 것만 고른다. 왜 이렇게 구현했는지 design_reasons에 1~3개 쓰고, 코드로 확인할 수 없는 이유는 inferred=true로 구분하라.",
         feature,
         files,
       ),
     );
+    const keyLine = out.walkthrough.key_line;
+    const keyReference = keyLine && keyLine.end_line - keyLine.start_line <= 2 ? index.ref(keyLine) : null;
     return {
       feature_id: feature.id,
       overview: out.overview,
+      walkthrough: { ...out.walkthrough, key_line: keyReference },
+      design_reasons: out.design_reasons.map((d) => {
+        const reference = d.reference ? index.ref(d.reference) : null;
+        return { reason: d.reason, reference, inferred: d.inferred || reference === null };
+      }),
       file_roles: out.file_roles.filter((r) => index.has(r.path)),
       code_explanations: out.code_explanations
         .map((c) => ({ reference: index.ref(c.reference), explanation: c.explanation }))

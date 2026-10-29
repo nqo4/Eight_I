@@ -29,7 +29,7 @@ export function FeatureCard({ number, title, description, files, evidenceCount, 
       <p className="text-sm leading-6 text-text-muted">{description}</p>
       <div className="flex flex-wrap items-start gap-1.5">
         {files.map((file) => (
-          <span key={file} className="rounded-8 bg-brand-purple-soft px-2 py-1 font-mono text-xs text-brand-purple-ink">
+          <span key={file} className="rounded-8 bg-brand-purple-soft px-2 py-1 font-mono text-xs break-all text-brand-purple-ink">
             {file}
           </span>
         ))}

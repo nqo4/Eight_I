@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
@@ -11,7 +10,6 @@ const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "�
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export function Mission() {
-  const router = useRouter();
   const { analysis, record, remember, progress, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ exercise: Exercise }>("exercise");
   const checks = progress.missionChecks ?? {};
@@ -44,7 +42,7 @@ export function Mission() {
           </ul>
         </div>
         <div className="flex w-full flex-col gap-2">
-          <p className="text-sm font-bold text-text-primary">💡 막혔나요? 힌트를 하나씩 열어 보세요</p>
+          <p className="text-sm font-bold text-text-primary">막혔나요? 힌트를 하나씩 열어 보세요</p>
           <ol data-testid="exercise-hints" className="flex flex-col gap-2">
             {ex.hints.slice(0, hints).map((h, i) => (
               <li key={i} className="rounded-8 bg-paper px-4 py-3 text-sm leading-6">
@@ -91,12 +89,9 @@ export function Mission() {
         </div>
         <div className="flex w-full flex-col items-start gap-3 border-t border-line pt-4">
           {done ? (
-            <>
-              <span data-testid="exercise-done" className="font-bold text-status-green-ink">
-                완료로 표시했어요
-              </span>
-              <PrimaryButton label="내 설명 카드 보기" onClick={() => router.push("/demo/card")} />
-            </>
+            <span data-testid="exercise-done" className="font-bold text-status-green-ink">
+              완료로 표시했어요
+            </span>
           ) : (
             <>
               <PrimaryButton

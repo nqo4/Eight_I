@@ -53,10 +53,10 @@ export type SkipReason = "excluded_dir" | "lockfile" | "binary" | "sensitive" | 
 export function skipReason(path: string): SkipReason | null {
   const parts = path.split("/");
   const name = parts[parts.length - 1];
-  if (parts.slice(0, -1).some((p) => EXCLUDED_DIRS.has(p))) return "excluded_dir";
-  if (LOCKFILES.has(name)) return "lockfile";
   // .env.example도 실제 값이 들어 있는 경우가 있어 함께 뺀다.
   if (SENSITIVE_NAME.some((re) => re.test(name))) return "sensitive";
+  if (parts.slice(0, -1).some((p) => EXCLUDED_DIRS.has(p))) return "excluded_dir";
+  if (LOCKFILES.has(name)) return "lockfile";
   const ext = name.includes(".") ? name.split(".").pop()!.toLowerCase() : "";
   if (BINARY_EXT.has(ext)) return "binary";
   if (/\.min\.(js|css)$/i.test(name)) return "minified";
@@ -65,16 +65,19 @@ export function skipReason(path: string): SkipReason | null {
 
 // 저장소가 클 때 먼저 읽을 파일. 숫자가 작을수록 먼저.
 export function priority(path: string): number {
-  const name = path.split("/").pop()!.toLowerCase();
-  if (path.toLowerCase() === "readme.md" || name === "readme.md") return 0;
-  if (name === "package.json") return 0;
-  if (/^(next|vite|nuxt|svelte|astro|tailwind)\.config\./.test(name)) return 1;
-  if (name === "tsconfig.json") return 1;
-  if (/(^|\/)(app|pages|src|components|lib|hooks|api|server|routes|store|utils|services)\//.test(path)) {
-    return /\.(tsx?|jsx?|vue|svelte)$/.test(name) ? 2 : 3;
-  }
-  if (/\.(tsx?|jsx?|vue|svelte|py|go|rb|java|kt|php)$/.test(name)) return 4;
-  if (/\.(json|ya?ml|toml|md|css|scss|html)$/.test(name)) return 5;
+  const lower = path.toLowerCase();
+  const name = lower.split("/").pop()!;
+  if (lower === "readme.md" || lower === "package.json") return 0;
+  if (/(^|\/)(__tests__|__mocks__|tests?|e2e|specs?|docs?|examples?|fixtures?|__fixtures__|benchmarks?|scripts|config)\//.test(lower)
+    || /\.(test|spec|stories)\./.test(name)) return 7;
+  if (/(^|\/)(app|pages|src|components|lib|hooks|api|server|routes|actions|db|prisma|drizzle|store|utils|services)\//.test(lower)
+    && /\.(tsx?|jsx?|mjs|cjs|vue|svelte|py|go|rb|java|kt|php|sql|prisma)$/.test(name)) return 1;
+  if (/\.(tsx?|jsx?|mjs|cjs|vue|svelte|py|go|rb|java|kt|php|sql|prisma)$/.test(name)
+    && !/\.config\./.test(name)) return 2;
+  if (/^(next|vite|nuxt|svelte|astro|tailwind)\.config\./.test(name) || name === "tsconfig.json" || name === "package.json") return 3;
+  if (/\.(css|scss|html)$/.test(name)) return 4;
+  if (/\.(json|ya?ml|toml)$/.test(name)) return 5;
+  if (/\.mdx?$/.test(name)) return 7;
   return 6;
 }
 

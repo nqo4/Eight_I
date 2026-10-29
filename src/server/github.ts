@@ -113,11 +113,12 @@ export async function fetchRepositoryHead(input: string): Promise<Repository> {
     throw new AppError("repo_private", "비공개 저장소는 분석할 수 없어요. 공개 저장소만 지원해요.");
   }
   const commit = await getJson<CommitResponse>(`${base}/commits/${encodeURIComponent(info.default_branch)}`);
+  const [canonicalOwner, canonicalName] = info.full_name.split("/");
   return {
-    id: `${info.owner.login}/${info.name}`,
+    id: info.full_name,
     url: info.html_url,
-    name: info.name,
-    owner: info.owner.login,
+    name: canonicalName,
+    owner: canonicalOwner,
     default_branch: info.default_branch,
     commit_sha: commit.sha,
     last_commit_at: commit.commit?.committer?.date ?? commit.commit?.author?.date ?? null,
@@ -134,9 +135,12 @@ export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
 
   const blobs = tree.tree.filter((e) => e.type === "blob");
   let skippedByFilter = 0;
+  let skippedSensitive = 0;
   const candidates = blobs
     .filter((e) => {
-      if (skipReason(e.path) || (e.size ?? 0) > config.maxFileBytes) {
+      const reason = skipReason(e.path);
+      if (reason === "sensitive") skippedSensitive++;
+      if (reason || (e.size ?? 0) > config.maxFileBytes) {
         skippedByFilter++;
         return false;
       }
@@ -164,6 +168,7 @@ export async function fetchSnapshot(repository: Repository): Promise<Snapshot> {
       total_files: blobs.length,
       included_files: files.length,
       skipped_by_filter: skippedByFilter + (chosen.length - files.length),
+      skipped_sensitive: skippedSensitive,
       skipped_by_limit: candidates.length - chosen.length,
       truncated_tree: tree.truncated,
     },
