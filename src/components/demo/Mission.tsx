@@ -1,70 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
+import { useFeatureResource, useSession } from "@/components/session/Session";
+import type { Exercise } from "@/server/types";
 
-export function HintToggle() {
-  const [open, setOpen] = useState(false);
+const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "코드 힌트" } as const;
+const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
-  return (
-    <button
-      type="button"
-      onClick={() => setOpen((value) => !value)}
-      aria-expanded={open}
-      className="flex min-h-[58px] w-[600px] shrink-0 flex-col justify-center gap-[6px] rounded-8 bg-brand-purple-soft py-[10px] pl-[16px] text-left"
-    >
-      <span className="flex items-center gap-[10px] whitespace-nowrap">
-        <span className="text-[14px] leading-[18px] text-brand-purple">💡</span>
-        <span className="text-[10px] leading-[16px] font-bold text-text-primary">막혔나요? 첫 번째 힌트 보기</span>
-      </span>
-      {open && (
-        <span className="pl-[24px] text-[10px] leading-[16px] text-text-muted">
-          24번째 줄의 조건문에서 수량을 비교하는 숫자를 찾아보세요.
-        </span>
-      )}
-    </button>
-  );
-}
+export function Mission() {
+  const router = useRouter();
+  const { analysis, record, remember } = useSession();
+  const { data, error, retry, slow } = useFeatureResource<{ exercise: Exercise }>("exercise");
+  const [checks, setChecks] = useState<Record<number, boolean>>({});
+  const [hints, setHints] = useState(1);
+  const [done, setDone] = useState(false);
 
-const checks = [
-  "상품을 5번까지 담을 수 있어요.",
-  "6번째 클릭부터 수량이 늘지 않아요.",
-  "다른 상품은 각각 5개까지 담겨요.",
-];
+  useEffect(() => {
+    if (data) remember({ exercise: data.exercise });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
-export function MissionChecklist() {
-  const [checked, setChecked] = useState<boolean[]>(() => checks.map(() => false));
+  if (error) return <ErrorBox error={error} onRetry={retry} />;
+  if (!data) return <Loading slow={slow} />;
+  const ex = data.exercise;
+  const all = ex.acceptance_checks.every((_, i) => checks[i]);
 
   return (
-    <aside className="flex h-[600px] w-[420px] shrink-0 flex-col items-start gap-[16px] rounded-12 border border-line bg-surface px-[26px] py-[28px]">
-      <p className="font-manrope text-[9px] leading-[14px] font-bold whitespace-nowrap text-brand-purple">완료 체크</p>
-      <p className="text-[18px] leading-[26px] font-bold whitespace-nowrap text-text-primary">직접 실행해 확인해요</p>
-
-      {checks.map((label, index) => (
-        <label
-          key={label}
-          className="flex h-[54px] w-[368px] shrink-0 cursor-pointer items-center gap-[12px] border-b border-line pl-[10px]"
-        >
-          <input
-            type="checkbox"
-            checked={checked[index]}
-            onChange={() => setChecked((prev) => prev.map((value, i) => (i === index ? !value : value)))}
-            className="peer sr-only"
-          />
-          <span className="flex size-[20px] shrink-0 items-center justify-center rounded-8 border border-brand-purple bg-surface text-[11px] font-bold text-surface peer-checked:bg-brand-purple peer-focus-visible:ring-2 peer-focus-visible:ring-brand-purple/40">
-            {checked[index] && "✓"}
-          </span>
-          <span className="text-[10px] leading-[16px] whitespace-nowrap text-text-primary">{label}</span>
-        </label>
-      ))}
-
-      <div className="flex h-[70px] w-[368px] shrink-0 items-start rounded-8 bg-brand-purple-soft px-[12px] pt-[12px]">
-        <p className="w-[330px] text-[8px] leading-[14px] text-text-muted">
-          이 체크는 자기 보고예요. CodeBack이 코드를 실행하거나 성공을 보장하지 않습니다.
+    <section aria-label="직접 바꿔보기" className="grid w-full grid-cols-[minmax(0,1fr)_400px] items-start gap-[18px]">
+      <div className="flex min-w-0 flex-col items-start gap-[18px] rounded-12 border border-line bg-surface px-[30px] py-7">
+        <p className={label}>{ex.kind === "observe" ? "관찰 미션" : "작은 수정 미션"}</p>
+        <p data-testid="exercise-goal" className="text-[22px] leading-9 font-bold text-balance text-text-primary">
+          {ex.instruction}
         </p>
+        <div className="flex w-full flex-col gap-1.5 rounded-8 bg-brand-purple-soft px-4 py-3">
+          <p className="text-xs font-bold text-text-muted">수정 예상 위치</p>
+          <ul data-testid="exercise-targets" className="flex flex-col gap-1 font-mono text-sm break-all text-brand-purple-ink">
+            {ex.target_references.map((r) => (
+              <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex w-full flex-col gap-2">
+          <p className="text-sm font-bold text-text-primary">💡 막혔나요? 힌트를 하나씩 열어 보세요</p>
+          <ol data-testid="exercise-hints" className="flex flex-col gap-2">
+            {ex.hints.slice(0, hints).map((h, i) => (
+              <li key={i} className="rounded-8 bg-paper px-4 py-3 text-sm leading-6">
+                <span className="font-bold">{hintName[h.level] ?? h.level}:</span> {h.text}
+              </li>
+            ))}
+          </ol>
+          {hints < ex.hints.length && (
+            <div>
+              <button type="button" className={secondaryBtn} onClick={() => setHints((n) => n + 1)}>
+                다음 힌트 보기 ({hints}/{ex.hints.length})
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <PrimaryButton href="/" label="학습 완료하기" />
-    </aside>
+      <fieldset aria-labelledby="mission-checks" className="flex min-w-0 flex-col items-start gap-3 rounded-12 border border-line bg-surface px-[26px] py-7">
+        <p className={label}>완료 체크</p>
+        <h2 id="mission-checks" className="text-lg font-bold text-text-primary">
+          직접 실행해 확인해요
+        </h2>
+        <p className="text-sm leading-6 text-text-muted">
+          내 개발 환경에서 직접 고치고 앱을 실행해 확인한 뒤 체크하세요. CodeBack은 코드를 대신 고치거나 push하지 않아요.
+        </p>
+        {analysis?.mode === "demo" && (
+          <p className="rounded-8 bg-brand-purple-soft px-3 py-2 text-sm leading-6">
+            샘플 프로젝트예요. GitHub의 {analysis.repository.id}를 내 컴퓨터에 받아 직접 바꿔 보거나, 같은 아이디어를 내 프로젝트에 적용해 본 뒤 체크하세요.
+          </p>
+        )}
+        <div className="flex w-full flex-col divide-y divide-line">
+          {ex.acceptance_checks.map((c, i) => (
+            <label key={i} className={`flex min-h-12 items-center gap-3 py-2.5 text-sm leading-6 ${done ? "" : "cursor-pointer"}`}>
+              <input
+                type="checkbox"
+                checked={!!checks[i]}
+                disabled={done}
+                onChange={() => setChecks((s) => ({ ...s, [i]: !s[i] }))}
+                className="size-5 shrink-0 accent-brand-purple"
+              />
+              {c}
+            </label>
+          ))}
+        </div>
+        <div className="flex w-full flex-col items-start gap-3 border-t border-line pt-4">
+          {done ? (
+            <>
+              <span data-testid="exercise-done" className="font-bold text-status-green-ink">
+                완료로 표시했어요
+              </span>
+              <PrimaryButton label="내 설명 카드 보기" onClick={() => router.push("/demo/card")} />
+            </>
+          ) : (
+            <>
+              <PrimaryButton
+                label="완료로 표시"
+                disabled={!all}
+                onClick={() => {
+                  setDone(true);
+                  record((p) => ({ ...p, done: true }));
+                }}
+              />
+              {!all && <span className="text-sm text-text-muted">성공 조건을 모두 체크하면 완료할 수 있어요</span>}
+            </>
+          )}
+          <span data-testid="exercise-disclaimer" className="text-xs text-text-muted">
+            자기 보고이며 실행 결과를 보증하지 않음
+          </span>
+        </div>
+      </fieldset>
+    </section>
   );
 }

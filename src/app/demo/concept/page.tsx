@@ -1,75 +1,109 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
+import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
+import { useFeatureResource, useSession } from "@/components/session/Session";
+import type { Lesson } from "@/server/types";
 
-const concepts = [
-  { badge: "✓", title: "상태 (State)", caption: "화면이 값을 기억하는 방법", active: true },
-  { badge: "2", title: "이벤트 처리", caption: "클릭에 반응하는 방법", active: false },
-  { badge: "3", title: "조건문", caption: "10개까지만 담는 방법", active: false },
-];
-
-function StateBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex h-[78px] w-[190px] shrink-0 flex-col items-start gap-[5px] rounded-8 bg-surface pt-[14px] pl-[18px]">
-      <p className="text-[8px] leading-[12px] whitespace-nowrap text-text-muted">{label}</p>
-      <p className="text-[15px] leading-[22px] font-bold whitespace-pre text-text-primary">{value}</p>
-    </div>
-  );
-}
+const panel = "flex w-full flex-col gap-3 rounded-12 border border-line bg-surface px-7 py-6";
+const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export default function ConceptPage() {
+  const router = useRouter();
+  const { feature } = useSession();
+  const { data, error, retry, slow } = useFeatureResource<{ lesson: Lesson }>("lesson");
+  const [easy, setEasy] = useState<Record<number, boolean>>({});
+
   return (
     <>
       <PageIntro
         eyebrow="LEARN FROM YOUR CODE"
-        title="내 서비스에서 왜 ‘상태’가 필요할까요?"
-        description="문법보다 먼저, 이 코드가 내 서비스에서 하는 일을 이해해 봐요."
+        title={`${feature?.title ?? "이 기능"}, 내 코드로 이해해요`}
+        description="문법보다 먼저, 이 코드가 내 서비스에서 하는 일을 이해해 봐요. 기능 → 파일 역할 → 코드 → 개념 순서예요."
       />
-
-      <div className="flex w-full items-start gap-[18px]">
-        <section className="flex h-[610px] w-[730px] shrink-0 flex-col items-start gap-[18px] rounded-12 border border-line bg-surface px-[30px] py-[28px]">
-          <p className="font-manrope text-[9px] leading-[14px] font-bold whitespace-nowrap text-brand-purple">CONCEPT 01</p>
-          <h2 className="w-[660px] text-[23px] leading-[34px] font-bold text-text-primary">상태는 화면이 기억하는 값이에요</h2>
-          <p className="w-[660px] text-[12px] leading-[22px] text-text-muted">
-            장바구니 수량은 버튼을 누를 때마다 달라집니다. React는 이 값을 state(상태)에 기억하고, 값이 달라지면 화면을 다시 보여줘요.
-          </p>
-
-          <div className="flex h-[120px] w-[660px] items-center gap-[16px] rounded-12 bg-brand-purple-soft px-[20px]">
-            <StateBox label="클릭 전" value={`장바구니  0`} />
-            <p className="text-[9px] leading-[14px] font-bold whitespace-pre text-brand-purple">{`버튼 클릭  →`}</p>
-            <StateBox label="클릭 후" value={`장바구니  1`} />
+      {error && <ErrorBox error={error} onRetry={retry} />}
+      {!error && !data && <Loading slow={slow} />}
+      {data && (
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_320px] items-start gap-[18px]">
+          <div className="flex min-w-0 flex-col gap-[18px]">
+            <section aria-label="기능 설명" className={panel}>
+              <p className={label}>1 · 기능 설명</p>
+              <p className="text-base leading-7 text-pretty">{data.lesson.overview}</p>
+            </section>
+            <section aria-label="파일 역할" className={panel}>
+              <p className={label}>2 · 파일 역할</p>
+              <ul className="flex flex-col divide-y divide-line">
+                {data.lesson.file_roles.map((f) => (
+                  <li key={f.path} className="grid grid-cols-[minmax(0,16rem)_1fr] gap-4 py-2.5">
+                    <span className="font-mono text-sm break-all text-brand-purple-ink">{f.path}</span>
+                    <span className="text-sm leading-6">{f.role}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section aria-label="중요한 코드" className={panel}>
+              <p className={label}>3 · 중요한 코드</p>
+              {data.lesson.code_explanations.map((c, i) => (
+                <div key={i} className="flex flex-col gap-2">
+                  <CodeExcerpt r={c.reference} />
+                  <p className="text-sm leading-6 text-pretty">{c.explanation}</p>
+                </div>
+              ))}
+            </section>
+            <section aria-label="핵심 개념" className={panel}>
+              <p className={label}>4 · 핵심 개념</p>
+              <ul className="flex flex-col gap-3">
+                {data.lesson.concepts.map((c, i) => (
+                  <li key={c.name} id={`concept-${i}`} data-testid="concept" className="flex scroll-mt-6 flex-col gap-2 rounded-12 bg-paper p-5">
+                    <h3 className="text-lg font-bold">{c.name}</h3>
+                    <p className="text-sm leading-6 text-pretty">{c.explanation}</p>
+                    <ul data-testid="concept-refs" className="font-mono text-sm text-text-muted">
+                      {c.references.map((r) => (
+                        <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
+                      ))}
+                    </ul>
+                    <div>
+                      <button type="button" className={secondaryBtn} aria-expanded={!!easy[i]} onClick={() => setEasy((e) => ({ ...e, [i]: !e[i] }))}>
+                        {easy[i] ? "쉬운 설명 접기" : "쉬운 설명 펼치기"}
+                      </button>
+                    </div>
+                    {easy[i] && (
+                      <div data-testid="easy-explanation" className="flex flex-col gap-2 rounded-8 bg-brand-purple-soft p-4 text-sm leading-6">
+                        <p>
+                          <span className="font-bold">용어 풀이: </span>
+                          {c.easy_explanation}
+                        </p>
+                        <p>
+                          <span className="font-bold">왜 필요한가: </span>
+                          {c.why_needed}
+                        </p>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
 
-          <p className="text-[12px] leading-[18px] font-bold whitespace-nowrap text-text-primary">내 코드에서는 여기예요</p>
-          <div className="flex h-[116px] w-[660px] flex-col items-start gap-[14px] rounded-8 bg-text-primary px-[22px] pt-[18px] whitespace-pre">
-            <code className="font-mono text-[13px] leading-[24px] text-surface">{`21   const [count, setCount] = useState(0)`}</code>
-            <p className="text-[8px] leading-[14px] font-medium text-brand-purple-soft">{`현재 값        값을 바꾸는 함수          처음 값`}</p>
-          </div>
-        </section>
-
-        <aside className="flex h-[610px] w-[330px] shrink-0 flex-col items-start gap-[12px] rounded-12 border border-line bg-surface px-[22px] py-[24px]">
-          {concepts.map((concept) => (
-            <div
-              key={concept.title}
-              className={`flex h-[68px] w-[286px] shrink-0 items-center gap-[12px] rounded-8 border pl-[12px] ${
-                concept.active ? "border-brand-purple bg-brand-purple-soft" : "border-line bg-surface"
-              }`}
-            >
-              <span
-                className={`rounded-12 px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap ${
-                  concept.active ? "bg-brand-purple text-surface" : "bg-brand-purple-soft text-brand-purple"
-                }`}
+          <aside className="sticky top-6 flex flex-col gap-3 rounded-12 border border-line bg-surface px-5 py-6">
+            <p className={label}>이 기능의 개념</p>
+            {data.lesson.concepts.map((c, i) => (
+              <a
+                key={c.name}
+                href={`#concept-${i}`}
+                className="flex items-center gap-3 rounded-8 border border-line px-3 py-3 hover:border-brand-purple"
               >
-                {concept.badge}
-              </span>
-              <div className="flex flex-col items-start gap-[2px] whitespace-nowrap">
-                <p className="text-[10px] leading-[15px] font-bold text-text-primary">{concept.title}</p>
-                <p className="text-[8px] leading-[12px] text-text-muted">{concept.caption}</p>
-              </div>
-            </div>
-          ))}
-          <PrimaryButton href="/demo/quiz" label="이해했어요, 확인해 볼게요" />
-        </aside>
-      </div>
+                <span className="rounded-12 bg-brand-purple-soft px-2.5 py-1 text-xs font-bold text-brand-purple-ink">{i + 1}</span>
+                <span className="text-sm font-bold text-text-primary">{c.name}</span>
+              </a>
+            ))}
+            <PrimaryButton label="이해했어요, 확인해 볼게요" className="mt-2" onClick={() => router.push("/demo/quiz")} />
+          </aside>
+        </div>
+      )}
     </>
   );
 }

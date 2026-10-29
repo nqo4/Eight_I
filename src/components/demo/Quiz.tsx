@@ -1,80 +1,131 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder } from "@/components/demo/ui";
+import { useFeatureResource, useSession } from "@/components/session/Session";
+import type { Quiz as QuizData } from "@/server/types";
 
-const quizCode = [
-  "23  function addToCart() {",
-  "24    if (count < 10) {",
-  "25      setCount(count + 1)",
-  "26    }",
-  "27  }",
-];
-
-const options = [
-  { key: "A", code: "count + 1" },
-  { key: "B", code: "setCount(count + 1)" },
-  { key: "C", code: "if (count < 10)" },
-];
-
-const answer = "B";
+const keys = "ABCDEF";
 
 export function Quiz() {
-  const [selected, setSelected] = useState<string | null>(answer);
-  const isCorrect = selected === answer;
+  const router = useRouter();
+  const { record } = useSession();
+  const { data, error, retry, slow } = useFeatureResource<{ quiz: QuizData }>("quiz");
+  const [picked, setPicked] = useState<Record<string, number>>({});
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+
+  if (error) return <ErrorBox error={error} onRetry={retry} />;
+  if (!data) return <Loading slow={slow} />;
+  const q = data.quiz;
+  const allDone = q.questions.every((item) => checked[item.id]);
 
   return (
-    <section className="flex h-[610px] w-[780px] shrink-0 flex-col items-start gap-[20px] overflow-clip rounded-16 border border-line bg-surface px-[42px] pt-[34px] pb-[30px]">
-      <p className="font-manrope text-[10px] leading-[16px] font-bold whitespace-nowrap text-brand-purple">QUIZ · 1 / 2</p>
-      <h2 className="w-[696px] text-[23px] leading-[34px] font-bold text-text-primary">
-        버튼을 눌렀을 때 장바구니 수량을
-        <br />
-        바꾸는 코드는 무엇일까요?
-      </h2>
-
-      <div className="flex h-[148px] w-[696px] shrink-0 flex-col items-start rounded-8 bg-text-primary pt-[20px] pl-[24px]">
-        <pre className="font-mono text-[11px] leading-[22px] text-surface">{quizCode.join("\n")}</pre>
-      </div>
-
-      {options.map((option) => {
-        const active = selected === option.key;
+    <div className="flex w-full max-w-[860px] flex-col gap-5">
+      {q.questions.map((item, qi) => {
+        const done = checked[item.id];
+        const correct = picked[item.id] === item.answer_index;
+        const check = () => {
+          setChecked((c) => ({ ...c, [item.id]: true }));
+          record((p) => (item.id in p.quiz ? p : { ...p, quiz: { ...p.quiz, [item.id]: picked[item.id] === item.answer_index } }));
+        };
         return (
-          <button
-            key={option.key}
-            type="button"
-            onClick={() => setSelected(option.key)}
-            aria-pressed={active}
-            className={`flex h-[50px] w-[696px] shrink-0 items-center gap-[12px] rounded-8 border pl-[14px] text-left transition-colors ${
-              active ? "border-brand-purple bg-brand-purple-soft" : "border-line bg-surface hover:border-brand-purple/50"
-            }`}
+          <fieldset
+            key={item.id}
+            data-testid="quiz-question"
+            aria-labelledby={`quiz-q-${item.id}`}
+            className="flex min-w-0 flex-col items-start gap-4 rounded-16 border border-line bg-surface px-10 pt-8 pb-7"
           >
-            <span
-              className={`rounded-12 px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap ${
-                active ? "bg-brand-purple text-surface" : "bg-brand-purple-soft text-brand-purple"
-              }`}
-            >
-              {option.key}
-            </span>
-            <span className="font-mono text-[10px] leading-[16px] whitespace-nowrap text-text-primary">{option.code}</span>
-          </button>
+            <p className="font-manrope text-xs font-bold tracking-wider text-brand-purple-ink">
+              QUIZ · {qi + 1} / {q.questions.length}
+            </p>
+            <h2 id={`quiz-q-${item.id}`} className="text-[22px] leading-8 font-bold text-balance text-text-primary">
+              {item.question}
+            </h2>
+            <div role="radiogroup" aria-labelledby={`quiz-q-${item.id}`} className="flex w-full flex-col gap-2.5">
+              {seededOrder(item.choices.length, item.id + item.question).map((ci, pos) => {
+                const active = picked[item.id] === ci;
+                return (
+                  <label
+                    key={ci}
+                    className={`flex min-h-[50px] w-full items-center gap-3 rounded-8 border px-3.5 py-2.5 transition-colors ${
+                      active ? "border-brand-purple bg-brand-purple-soft" : "border-line bg-surface"
+                    } ${done ? "" : "cursor-pointer hover:border-brand-purple/50"}`}
+                  >
+                    <input
+                      type="radio"
+                      name={item.id}
+                      disabled={done}
+                      checked={active}
+                      onChange={() => setPicked((p) => ({ ...p, [item.id]: ci }))}
+                      className="size-5 shrink-0 accent-brand-purple"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className={`rounded-12 px-2.5 py-1 text-xs font-bold ${active ? "bg-brand-purple text-surface" : "bg-brand-purple-soft text-brand-purple-ink"}`}
+                    >
+                      {keys[pos]}
+                    </span>
+                    <span className="text-sm text-text-primary">{item.choices[ci]}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {!done && (
+              <div className="flex items-center gap-3">
+                <PrimaryButton label="정답 확인" disabled={picked[item.id] === undefined} onClick={check} />
+                {picked[item.id] === undefined && <span className="text-sm text-text-muted">보기를 하나 고르면 확인할 수 있어요</span>}
+              </div>
+            )}
+            {done && (
+              <div data-testid="quiz-result" className="flex w-full flex-col gap-3 rounded-8 bg-brand-purple-soft p-4">
+                <p className={`font-bold ${correct ? "text-status-green-ink" : "text-status-red"}`}>
+                  {correct ? "✓ 정답이에요" : `! 오답이에요 (정답: ${item.choices[item.answer_index]})`}
+                </p>
+                <p className="text-sm leading-6 text-pretty">{item.explanation}</p>
+                <ul data-testid="quiz-refs" className="font-mono text-sm text-text-muted">
+                  {item.references.map((r) => (
+                    <li key={`${r.path}:${r.start_line}`}>참고: {refLabel(r)}</li>
+                  ))}
+                </ul>
+                {!correct && (
+                  <>
+                    {item.references.map((r) => (
+                      <CodeExcerpt key={`${r.path}:${r.start_line}`} r={r} />
+                    ))}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className={secondaryBtn}
+                        onClick={() => {
+                          setChecked((c) => ({ ...c, [item.id]: false }));
+                          setPicked((p) => {
+                            const next = { ...p };
+                            delete next[item.id];
+                            return next;
+                          });
+                        }}
+                      >
+                        다시 풀기
+                      </button>
+                      <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/concept")}>
+                        개념 설명 다시 보기
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </fieldset>
         );
       })}
-
-      {selected && (
-        <div className="flex h-[51px] w-[696px] shrink-0 items-start gap-[12px] rounded-8 bg-brand-purple-soft px-[16px] pt-[14px]">
-          <span
-            className={`rounded-12 px-[10px] py-[6px] text-[9px] leading-[14px] font-bold whitespace-nowrap text-surface ${
-              isCorrect ? "bg-status-green" : "bg-text-muted"
-            }`}
-          >
-            {isCorrect ? "✓" : "!"}
-          </span>
-          <p className="w-[610px] text-[10px] leading-[17px] font-bold text-text-primary">
-            {isCorrect
-              ? "맞아요! setCount가 기억한 값을 바꾸고 화면을 다시 그리게 해요."
-              : "다시 생각해 볼까요? 화면이 기억한 값을 실제로 바꾸는 건 상태 변경 함수예요."}
-          </p>
+      <p className="text-sm text-text-muted">{q.disclaimer}</p>
+      {allDone && (
+        <div className="flex justify-end">
+          <PrimaryButton label="다음: 직접 바꿔 보기" onClick={() => router.push("/demo/mission")} />
         </div>
       )}
-    </section>
+    </div>
   );
 }

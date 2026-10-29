@@ -12,6 +12,12 @@
   --accent-lime: #cdea58;
   --status-green: #2ba77a;
   --ink: #060216;
+  /* 실데이터 화면용 추가: 작은 보라 글자, 오류, 현재 단계 코드 강조 */
+  --brand-purple-ink: #5f47cf;
+  --status-green-ink: #1b7a59;
+  --status-red: #b9382f;
+  --status-red-soft: #fdeceb;
+  --yellow-mark: #f2cf3a;
 }
 
 @theme inline {
@@ -25,6 +31,11 @@
   --color-accent-lime: var(--accent-lime);
   --color-status-green: var(--status-green);
   --color-ink: var(--ink);
+  --color-brand-purple-ink: var(--brand-purple-ink);
+  --color-status-green-ink: var(--status-green-ink);
+  --color-status-red: var(--status-red);
+  --color-status-red-soft: var(--status-red-soft);
+  --color-yellow-mark: var(--yellow-mark);
 
   --radius-8: 8px;
   --radius-12: 12px;

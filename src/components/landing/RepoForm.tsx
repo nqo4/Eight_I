@@ -1,42 +1,100 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { ErrorBox, Loading, secondaryBtn } from "@/components/demo/ui";
+import { api, useSession, type ApiError } from "@/components/session/Session";
+import type { Analysis } from "@/server/types";
 
+// 홈의 두 시작 방법: 내 공개 저장소 분석(S1) 또는 샘플로 체험하기(S2~S7).
 export function RepoForm() {
   const router = useRouter();
+  const { setAnalysis } = useSession();
+  const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState<"demo" | "analyze" | null>(null);
+  const [error, setError] = useState<{ error: ApiError; from: "demo" | "analyze" } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function start(from: "demo" | "analyze") {
+    setBusy(from);
+    setError(null);
+    try {
+      const { analysis } =
+        from === "demo"
+          ? await api<{ analysis: Analysis }>("/api/demo")
+          : await api<{ analysis: Analysis }>("/api/repositories/analyze", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ url: url.trim() }),
+            });
+      setAnalysis(analysis);
+      router.push("/demo/overview");
+    } catch (e) {
+      setError({ error: e as ApiError, from });
+      setBusy(null);
+    }
+  }
 
   return (
-    <form
-      className="flex h-[150px] w-[600px] flex-col items-start gap-[10px]"
-      onSubmit={(event) => {
-        event.preventDefault();
-        // 실제 분석 API가 연결되기 전까지는 준비된 데모로 이동
-        router.push("/demo/overview");
-      }}
-    >
-      <label htmlFor="repo-url" className="text-[11px] leading-[16px] font-bold whitespace-nowrap text-text-primary">
-        공개 GitHub 저장소
-      </label>
-      <div className="flex h-[62px] w-[600px] items-center justify-between rounded-12 border border-line bg-surface py-[6px] pr-[8px] pl-[16px] focus-within:border-brand-purple">
-        <span aria-hidden className="font-manrope text-[17px] leading-[20px] font-bold text-text-primary">
-          ◉
-        </span>
-        <input
-          id="repo-url"
-          type="url"
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://github.com/owner/repository"
-          className="min-w-0 flex-1 bg-transparent text-center font-mono text-[11px] leading-[18px] text-text-primary outline-none placeholder:text-text-muted"
+    <div className="flex w-full max-w-[600px] flex-col items-start gap-4">
+      {!open ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <PrimaryButton
+            label="내 프로젝트 분석하기"
+            onClick={() => {
+              setOpen(true);
+              requestAnimationFrame(() => inputRef.current?.focus());
+            }}
+          />
+          <button type="button" className={secondaryBtn} disabled={busy !== null} onClick={() => start("demo")}>
+            샘플로 체험하기
+          </button>
+          <span className="text-sm text-text-muted">GitHub 없이 준비된 샘플로 바로 해 봐요</span>
+        </div>
+      ) : (
+        <form
+          className="flex w-full flex-col items-start gap-2.5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            start("analyze");
+          }}
+        >
+          <label htmlFor="repo-url" className="text-sm font-bold text-text-primary">
+            GitHub 저장소 URL
+          </label>
+          <div className="flex w-full items-center justify-between gap-2 rounded-12 border border-line bg-surface py-1.5 pr-2 pl-4 focus-within:border-brand-purple">
+            <span aria-hidden className="font-manrope text-lg font-bold text-text-primary">
+              ◉
+            </span>
+            <input
+              ref={inputRef}
+              id="repo-url"
+              type="url"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://github.com/owner/repository"
+              className="min-w-0 flex-1 bg-transparent font-mono text-sm text-text-primary outline-none placeholder:text-text-muted"
+            />
+            <PrimaryButton type="submit" label="분석 시작" tone="ink" disabled={busy !== null || url.trim() === ""} />
+          </div>
+          <p className="text-sm text-text-muted">
+            ✓ 공개 저장소만 지원해요 · ◇ 코드를 실행하거나 수정하지 않아요 · 코드 일부가 AI 모델로 전송돼요(.env 같은 비밀 파일은 빼요)
+          </p>
+          <button type="button" className={secondaryBtn} disabled={busy !== null} onClick={() => start("demo")}>
+            샘플로 체험하기
+          </button>
+        </form>
+      )}
+      {busy && <Loading slow={busy === "analyze"} />}
+      {error && (
+        <ErrorBox
+          error={error.error}
+          onRetry={() => start(error.from)}
+          onDemo={error.from === "analyze" ? () => start("demo") : undefined}
         />
-        <PrimaryButton type="submit" label="분석 시작" tone="ink" />
-      </div>
-      <p className="text-[9px] leading-[15px] whitespace-pre text-text-muted">
-        {`✓ 공개 저장소만 지원해요    ◇ 코드를 실행하거나 수정하지 않아요`}
-      </p>
-    </form>
+      )}
+    </div>
   );
 }
