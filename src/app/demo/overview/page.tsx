@@ -85,7 +85,7 @@ export default function OverviewPage() {
             </dd>
           </div>
           <a href={`/api/analyses/${encodeURIComponent(analysis.id)}/note`} download className={`${secondaryBtn} ml-auto`}>
-            학습 노트 내려받기 (PDF)
+            학습 노트 내려받기
           </a>
         </dl>
         <section aria-label="프로젝트 소개" className="flex flex-col gap-2">

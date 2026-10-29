@@ -120,7 +120,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
   if (!sql) return [];
   const [repos, attempts, missions] = await Promise.all([
     sql<Omit<LearningRecord, "quiz_correct" | "quiz_total" | "missions_done" | "features"> & { features: { id: string; title: string }[] }>(
-      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, a.created_at AS analyzed_at, ur.last_viewed_at,
+      `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, ur.last_viewed_at AS analyzed_at, ur.last_viewed_at,
               COALESCE((SELECT json_agg(json_build_object('id', f->>'id', 'title', f->>'title'))
                           FROM jsonb_array_elements(a.analysis->'features') f), '[]'::json) AS features
          FROM user_repositories ur

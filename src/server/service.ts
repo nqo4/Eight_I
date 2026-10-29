@@ -75,12 +75,14 @@ export async function analyzeRepository(
     overviewPrompt(meta, index.formatFiles(index.paths(), config.maxTotalBytes * 2)),
   );
 
-  const features: Feature[] = [];
+  const verified: Feature[] = [];
   for (const f of out.features.slice(0, 5)) {
     const refs = index.refs(f.evidence);
     if (refs.length === 0) continue; // 근거가 확인되지 않은 기능은 뺀다(FR-04)
-    features.push({ id: `F${features.length + 1}`, title: f.title, summary: f.summary, code_references: refs });
+    verified.push({ id: `F${verified.length + 1}`, title: f.title, summary: f.summary, code_references: refs });
   }
+  // FR-04: '기능'은 2~5개. 근거가 확인된 기능이 2개보다 적으면 '기능을 찾지 못했습니다'로 보여 준다.
+  const features = verified.length >= 2 ? verified : [];
 
   const stack: StackItem[] = [
     ...confirmed,

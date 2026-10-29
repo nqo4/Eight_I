@@ -25,7 +25,7 @@ test("S8 학습자가 다음에 다시 볼 수 있도록 프로젝트 학습 노
   const featurePath = (await page.getByRole("region", { name: "기능" }).getByTestId("feature-card").first().innerText()).match(/\S+\.\w+/)?.[0] ?? ""
 
   const downloadPromise = page.waitForEvent("download")
-  await page.getByRole("link", { name: "학습 노트 내려받기 (PDF)" }).click()
+  await page.getByRole("link", { name: "학습 노트 내려받기" }).click()
   const download = await downloadPromise
   expect(download.suggestedFilename()).toMatch(/^codeback-note-.+-[0-9a-f]{7}\.pdf$/)
   const text = squash(await pdfText(await download.path()))
