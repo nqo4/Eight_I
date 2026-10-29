@@ -24,7 +24,7 @@ import {
 import { getStore, type StoredAnalysis } from "./store";
 import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateResult, Quiz, StackItem } from "./types";
 
-// F1~F4: 저장소를 읽고 개요와 기능 카드를 만든다.
+// FR-01~04: 저장소를 읽고 개요와 기능 카드를 만든다.
 // 최신 commit을 먼저 확인해서, 이미 분석한 commit이면(= 그 뒤로 GitHub에 변경이 없으면)
 // 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려준다.
 // userId가 있으면 그 사용자의 '내가 분석한 저장소' 목록에도 남긴다.
@@ -81,10 +81,10 @@ export async function analyzeRepository(
   const verified: Feature[] = [];
   for (const f of out.features.slice(0, 5)) {
     const refs = index.refs(f.evidence);
-    if (refs.length === 0) continue; // 근거가 확인되지 않은 기능은 뺀다(F4)
+    if (refs.length === 0) continue; // 근거가 확인되지 않은 기능은 뺀다(FR-04)
     verified.push({ id: `F${verified.length + 1}`, title: f.title, summary: f.summary, code_references: refs });
   }
-  // F4: '기능'은 2~5개. 근거가 확인된 기능이 2개보다 적으면 '기능을 찾지 못했습니다'로 보여 준다.
+  // FR-04: '기능'은 2~5개. 근거가 확인된 기능이 2개보다 적으면 '기능을 찾지 못했습니다'로 보여 준다.
   const features = verified.length >= 2 ? verified : [];
 
   const stack: StackItem[] = [
@@ -155,7 +155,7 @@ export async function getAnalysis(analysisId: string): Promise<Analysis> {
   return withPrecomputedTechnologies((await load(analysisId)).analysis);
 }
 
-// F11: 분석별·정규화한 요청별로 위치 찾기 결과를 저장한다.
+// FR-11: 분석별·정규화한 요청별로 위치 찾기 결과를 저장한다.
 export async function locateChanges(analysisId: string, query: string): Promise<LocateResult> {
   if (typeof query !== "string" || query.trim().length === 0 || query.length > 200) {
     throw new AppError("invalid_request", "'query'에 바꾸고 싶은 동작을 1~200자로 넣어 주세요.");
@@ -199,7 +199,7 @@ export async function getFeature(analysisId: string, featureId: string): Promise
 type Kind = "flow" | "lesson" | "quiz" | "exercise";
 
 // 기능별 결과는 처음 한 번만 AI로 만들고 저장해 둔다.
-// 예전 형식의 학습 내용(design_reasons 없음)은 F6 '왜 이렇게 만들었나'를 못 보여 주므로 다시 만든다.
+// 예전 형식의 학습 내용(design_reasons 없음)은 FR-06 '왜 이렇게 만들었나'를 못 보여 주므로 다시 만든다.
 async function cached<T>(analysisId: string, featureId: string, kind: Kind, build: (ctx: FeatureCtx) => Promise<T>): Promise<T> {
   const stored = await load(analysisId);
   const feature = findFeature(stored, featureId);
@@ -217,7 +217,7 @@ async function cached<T>(analysisId: string, featureId: string, kind: Kind, buil
 
 type FeatureCtx = { feature: Feature; index: SnapshotIndex; files: string };
 
-// F5
+// FR-05
 export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
   return cached(analysisId, featureId, "flow", async ({ feature, index, files }) => {
     const out = await generate(
@@ -237,7 +237,7 @@ export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
   });
 }
 
-// F6
+// FR-06
 export async function getLesson(analysisId: string, featureId: string): Promise<Lesson> {
   const stored = await load(analysisId);
   const precomputed = getPrecomputedLesson(stored.analysis, findFeature(stored, featureId));
@@ -272,7 +272,7 @@ export async function getLesson(analysisId: string, featureId: string): Promise<
   });
 }
 
-// F7
+// FR-07
 export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
   return cached(analysisId, featureId, "quiz", async ({ feature, index, files }) => {
     const out = await generate(quizSchema, featurePrompt("이해도를 확인하는 객관식 문제를 만들어라.", feature, files));
@@ -281,7 +281,7 @@ export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
       .filter((q) => q.choices.length >= 2 && q.answer_index >= 0 && q.answer_index < q.choices.length && q.references.length > 0)
       .slice(0, 3)
       .map((q, i) => ({ id: `Q${i + 1}`, ...q }));
-    // F7: 질문은 1~3개. 코드 근거가 확인된 문제가 하나도 없으면 저장하지 않고 다시 만들 수 있게 한다.
+    // FR-07: 질문은 1~3개. 코드 근거가 확인된 문제가 하나도 없으면 저장하지 않고 다시 만들 수 있게 한다.
     if (questions.length === 0) throw new AppError("ai_failed", "코드 근거가 확인된 퀴즈를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
     return {
       feature_id: feature.id,
@@ -291,7 +291,7 @@ export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
   });
 }
 
-// F8
+// FR-08
 export function getExercise(analysisId: string, featureId: string): Promise<Exercise> {
   return cached(analysisId, featureId, "exercise", async ({ feature, index, files }) => {
     const out = await generate(
@@ -320,7 +320,7 @@ export function getExercise(analysisId: string, featureId: string): Promise<Exer
   });
 }
 
-// F12: 학습 노트에 넣을 내용. 저장된 결과만 읽는다(새로 만들지 않음 → AI 비용 0).
+// FR-12: 학습 노트에 넣을 내용. 저장된 결과만 읽는다(새로 만들지 않음 → AI 비용 0).
 export async function getNoteInput(analysisId: string): Promise<{ analysis: Analysis; lessons: Record<string, Lesson | null> }> {
   const stored = await load(analysisId);
   const lessons: Record<string, Lesson | null> = {};
@@ -332,7 +332,7 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
   return { analysis: withPrecomputedTechnologies(stored.analysis), lessons };
 }
 
-// F8(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
+// FR-08(개정): 수정 미션 채점. 붙여 넣은 코드가 성공 조건을 채우는지 AI가 조건마다 판단하고(실행하지 않음, AI 추정),
 // 점수는 채운 조건의 비율(0~100)로 계산한다.
 export type MissionGrade = {
   feature_id: string;
@@ -353,7 +353,7 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
   if (submitted.length > MAX_SUBMISSION) {
     throw new AppError("invalid_request", `고친 부분만 ${MAX_SUBMISSION.toLocaleString()}자 이내로 붙여 넣어 주세요.`);
   }
-  // F9: 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않는다.
+  // FR-09: 비밀값으로 보이는 문자열이 있으면 AI로 보내지 않는다.
   if (redactSecrets(submitted).redacted > 0) {
     throw new AppError("invalid_request", "비밀값(API 키·토큰 등)으로 보이는 문자열이 있어요. 지운 뒤 다시 보내 주세요.");
   }

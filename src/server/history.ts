@@ -86,7 +86,7 @@ export type FeatureRecord = {
   title: string;
   quiz_correct: number;
   quiz_total: number;
-  // AI 채점(F8 개정) 결과. 채점한 적이 없으면 null·0.
+  // AI 채점(FR-08 개정) 결과. 채점한 적이 없으면 null·0.
   mission_best_score: number | null;
   mission_last_score: number | null;
   mission_graded: number;
@@ -105,7 +105,7 @@ export type LearningRecord = {
   features: FeatureRecord[];
 };
 
-// 내 학습 기록(F13): 내가 분석한 저장소마다 분석 날짜·commit, 기능별 퀴즈 결과(문항별 첫 시도)와 미션 채점 점수.
+// 내 학습 기록(FR-13): 내가 분석한 저장소마다 분석 날짜·commit, 기능별 퀴즈 결과(문항별 첫 시도)와 미션 채점 점수.
 export async function listLearningRecords(userId: string): Promise<LearningRecord[]> {
   const sql = getSql();
   if (!sql) return [];
@@ -161,7 +161,7 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
   });
 }
 
-// F8(개정): 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
+// FR-08(개정): 수정 미션 점수. 퀴즈 답과 같은 표에 kind='mission'으로 남긴다(제출할 때마다 한 줄).
 export async function recordMissionScore(input: {
   userId: string;
   analysisId: string;

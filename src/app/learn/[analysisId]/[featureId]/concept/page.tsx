@@ -7,7 +7,7 @@ import { PageIntro } from "@/components/demo/PageIntro";
 import { CodeBlock, ErrorBox, Loading, useLoad } from "@/components/learn/states";
 import { getLesson } from "@/lib/api";
 
-// Top-down 학습(F6): 기능 설명 → 파일 역할 → 중요한 코드 → 핵심 개념.
+// Top-down 학습(FR-06): 기능 설명 → 파일 역할 → 중요한 코드 → 핵심 개념.
 export default function ConceptPage() {
   const { analysisId, featureId } = useParams<{ analysisId: string; featureId: string }>();
   const { data: lesson, error, reload } = useLoad(`lesson:${analysisId}:${featureId}`, () => getLesson(analysisId, featureId));

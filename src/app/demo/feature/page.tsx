@@ -8,7 +8,7 @@ import { PageIntro } from "@/components/demo/PageIntro";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useSession } from "@/components/session/Session";
 
-// F15 기능 상세: 고른 기능의 제목·한 줄 설명·근거 파일과 F5~F8로 가는 네 버튼.
+// FR-15 기능 상세: 고른 기능의 제목·한 줄 설명·근거 파일과 FR-05~FR-08로 가는 네 버튼.
 export default function FeaturePage() {
   const router = useRouter();
   const { analysis, feature, ensure, loadError } = useSession();

@@ -9,7 +9,7 @@ export const maxDuration = 60;
 // POST /api/repositories/analyze  { "url": "https://github.com/owner/repo" }
 export async function POST(req: Request) {
   return handle(async () => {
-    // F10: 로그인해야 쓰는 서비스다. 분석한 저장소는 '내 학습 기록'(F13)에 남긴다.
+    // FR-10: 로그인해야 쓰는 서비스다. 분석한 저장소는 '내 학습 기록'(FR-13)에 남긴다.
     const userId = await requireUserId(req);
     const body = await readJson<{ url?: unknown }>(req);
     if (typeof body.url !== "string" || body.url.length === 0 || body.url.length > 300) {

@@ -161,7 +161,7 @@ export function locatePrompt(query: string, files: string) {
 ${files}`;
 }
 
-// F8(개정): 수정 미션 채점. 사용자가 자기 개발 환경에서 고친 코드를 붙여 넣으면 성공 조건과 비교해 점수를 매긴다.
+// FR-08(개정): 수정 미션 채점. 사용자가 자기 개발 환경에서 고친 코드를 붙여 넣으면 성공 조건과 비교해 점수를 매긴다.
 // 실행하지 않고 코드만 읽어 판단하므로 결과는 'AI 추정'이다.
 export const missionGradeSchema = z.object({
   checks: z

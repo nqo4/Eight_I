@@ -5,7 +5,7 @@ import { getExercise } from "@/server/service";
 
 export const maxDuration = 60;
 
-// GET /api/analyses/{analysisId}/features/{featureId}/exercise  (F8)
+// GET /api/analyses/{analysisId}/features/{featureId}/exercise  (FR-08)
 export async function GET(req: Request, ctx: RouteContext<"/api/analyses/[analysisId]/features/[featureId]/exercise">) {
   await connection();
   return handle(async () => {

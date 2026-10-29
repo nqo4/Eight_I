@@ -3,7 +3,7 @@
 프런트엔드가 목업 데이터를 만들 때 기준으로 쓰는 문서입니다. 응답 모양의 정확한 정의는 [`src/server/types.ts`](../src/server/types.ts)에 있습니다(이 파일을 프런트에 그대로 복사해 타입으로 써도 됩니다).
 
 - 모든 응답은 JSON이고 `Cache-Control: no-store`입니다.
-- 로그인해야 쓰는 서비스입니다(F10). `/api/auth/*`와 `/api/status`를 뺀 API는 로그인 세션 쿠키가 없으면 `401 login_required`를 돌려줍니다.
+- 로그인해야 쓰는 서비스입니다(FR-10). `/api/auth/*`와 `/api/status`를 뺀 API는 로그인 세션 쿠키가 없으면 `401 login_required`를 돌려줍니다.
 - 주소는 상대 경로(`/api/...`)로 호출합니다.
 - 코드 위치(`CodeReference`)는 서버가 실제 GitHub 파일과 대조한 것만 내려갑니다. `snippet`은 실제 파일에서 잘라 온 해당 라인입니다(AI가 쓴 글이 아님).
 
@@ -108,7 +108,7 @@
 - `acceptance_checks[]`: 성공 조건 체크박스
 - `disclaimer`: "완료 체크는 자기 보고이며 실행 결과를 보증하지 않음". 완료 표시 옆에 보여 줍니다.
 
-### 내 학습 기록 (F13)
+### 내 학습 기록 (FR-13)
 
 | 주소 | 로그인 | 하는 일 |
 | --- | --- | --- |
@@ -117,7 +117,7 @@
 
 `POST /api/repositories/analyze`는 로그인해야 부를 수 있고, 분석한 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
 
-### `POST .../features/{featureId}/exercise/grade` `{ code }` — 수정 미션 채점 (F8 개정, 로그인 필요)
+### `POST .../features/{featureId}/exercise/grade` `{ code }` — 수정 미션 채점 (FR-08 개정, 로그인 필요)
 
 사용자가 자기 개발 환경에서 고친 코드(바꾼 부분, 최대 8,000자)를 붙여 넣으면 AI가 성공 조건마다 채웠는지 판단해요. 코드는 실행하지 않아요(AI 추정).
 
@@ -175,7 +175,7 @@
 | `analyses` | 저장소 + commit 하나당 분석 결과(개요·기능 카드)와 분석에 쓴 파일 내용 |
 | `analysis_artifacts` | 기능별 결과: 동작 흐름, 개념 학습(**코드 정리 내용**), 퀴즈(**문제와 정답**), 수정 미션 |
 | `user_repositories` | 사용자가 분석한 저장소 목록(처음 추가한 시각, 마지막으로 본 시각, 최신 분석 결과) |
-| `quiz_attempts` | 퀴즈 답과 수정 미션 점수(`kind` = `quiz`·`mission`). 퀴즈는 고른 보기·정답 여부, 미션은 `score`(0~100)·통과 여부 (F7·F8·F13) |
+| `quiz_attempts` | 퀴즈 답과 수정 미션 점수(`kind` = `quiz`·`mission`). 퀴즈는 고른 보기·정답 여부, 미션은 `score`(0~100)·통과 여부 (FR-07·FR-08·FR-13) |
 
 **같은 저장소를 다시 분석할 때 (토큰 절약)**
 
@@ -183,7 +183,7 @@
 2. 그 commit으로 분석한 결과가 이미 있으면(= 그 사이 GitHub에 변경이 없으면) 파일을 다시 받지 않고 AI도 부르지 않은 채 저장된 결과를 돌려줘요(`cached: true`).
 3. 변경이 있을 때만 파일을 받아 새로 분석해요. 기능별 흐름·학습·퀴즈·미션도 처음 열 때 한 번만 만들어요.
 
-회원가입·로그인(F10)은 `src/server/auth.ts`·`/api/auth/*`, 내 학습 기록(F13)은 `src/server/history.ts`·`/api/me/records`에 있어요.
+회원가입·로그인(FR-10)은 `src/server/auth.ts`·`/api/auth/*`, 내 학습 기록(FR-13)은 `src/server/history.ts`·`/api/me/records`에 있어요.
 
 ## 서버 설정(환경변수)
 
@@ -202,8 +202,8 @@
 ```
 src/server/    ← 백엔드 본체. Next.js를 import하지 않는다(다른 서버로 옮길 때 그대로 사용)
   service.ts   기능 함수(analyzeRepository, getFlow, getLesson, getQuiz, getExercise …)
-  github.ts    공개 저장소 읽기(F1)
-  filter.ts    제외·민감 파일 거르기, 비밀값 가리기(F2)
+  github.ts    공개 저장소 읽기(FR-01)
+  filter.ts    제외·민감 파일 거르기, 비밀값 가리기(FR-02)
   evidence.ts  파일·라인 검증, import 관계 확인, package.json 기술 스택 확인
   ai.ts        AI Gateway 호출과 오류 변환
   prompts.ts   AI 결과 스키마와 요청 문장

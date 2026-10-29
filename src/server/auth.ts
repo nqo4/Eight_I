@@ -100,7 +100,7 @@ export async function currentUser(req: Request): Promise<PublicUser | null> {
   return user ? toPublic(user) : null;
 }
 
-// 학습 기록(F13)을 남기고 읽을 때 쓰는 사용자 id. 로그인하지 않았거나 DB가 없으면 null.
+// 학습 기록(FR-13)을 남기고 읽을 때 쓰는 사용자 id. 로그인하지 않았거나 DB가 없으면 null.
 export async function currentUserId(req: Request): Promise<string | null> {
   const token = readSessionToken(req);
   if (!token || !getSql()) return null;

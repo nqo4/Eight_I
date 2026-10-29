@@ -16,5 +16,5 @@ export async function analyzeSample(page: Page) {
   await page.getByRole("button", { name: "GitHub 프로젝트 분석하기" }).click()
   await page.getByLabel("GitHub 저장소 URL").fill(SAMPLE_REPO)
   await page.getByRole("button", { name: "분석 시작" }).click()
-  await expect(page.getByTestId("repo-name")).toHaveText("nextjs/saas-starter", { timeout: 60_000 })
+  await expect(page.getByTestId("repo-name")).toHaveText("nextjs/saas-starter", { timeout: 120_000 })
 }

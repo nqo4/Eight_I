@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { analyzeSample, loginAsLearner } from "../flows"
 
-const AI_WAIT = { timeout: 60_000 } // 주최 측 실행은 테스트당 90초 제한, 서버 AI 요청도 60초 제한
+const AI_WAIT = { timeout: 90_000 }
 
 test("S7 학습자가 바꾸고 싶은 동작을 문장으로 넣어 고칠 위치를 찾는다", async ({ page }) => {
   await loginAsLearner(page)

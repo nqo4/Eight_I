@@ -38,7 +38,7 @@ jobs:
           set -e
           status="$(curl -fsS http://localhost:3000/api/status)"; echo "$status"
           echo "$status" | jq -e '.store == "postgres"'
-          # 로그인하지 않으면 분석 API는 401(F10)
+          # 로그인하지 않으면 분석 API는 401(FR-10)
           code="$(curl -s -o body.json -w '%{http_code}' -X POST http://localhost:3000/api/repositories/analyze \
             -H 'content-type: application/json' -d '{"url":"https://gitlab.com/a/b"}')"
           cat body.json; test "$code" = 401; jq -e '.error.code == "login_required"' body.json
