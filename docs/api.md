@@ -11,7 +11,7 @@
 
 | 화면 동작 (docs/scenarios.yaml) | API |
 | --- | --- |
-| '깃허브 프로젝트 분석하기' → URL 입력 → '분석 시작' (S1) | `POST /api/repositories/analyze` |
+| 'GitHub 프로젝트 분석하기' → URL 입력 → '분석 시작' (S1) | `POST /api/repositories/analyze` |
 | 기능 카드 누르기 (S2) | `GET /api/analyses/{analysisId}/features/{featureId}` |
 | '이 기능 어떻게 동작해?' (S3) | `GET .../features/{featureId}/flow` |
 | '이 코드 배우기' (S4) | `GET .../features/{featureId}/lesson` |

@@ -45,7 +45,7 @@ export function RepoForm() {
       {!open ? (
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton
-            label="깃허브 프로젝트 분석하기"
+            label="GitHub 프로젝트 분석하기"
             onClick={() => {
               if (!user) {
                 setNeedLogin(true);
@@ -91,7 +91,7 @@ export function RepoForm() {
           </p>
         </form>
       )}
-      {needLogin && !user && <LoginRequired feature="깃허브 프로젝트 분석" onClose={closeLogin} />}
+      {needLogin && !user && <LoginRequired feature="GitHub 프로젝트 분석" onClose={closeLogin} />}
       {busy && <Loading slow />}
       {error && <ErrorBox error={error} onRetry={analyze} />}
     </div>
