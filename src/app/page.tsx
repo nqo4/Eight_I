@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { RepoForm } from "@/components/landing/RepoForm";
 import { learningSteps } from "@/lib/demo";
@@ -7,7 +8,12 @@ export default function Home() {
     <div className="flex w-full flex-col items-start bg-paper">
       <header className="flex h-[76px] w-full shrink-0 items-center justify-between border-b border-line bg-surface px-9">
         <Brand />
-        <p className="text-sm font-bold text-text-muted">공개 GitHub 저장소 · 로그인 없이 사용</p>
+        <Link
+          href="/login"
+          className="rounded-8 text-sm font-bold text-text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
+        >
+          로그인
+        </Link>
       </header>
 
       <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-4 bg-surface px-[72px] py-8">
