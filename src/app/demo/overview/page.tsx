@@ -218,7 +218,7 @@ export default function OverviewPage() {
                               className={`flex gap-4 px-4 ${mark ? "bg-yellow-mark/25 font-bold" : "opacity-70"}`}
                             >
                               <span className="w-8 shrink-0 text-right text-surface/50 select-none">{n}</span>
-                              <span className="whitespace-pre">{tokens.length ? <Tokens tokens={tokens} /> : " "}</span>
+                              <span className="whitespace-pre">{tokens.length ? <Tokens tokens={tokens} as="code" /> : " "}</span>
                             </div>
                           );
                         })}
