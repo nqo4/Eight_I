@@ -224,6 +224,26 @@ export default function OverviewPage() {
                       <span className="rounded-8 bg-brand-purple-soft px-2 py-0.5 text-xs font-bold text-brand-purple-ink">{locateTag[l.layer]}</span>
                     </div>
                     <p className="text-sm leading-6 text-pretty">{l.reason}</p>
+                    {l.excerpt && (
+                      // 원래 코드만 보여 주고, 바꿔야 하는 줄만 하이라이트한다(고친 코드는 보여 주지 않음).
+                      <pre data-testid="code-excerpt" className="mt-1 overflow-x-auto rounded-8 bg-text-primary py-3 font-mono text-xs leading-6 text-surface">
+                        {l.excerpt.lines.map((line, j) => {
+                          const n = l.excerpt!.start_line + j;
+                          const mark = n >= l.reference.start_line && n <= l.reference.end_line;
+                          return (
+                            <div
+                              key={n}
+                              data-highlight={mark || undefined}
+                              className={`flex gap-4 px-4 ${mark ? "bg-yellow-mark/25 font-bold text-surface" : "text-surface/70"}`}
+                            >
+                              <span className="w-8 shrink-0 text-right text-surface/50 select-none">{n}</span>
+                              <span className="whitespace-pre">{line || " "}</span>
+                            </div>
+                          );
+                        })}
+                      </pre>
+                    )}
+                    <p className="text-xs text-text-muted">노란 줄이 바꿔야 하는 부분이에요. 고치는 건 내 개발 환경에서 직접 해 보세요.</p>
                   </li>
                 ))}
               </ul>

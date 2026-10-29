@@ -162,7 +162,13 @@ export type FeatureDetail = {
 // FR-11 고칠 위치 찾기 결과. 코드는 보여 주지 않고 위치와 이유만 준다.
 export type LocateResult = {
   query: string;
-  locations: { reference: CodeReference; layer: "ui" | "server" | "db"; reason: string }[];
+  locations: {
+    reference: CodeReference; // 바꿔야 하는 줄(하이라이트할 범위)
+    layer: "ui" | "server" | "db";
+    reason: string;
+    // 원래 코드의 앞뒤 몇 줄. reference 범위의 줄을 하이라이트해서 보여 준다(고친 코드는 주지 않음).
+    excerpt?: { start_line: number; lines: string[] };
+  }[];
   // 찾지 못했을 때 안내 문구. 찾았으면 null
   notice: string | null;
 };

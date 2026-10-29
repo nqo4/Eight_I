@@ -142,15 +142,20 @@ export async function locateChanges(analysisId: string, query: string): Promise<
   }
   const normalized = query.normalize("NFC").trim().replace(/\s+/g, " ");
   const stored = await load(analysisId);
+  const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
+  // 원래 코드 발췌는 저장하지 않고 매번 분석에 쓴 파일에서 잘라 붙인다(예전 결과·데모에도 적용, AI 비용 0).
+  const withExcerpts = (r: LocateResult): LocateResult => ({
+    ...r,
+    locations: r.locations.map((l) => ({ ...l, excerpt: index.excerpt(l.reference) ?? undefined })),
+  });
   const key = `locate:${normalized}`;
   const demoHit = analysisId === DEMO_ID ? getDemo().artifacts[key] as LocateResult | undefined : undefined;
-  if (demoHit) return { ...demoHit, query: normalized };
+  if (demoHit) return withExcerpts({ ...demoHit, query: normalized });
   const hit = analysisId === DEMO_ID ? null : await getStore().getArtifact<LocateResult>(analysisId, key);
-  if (hit) return hit;
+  if (hit) return withExcerpts(hit);
   if (analysisId === DEMO_ID && !aiConfigured()) {
     throw new AppError("demo_example_only", "데모에서는 예시 문장으로 체험할 수 있어요");
   }
-  const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
   const out = await generate(locateSchema, locatePrompt(normalized, index.formatFiles(index.paths(), config.maxTotalBytes * 2)));
   const locations = out.locations
     .map((location) => ({ ...location, reference: index.ref(location.reference) }))
@@ -158,11 +163,11 @@ export async function locateChanges(analysisId: string, query: string): Promise<
   const result: LocateResult = {
     query: normalized,
     locations,
-    notice: locations.length ? null : "찾지 못했습니다. 기능 카드에서 흐름을 확인해 보세요.",
+    notice: locations.length ? null : "찾지 못했습니다. '기능' 목록에서 흐름을 확인해 보세요.",
   };
   if (analysisId === DEMO_ID) getDemo().artifacts[key] = result;
   else await getStore().saveArtifact(analysisId, key, result);
-  return result;
+  return withExcerpts(result);
 }
 
 function findFeature(stored: StoredAnalysis, featureId: string): Feature {

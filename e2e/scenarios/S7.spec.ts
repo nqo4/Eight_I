@@ -13,9 +13,20 @@ test("S7 학습자가 바꾸고 싶은 동작을 문장으로 넣어 고칠 위�
   await expect(rows.first()).toBeVisible(AI_WAIT)
   const n = await rows.count()
   for (let i = 0; i < n; i++) {
-    await expect(rows.nth(i)).toContainText(/\S+\.\w+ \(\d+–\d+행\)/)
-    await expect(rows.nth(i)).toContainText(/화면|서버|DB/)
+    const row = rows.nth(i)
+    const label = (await row.innerText()).match(/\S+\.\w+ \((\d+)–(\d+)행\)/)
+    expect(label).not.toBeNull()
+    await expect(row).toContainText(/화면|서버|DB/)
+
+    // 원래 코드 발췌가 보이고, 하이라이트된 줄은 위에 적힌 라인 범위 안의 줄이다.
+    const excerpt = row.getByTestId("code-excerpt")
+    await expect(excerpt).toBeVisible()
+    const marked = excerpt.locator("[data-highlight]")
+    expect(await marked.count()).toBeGreaterThanOrEqual(1)
+    const [start, end] = [Number(label![1]), Number(label![2])]
+    for (const lineNo of await marked.locator("span:first-child").allInnerTexts()) {
+      expect(Number(lineNo)).toBeGreaterThanOrEqual(start)
+      expect(Number(lineNo)).toBeLessThanOrEqual(end)
+    }
   }
-  await expect(region.getByTestId("code-excerpt")).toHaveCount(0)
-  await expect(region.locator("pre")).toHaveCount(0)
 })

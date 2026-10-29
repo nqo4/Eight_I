@@ -49,6 +49,15 @@ export class SnapshotIndex {
     return raws.map((r) => this.ref(r)).filter((r): r is CodeReference => r !== null);
   }
 
+  // FR-11: 바꿔야 하는 줄 앞뒤로 context줄씩 붙인 원래 코드. 줄 번호는 원래 파일 기준.
+  excerpt(ref: { path: string; start_line: number; end_line: number }, context = 3): { start_line: number; lines: string[] } | null {
+    const entry = this.byPath.get(normalizePath(ref.path));
+    if (!entry) return null;
+    const start = Math.max(1, ref.start_line - context);
+    const end = Math.min(entry.lines.length, ref.end_line + context);
+    return { start_line: start, lines: entry.lines.slice(start - 1, end) };
+  }
+
   // 파일 전체를 가리키는 참조(라인 1~끝, 최대 MAX_REF_LINES줄)
   wholeFile(path: string): CodeReference | null {
     const entry = this.byPath.get(normalizePath(path));
