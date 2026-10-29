@@ -1,11 +1,11 @@
-// '샘플로 체험하기' 데이터 만들기. 실제 공개 샘플 저장소를 실제로 분석해 data/demo/demo.json에 저장한다.
+// 미리 분석해 둔 결과 만들기. 공개 샘플 저장소의 최신 commit을 실제로 분석해 data/demo/demo.json에 저장한다.
+// 사용자가 같은 저장소·같은 commit을 분석하면 서버가 AI를 다시 부르지 않고 이 결과를 쓴다(src/server/demo.ts).
 // 실행: AI_GATEWAY_API_KEY가 설정된 상태에서  npm run demo:build -- https://github.com/owner/repo
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { demoPath, type DemoData } from "../src/server/demo";
 import {
   analyzeRepository,
-  DEMO_ID,
   getExercise,
   getFlow,
   getLesson,
@@ -47,7 +47,7 @@ async function main() {
   const stored = await getStore().getAnalysis(analysis.id);
   if (!stored) throw new Error("분석 결과를 다시 읽지 못했어요.");
   const demo: DemoData = {
-    stored: { analysis: { ...stored.analysis, id: DEMO_ID, mode: "demo" }, snapshot: stored.snapshot },
+    stored: { analysis: { ...stored.analysis, id: "precomputed" }, snapshot: stored.snapshot },
     artifacts,
   };
   mkdirSync(dirname(demoPath()), { recursive: true });

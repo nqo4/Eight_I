@@ -61,7 +61,7 @@ function checkStatus(res: Response) {
     const reset = Number(res.headers.get("x-ratelimit-reset"));
     throw new AppError(
       "github_rate_limited",
-      "GitHub 요청 한도를 넘었어요. 잠시 후 다시 시도하거나 '샘플로 체험하기'를 이용해 주세요.",
+      "GitHub 요청 한도를 넘었어요. 잠시 후 다시 시도해 주세요.",
       Number.isFinite(reset) && reset > 0 ? { reset_at: new Date(reset * 1000).toISOString() } : undefined,
     );
   }

@@ -1,56 +1,41 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FeatureCard } from "@/components/FeatureCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
-import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
+import { ErrorBox, Loading, refLabel, secondaryBtn, techViews } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
-import type { CodeReference, Layer, LocateResult, Overview } from "@/server/types";
+import type { Layer, LocateResult } from "@/server/types";
 
-const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "기타" };
+// FR-03: 폴더 역할은 화면·서버·DB·설정 중 하나. 판단 근거를 찾지 못한 폴더(other)는 '확인 불가'.
+const layerTag: Record<Layer, string> = { ui: "화면", server: "서버", db: "DB", config: "설정", other: "확인 불가" };
 const locateTag = { ui: "화면", server: "서버", db: "DB" } as const;
-
-type TechView = { name: string; role: string | null; concept: string | null; references: CodeReference[] };
-
-function techViews(o: Overview): TechView[] {
-  if (o.technologies && o.technologies.length > 0) return o.technologies;
-  return o.stack.map((s) => ({
-    name: s.name,
-    role: s.note,
-    concept: null,
-    references: s.status === "confirmed" && s.evidence ? [s.evidence] : [],
-  }));
-}
 
 export default function OverviewPage() {
   const router = useRouter();
-  const { analysis, feature, selectFeature, ensure, loadError, startDemo } = useSession();
-  const detailRef = useRef<HTMLElement>(null);
-  const [picked, setPicked] = useState(0);
-  const [techName, setTechName] = useState<string | null>(null);
+  const { analysis, feature, selectFeature, selectTech, ensure, loadError } = useSession();
   const [query, setQuery] = useState("");
   const [locating, setLocating] = useState(false);
   const [located, setLocated] = useState<LocateResult | null>(null);
   const [locateError, setLocateError] = useState<ApiError | null>(null);
 
   useEffect(() => {
-    if (picked) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [picked]);
-
-  useEffect(() => {
     if (!analysis) ensure();
   }, [analysis, ensure]);
 
-  if (loadError) return <ErrorBox error={loadError} onDemo={startDemo} />;
+  if (loadError) return <ErrorBox error={loadError} home />;
   if (!analysis) return <Loading />;
 
   const repo = analysis.repository;
   const stats = analysis.stats;
   const skipped = stats.total_files - stats.included_files;
   const techs = techViews(analysis.overview);
-  const tech = techs.find((t) => t.name === techName) ?? null;
+  const openFeature = (f: (typeof analysis.features)[number]) => {
+    selectFeature(f);
+    router.push("/demo/feature");
+  };
 
   const locate = async () => {
     setLocating(true);
@@ -112,6 +97,8 @@ export default function OverviewPage() {
           <div data-testid="intro-sources" className="flex flex-wrap items-center gap-1.5">
             {analysis.overview.intro_inferred ? (
               <span className="rounded-8 bg-surface px-2 py-1 text-xs font-bold text-brand-purple-ink">AI 추정</span>
+            ) : (analysis.overview.intro_sources ?? []).length === 0 ? (
+              <span className="rounded-8 bg-surface px-2 py-1 text-xs font-bold text-text-muted">확인 불가</span>
             ) : (
               (analysis.overview.intro_sources ?? []).map((p) => (
                 <span key={p} className="rounded-8 bg-surface px-2 py-1 font-mono text-xs break-all text-brand-purple-ink">
@@ -120,6 +107,10 @@ export default function OverviewPage() {
               ))
             )}
           </div>
+          <p data-testid="stack-summary" className="text-sm text-text-primary">
+            <span className="font-bold text-text-muted">기술 스택 · </span>
+            {techs.map((t) => t.name).join(" · ") || "확인 불가"}
+          </p>
         </section>
         <p data-testid="analysis-stats" className="text-sm text-text-muted">
           분석에 쓴 파일 {stats.included_files}개 · 제외 {skipped}개 · 민감 파일 제외 {stats.skipped_sensitive ?? 0}개
@@ -131,9 +122,11 @@ export default function OverviewPage() {
               <li key={t.name}>
                 <button
                   type="button"
-                  aria-pressed={tech?.name === t.name}
-                  onClick={() => setTechName(t.name)}
-                  className={`flex flex-col items-start gap-0.5 rounded-8 border bg-surface px-3 py-1.5 text-left hover:border-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple ${tech?.name === t.name ? "border-brand-purple ring-1 ring-brand-purple" : "border-line"}`}
+                  onClick={() => {
+                    selectTech(t.name);
+                    router.push("/demo/tech");
+                  }}
+                  className="flex flex-col items-start gap-0.5 rounded-8 border border-line bg-surface px-3 py-1.5 text-left hover:border-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
                 >
                   <span className="text-sm font-bold text-brand-purple-ink">{t.name}</span>
                   <span className="font-mono text-xs break-all text-text-muted">{t.references[0]?.path ?? "확인 불가"}</span>
@@ -142,24 +135,6 @@ export default function OverviewPage() {
               </li>
             ))}
           </ul>
-          {tech && (
-            <div data-testid="tech-detail" className="flex flex-col gap-2 rounded-8 bg-surface px-4 py-3">
-              <h3 className="text-base font-bold text-text-primary">{tech.name}</h3>
-              <div className="flex flex-col gap-0.5">
-                <h4 className="text-xs font-bold text-text-muted">이 프로젝트에서 맡은 역할</h4>
-                <p className="text-sm leading-6">{tech.role ?? "확인 불가"}</p>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <h4 className="text-xs font-bold text-text-muted">핵심 개념</h4>
-                <p className="text-sm leading-6">{tech.concept ?? "확인 불가"}</p>
-              </div>
-              <ul className="flex flex-col gap-1 font-mono text-sm text-brand-purple-ink">
-                {tech.references.map((r) => (
-                  <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </section>
         <section aria-label="주요 폴더" className="flex flex-col gap-2">
           <h2 className="text-xs font-bold text-text-muted">주요 폴더</h2>
@@ -211,7 +186,7 @@ export default function OverviewPage() {
             ))}
           </ul>
         )}
-        {locating && <Loading slow={analysis.mode !== "demo"} />}
+        {locating && <Loading slow />}
         {locateError && <p role="alert" className="text-sm font-bold text-status-red">{locateError.message}</p>}
         {located && !locating && (
           <div className="flex flex-col gap-2">
@@ -261,10 +236,7 @@ export default function OverviewPage() {
                         key={f.id}
                         type="button"
                         className={secondaryBtn}
-                        onClick={() => {
-                          selectFeature(f);
-                          setPicked((n) => n + 1);
-                        }}
+                        onClick={() => openFeature(f)}
                       >
                         {f.title}
                       </button>
@@ -299,53 +271,10 @@ export default function OverviewPage() {
             files={[...new Set(f.code_references.map((r) => r.path))]}
             evidenceCount={f.code_references.length}
             selected={feature?.id === f.id}
-            onSelect={() => {
-              selectFeature(f);
-              setPicked((n) => n + 1);
-            }}
+            onSelect={() => openFeature(f)}
           />
         ))}
       </section>
-
-      {feature && (
-        <section
-          ref={detailRef}
-          aria-label="선택한 기능"
-          className="flex w-full scroll-mt-6 flex-col gap-4 rounded-12 border border-brand-purple bg-surface px-7 py-6"
-        >
-          <p className="font-manrope text-xs font-bold tracking-wider text-brand-purple-ink">선택한 기능</p>
-          <h2 data-testid="feature-title" className="text-2xl font-bold text-text-primary">
-            {feature.title}
-          </h2>
-          <p data-testid="feature-summary" className="text-base text-text-muted">
-            {feature.summary}
-          </p>
-          <div className="flex flex-col gap-1.5">
-            <h3 className="text-xs font-bold text-text-muted">근거 파일</h3>
-            <ul data-testid="feature-files" className="flex flex-col gap-1 font-mono text-sm text-brand-purple-ink">
-              {feature.code_references.map((r) => (
-                <li key={`${r.path}:${r.start_line}`}>{refLabel(r)}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col items-start gap-1.5 border-t border-line pt-4">
-            <PrimaryButton label="이 기능 어떻게 동작해?" onClick={() => router.push("/demo/flow")} />
-            <p className="text-sm text-text-muted">처음이라면 여기서 시작하세요. 왼쪽 순서대로 진행돼요.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
-            <span>바로 가기:</span>
-            <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/concept")}>
-              이 코드 배우기
-            </button>
-            <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/quiz")}>
-              이해도 확인
-            </button>
-            <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/mission")}>
-              이제 네가 직접 바꿔봐
-            </button>
-          </div>
-        </section>
-      )}
     </>
   );
 }

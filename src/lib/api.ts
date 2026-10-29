@@ -87,7 +87,7 @@ export function getExercise(analysisId: string, featureId: string): Promise<Exer
   );
 }
 
-export type ServerStatus = { ai: { configured: boolean; model: string }; store: string; demo_ready: boolean };
+export type ServerStatus = { ai: { configured: boolean; model: string }; store: string };
 
 export function getStatus(): Promise<ServerStatus> {
   return once("status", () => request<ServerStatus>("/api/status"));

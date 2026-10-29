@@ -75,7 +75,7 @@ export type Feature = {
 
 export type Analysis = {
   id: string;
-  mode: "repository" | "demo";
+  mode: "repository";
   created_at: string;
   repository: Repository;
   overview: Overview;
@@ -83,7 +83,7 @@ export type Analysis = {
   // 기능을 찾지 못했을 때 그 이유(FR-04). 기능이 있으면 null.
   features_notice: string | null;
   stats: Snapshot["stats"];
-  // FR-11: '어디를 고쳐야 해?' 입력란 아래 예시 문장(데모는 미리 만든 결과가 있는 문장)
+  // FR-11: '어디를 고쳐야 해?' 입력란 아래 이 저장소에 맞는 예시 문장
   locate_examples: string[];
 };
 

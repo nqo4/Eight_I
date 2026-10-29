@@ -14,7 +14,7 @@ const keys = "ABCDEF";
 
 export function Quiz() {
   const router = useRouter();
-  const { analysis, feature, record, progress, loadError, startDemo } = useSession();
+  const { analysis, feature, record, progress, loadError } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ quiz: QuizData }>("quiz");
   const lesson = useFeatureResource<{ lesson: Lesson }>("lesson");
   const picked = progress.quizView?.picked ?? {};
@@ -31,7 +31,7 @@ export function Quiz() {
     return j >= 0 ? { index: j, name: concepts[j].name } : null;
   };
 
-  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />;
+  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} home={Boolean(loadError)} />;
   if (!data) return <Loading slow={slow} />;
   const q = data.quiz;
   const allDone = q.questions.every((item) => checked[item.id]);

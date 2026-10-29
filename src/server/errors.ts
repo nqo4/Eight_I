@@ -13,8 +13,6 @@ export type ErrorCode =
   | "ai_failed"
   | "analysis_not_found"
   | "feature_not_found"
-  | "demo_not_ready"
-  | "demo_example_only"
   | "invalid_credentials"
   | "email_taken"
   | "auth_unavailable"
@@ -35,8 +33,6 @@ const STATUS: Record<ErrorCode, number> = {
   ai_failed: 502,
   analysis_not_found: 404,
   feature_not_found: 404,
-  demo_not_ready: 503,
-  demo_example_only: 400,
   invalid_credentials: 401,
   email_taken: 409,
   auth_unavailable: 503,

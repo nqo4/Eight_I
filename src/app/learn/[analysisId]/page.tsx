@@ -14,20 +14,10 @@ export default function LearnOverviewPage() {
   if (error) return <ErrorBox error={error} onRetry={reload} />;
   if (!a) return <Loading message="분석 결과를 불러오고 있어요" />;
 
-  const demo = a.mode === "demo";
   const repo = a.repository;
 
   return (
     <>
-      {demo && (
-        <div className="flex w-full items-center gap-[10px] rounded-8 bg-brand-purple-soft px-[14px] py-[10px]">
-          <span className="rounded-12 bg-brand-purple px-[10px] py-[6px] text-[9px] leading-[14px] font-bold text-surface">데모 모드</span>
-          <p className="text-[10px] leading-[16px] text-text-muted">
-            샘플 프로젝트 <b className="text-text-primary">{repo.id}</b>를 미리 분석해 둔 결과예요.
-          </p>
-        </div>
-      )}
-
       <PageIntro grouped eyebrow="PROJECT OVERVIEW" title="먼저, 이 프로젝트를 한눈에 볼까요?" description="코드 전체가 아니라 내가 아는 기능에서 시작하면 훨씬 쉬워요." />
 
       <section aria-label="저장소 정보" className="flex w-full flex-col gap-[12px] rounded-12 bg-brand-purple-soft px-[24px] py-[20px]">

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { LearnHeader, LearnSidebar } from "@/components/learn/LearnChrome";
 
-// 실제 분석 결과(또는 analysisId "demo"의 샘플)로 보는 학습 화면.
+// 실제 분석 결과로 보는 학습 화면.
 // 주소 값(useParams)을 읽는 화면은 요청 때 그려지므로 Suspense 안에 둔다(Cache Components 규칙).
 export default function LearnLayout({ children }: LayoutProps<"/learn/[analysisId]">) {
   return (

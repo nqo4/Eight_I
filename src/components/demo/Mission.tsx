@@ -11,7 +11,7 @@ const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "�
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export function Mission() {
-  const { analysis, feature, record, remember, progress, loadError, startDemo } = useSession();
+  const { analysis, feature, record, remember, progress, loadError } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ exercise: Exercise }>("exercise");
   const checks = progress.missionChecks ?? {};
   const [hints, setHints] = useState(1);
@@ -22,7 +22,7 @@ export function Mission() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />;
+  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} home={Boolean(loadError)} />;
   if (!data) return <Loading slow={slow} />;
   const ex = data.exercise;
   const all = ex.acceptance_checks.every((_, i) => checks[i]);
@@ -83,11 +83,6 @@ export function Mission() {
         <p className="text-sm leading-6 text-text-muted">
           내 개발 환경에서 직접 고치고 앱을 실행해 확인한 뒤 체크하세요. CodeBack은 코드를 대신 고치거나 push하지 않아요.
         </p>
-        {analysis?.mode === "demo" && (
-          <p className="rounded-8 bg-brand-purple-soft px-3 py-2 text-sm leading-6">
-            샘플 프로젝트예요. GitHub의 {analysis.repository.id}를 내 컴퓨터에 받아 직접 바꿔 보거나, 같은 아이디어를 내 프로젝트에 적용해 본 뒤 체크하세요.
-          </p>
-        )}
         <div className="flex w-full flex-col divide-y divide-line">
           {ex.acceptance_checks.map((c, i) => (
             <label key={i} className={`flex min-h-12 items-center gap-3 py-2.5 text-sm leading-6 ${done ? "" : "cursor-pointer"}`}>

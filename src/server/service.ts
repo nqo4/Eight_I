@@ -1,8 +1,8 @@
 // 백엔드 기능의 본체. 웹 프레임워크와 상관없이 호출할 수 있다(Next.js 라우트는 이 함수를 부르기만 한다).
 import { randomUUID } from "node:crypto";
-import { aiConfigured, assertAiConfigured, generate } from "./ai";
+import { assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
-import { getDemo } from "./demo";
+import { getPrecomputed } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
 import { fetchRepositoryHead, fetchSnapshot } from "./github";
@@ -20,8 +20,6 @@ import {
 } from "./prompts";
 import { getStore, type StoredAnalysis } from "./store";
 import type { Analysis, Exercise, Feature, FeatureDetail, Flow, Lesson, LocateResult, Quiz, StackItem } from "./types";
-
-export const DEMO_ID = "demo";
 
 // FR-01~04: 저장소를 읽고 개요와 기능 카드를 만든다.
 // 최신 commit을 먼저 확인해서, 이미 분석한 commit이면(= 그 뒤로 GitHub에 변경이 없으면)
@@ -46,6 +44,12 @@ export async function analyzeRepository(
   ) {
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
     return { analysis: existing.analysis, cached: true };
+  }
+
+  const pre = await savePrecomputed(repository);
+  if (pre) {
+    if (opts.userId) await linkUserRepository(opts.userId, repository.id, pre.id);
+    return { analysis: pre, cached: true };
   }
 
   // 새로 분석해야 할 때만 AI 설정을 확인하고 파일을 받는다(키가 없으면 GitHub 파일 요청도 아낀다).
@@ -124,8 +128,19 @@ export async function analyzeRepository(
   return { analysis, cached: false };
 }
 
+// 같은 저장소·같은 commit을 미리 분석해 둔 결과가 있으면 새 분석으로 저장한다(기능별 결과·위치 찾기 예시도 함께).
+async function savePrecomputed(repository: Analysis["repository"]): Promise<Analysis | null> {
+  const pre = getPrecomputed();
+  const r = pre?.stored.analysis.repository;
+  if (!pre || !r || r.id.toLowerCase() !== repository.id.toLowerCase() || r.commit_sha !== repository.commit_sha) return null;
+  const analysis: Analysis = { ...pre.stored.analysis, id: randomUUID(), mode: "repository", created_at: new Date().toISOString(), repository };
+  const store = getStore();
+  await store.saveAnalysis({ analysis, snapshot: pre.stored.snapshot });
+  for (const [key, payload] of Object.entries(pre.artifacts)) await store.saveArtifact(analysis.id, key, payload);
+  return analysis;
+}
+
 async function load(analysisId: string): Promise<StoredAnalysis> {
-  if (analysisId === DEMO_ID) return getDemo().stored;
   const stored = await getStore().getAnalysis(analysisId);
   if (!stored) throw new AppError("analysis_not_found", "분석 결과를 찾을 수 없어요. 저장소를 다시 분석해 주세요.");
   return stored;
@@ -143,19 +158,14 @@ export async function locateChanges(analysisId: string, query: string): Promise<
   const normalized = query.normalize("NFC").trim().replace(/\s+/g, " ");
   const stored = await load(analysisId);
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
-  // 원래 코드 발췌는 저장하지 않고 매번 분석에 쓴 파일에서 잘라 붙인다(예전 결과·데모에도 적용, AI 비용 0).
+  // 원래 코드 발췌는 저장하지 않고 매번 분석에 쓴 파일에서 잘라 붙인다(예전 결과에도 적용, AI 비용 0).
   const withExcerpts = (r: LocateResult): LocateResult => ({
     ...r,
     locations: r.locations.map((l) => ({ ...l, excerpt: index.excerpt(l.reference) ?? undefined })),
   });
   const key = `locate:${normalized}`;
-  const demoHit = analysisId === DEMO_ID ? getDemo().artifacts[key] as LocateResult | undefined : undefined;
-  if (demoHit) return withExcerpts({ ...demoHit, query: normalized });
-  const hit = analysisId === DEMO_ID ? null : await getStore().getArtifact<LocateResult>(analysisId, key);
+  const hit = await getStore().getArtifact<LocateResult>(analysisId, key);
   if (hit) return withExcerpts(hit);
-  if (analysisId === DEMO_ID && !aiConfigured()) {
-    throw new AppError("demo_example_only", "데모에서는 예시 문장으로 체험할 수 있어요");
-  }
   const out = await generate(locateSchema, locatePrompt(normalized, index.formatFiles(index.paths(), config.maxTotalBytes * 2)));
   const locations = out.locations
     .map((location) => ({ ...location, reference: index.ref(location.reference) }))
@@ -165,8 +175,8 @@ export async function locateChanges(analysisId: string, query: string): Promise<
     locations,
     notice: locations.length ? null : "찾지 못했습니다. '기능' 목록에서 흐름을 확인해 보세요.",
   };
-  if (analysisId === DEMO_ID) getDemo().artifacts[key] = result;
-  else await getStore().saveArtifact(analysisId, key, result);
+  // 못 찾은 결과는 저장하지 않는다(다음에 같은 문장으로 다시 찾을 수 있게).
+  if (locations.length > 0) await getStore().saveArtifact(analysisId, key, result);
   return withExcerpts(result);
 }
 
@@ -183,19 +193,15 @@ export async function getFeature(analysisId: string, featureId: string): Promise
 
 type Kind = "flow" | "lesson" | "quiz" | "exercise";
 
-// 기능별 결과는 처음 한 번만 AI로 만들고 저장해 둔다. 데모는 미리 만든 결과만 쓴다.
+// 기능별 결과는 처음 한 번만 AI로 만들고 저장해 둔다.
+// 예전 형식의 학습 내용(design_reasons 없음)은 FR-06 '왜 이렇게 만들었나'를 못 보여 주므로 다시 만든다.
 async function cached<T>(analysisId: string, featureId: string, kind: Kind, build: (ctx: FeatureCtx) => Promise<T>): Promise<T> {
   const stored = await load(analysisId);
   const feature = findFeature(stored, featureId);
   const key = `${featureId}:${kind}`;
-  if (analysisId === DEMO_ID) {
-    const hit = getDemo().artifacts[key] as T | undefined;
-    if (!hit) throw new AppError("demo_not_ready", "샘플 프로젝트에 이 내용이 아직 준비되지 않았어요.");
-    return hit;
-  }
   const store = getStore();
   const hit = await store.getArtifact<T>(analysisId, key);
-  if (hit) return hit;
+  if (hit && (kind !== "lesson" || Array.isArray((hit as Partial<Lesson>).design_reasons))) return hit;
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
   const paths = index.relatedPaths(feature.code_references.map((r) => r.path));
   const files = index.formatFiles(paths, config.featureContextBytes);
@@ -310,10 +316,7 @@ export async function getNoteInput(analysisId: string): Promise<{ analysis: Anal
   const lessons: Record<string, Lesson | null> = {};
   for (const f of stored.analysis.features) {
     const key = `${f.id}:lesson`;
-    lessons[f.id] =
-      analysisId === DEMO_ID
-        ? ((getDemo().artifacts[key] as Lesson | undefined) ?? null)
-        : await getStore().getArtifact<Lesson>(analysisId, key);
+    lessons[f.id] = await getStore().getArtifact<Lesson>(analysisId, key);
   }
   return { analysis: stored.analysis, lessons };
 }

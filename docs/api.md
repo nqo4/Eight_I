@@ -3,7 +3,7 @@
 프런트엔드가 목업 데이터를 만들 때 기준으로 쓰는 문서입니다. 응답 모양의 정확한 정의는 [`src/server/types.ts`](../src/server/types.ts)에 있습니다(이 파일을 프런트에 그대로 복사해 타입으로 써도 됩니다).
 
 - 모든 응답은 JSON이고 `Cache-Control: no-store`입니다.
-- 로그인은 없습니다.
+- 로그인해야 쓰는 서비스입니다(FR-10). `/api/auth/*`와 `/api/status`를 뺀 API는 로그인 세션 쿠키가 없으면 `401 login_required`를 돌려줍니다.
 - 주소는 상대 경로(`/api/...`)로 호출합니다.
 - 코드 위치(`CodeReference`)는 서버가 실제 GitHub 파일과 대조한 것만 내려갑니다. `snippet`은 실제 파일에서 잘라 온 해당 라인입니다(AI가 쓴 글이 아님).
 
@@ -12,13 +12,16 @@
 | 화면 동작 (docs/scenarios.yaml) | API |
 | --- | --- |
 | '깃허브 프로젝트 분석하기' → URL 입력 → '분석 시작' (S1) | `POST /api/repositories/analyze` |
-| '샘플로 체험하기' (S2~S8) | `GET /api/demo` → 이후 `analysisId`는 `"demo"` |
 | 기능 카드 누르기 (S2) | `GET /api/analyses/{analysisId}/features/{featureId}` |
 | '이 기능 어떻게 동작해?' (S3) | `GET .../features/{featureId}/flow` |
 | '이 코드 배우기' (S4) | `GET .../features/{featureId}/lesson` |
 | '이해도 확인' (S5) | `POST` 또는 `GET .../features/{featureId}/quiz` |
 | '이제 네가 직접 바꿔봐' (S6) | `GET .../features/{featureId}/exercise` |
 | '어디를 고쳐야 해?' → '위치 찾기' (S7) | `POST .../locate` |
+| '정답 확인' 결과 저장 (S5) | `POST .../features/{featureId}/quiz/attempts` |
+| '완료로 표시' 저장 (S6) | `POST .../features/{featureId}/exercise/complete` |
+| '내 학습 기록' (S6) | `GET /api/me/records` |
+| '학습 노트 내려받기' (S8) | `GET .../note` |
 | 처음 화면에서 사용 가능 여부 확인 | `GET /api/status` |
 
 `...`는 `/api/analyses/{analysisId}`입니다. 흐름·학습·퀴즈·미션은 처음 요청할 때 AI로 만들기 때문에 **수 초~수십 초** 걸릴 수 있습니다. 한 번 만든 결과는 저장해 두고, 다음 요청부터는 바로 돌려줍니다. 로딩 표시가 필요합니다.
@@ -31,6 +34,8 @@
 
 응답 `201`(새로 분석) 또는 `200`(같은 commit을 현재 형식으로 이미 분석해 둔 결과) `{ "analysis": Analysis, "cached": boolean }`
 
+분석한 사용자의 '내 학습 기록'에 저장소가 남습니다. 같은 저장소·같은 commit을 미리 분석해 둔 결과(`data/demo/demo.json`, `scripts/build-demo.ts`가 실제로 분석해 만든 것)가 있으면 AI를 부르지 않고 그 결과를 새 분석으로 저장해 돌려줍니다(`cached: true`).
+
 캐시는 저장소 ID가 대소문자 구분 없이 일치하고, `locate_examples`와 새 소개·기술 필드가 있는 현재 형식일 때만 재사용합니다. 이전 형식이나 다른 저장소 ID가 남은 캐시는 다시 분석해 저장합니다.
 
 - `analysis.repository`: 저장소 이름, 기본 브랜치, 분석 기준 commit SHA, 최종 수정 날짜(`last_commit_at`)
@@ -42,13 +47,9 @@
 - `analysis.features`: 기능 카드. 최대 5개이고 각 카드에 근거 코드가 1개 이상 있습니다.
 - `analysis.overview.directories[]`: `path`, `role`, `layer`(`ui`·`server`·`db`·`config`·`other`). 실제 분석 파일이 있는 폴더만 표시합니다.
 - `analysis.stats.skipped_sensitive`: `.env*`·비밀키·인증서 등 민감 파일 제외 수. `skipped_by_filter`에 포함됩니다.
-- `analysis.locate_examples`: 고칠 위치 찾기용 짧은 한국어 변경 요청 2~3개. 데모에서는 각 문장의 결과가 미리 저장되어 있습니다.
+- `analysis.locate_examples`: 고칠 위치 찾기용 짧은 한국어 변경 요청 2~3개(이 저장소에 맞는 문장).
 - `analysis.features_notice`: 기능을 못 찾았을 때만 이유 문장이 들어가고, 아니면 `null`
 - `analysis.overview.support.status`: React/Next.js가 아니면 `limited`이고, `reason`에 안내 문장이 들어갑니다.
-
-### `GET /api/demo`
-
-`{ "analysis": Analysis }`이고 `analysis.mode`는 `"demo"`, `analysis.id`는 `"demo"`입니다. 화면에 '데모 모드' 표시가 필요합니다. 미리 만든 결과라 GitHub·AI를 호출하지 않습니다.
 
 ### `GET /api/analyses/{analysisId}`
 
@@ -63,7 +64,7 @@
 - `locations[]`: `reference`(실제 snapshot으로 검증한 파일·라인·원본 발췌), `layer`(`ui`·`server`·`db`), `reason`
 - `notice`: 찾았으면 `null`; 없으면 `"찾지 못했습니다. 기능 카드에서 흐름을 확인해 보세요."`이고 `locations`는 빈 배열
 
-분석 ID와 정규화한 요청별로 결과를 캐시합니다. 수정된 코드나 붙여 넣을 코드를 반환하지 않습니다. 데모 예시 문장은 GitHub·AI 없이 동작합니다. 데모에서 저장되지 않은 문장을 입력하고 AI 설정도 없으면 `400 demo_example_only`, `"데모에서는 예시 문장으로 체험할 수 있어요"`를 반환합니다. AI가 설정되어 있으면 같은 snapshot으로 새 위치를 찾을 수 있습니다.
+분석 ID와 정규화한 요청별로 찾은 결과를 캐시합니다(찾지 못한 결과는 저장하지 않아 다음에 다시 찾습니다). 수정된 코드나 붙여 넣을 코드를 반환하지 않습니다.
 
 ### `GET /api/analyses/{analysisId}/features/{featureId}`
 
@@ -115,11 +116,11 @@
 | `POST .../features/{featureId}/exercise/complete` | 선택 | '완료로 표시'(자기 보고)를 기록에 남겨요. 로그인 전이면 `saved: false` |
 | `GET /api/me/records` | 필요 | 내가 분석한 저장소마다 퀴즈 맞힌 수·전체 수, 완료한 미션 수, 기능별 진행 상황 |
 
-`POST /api/repositories/analyze`를 로그인한 상태로 부르면 그 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
+`POST /api/repositories/analyze`는 로그인해야 부를 수 있고, 분석한 저장소가 기록에 자동으로 남아요. 로그인이 필요한 주소를 로그인 없이 부르면 `login_required`(401)예요.
 
 ### `GET /api/status`
 
-`{ "ai": { "configured": boolean, "model": string }, "store": "postgres" | "memory", "demo_ready": boolean }`
+`{ "ai": { "configured": boolean, "model": string }, "store": "postgres" | "memory" }`
 
 ### `GET /__health`
 
@@ -144,14 +145,13 @@
 | `repo_empty` | 422 | 커밋이나 분석할 소스 파일이 없을 때 |
 | `github_rate_limited` | 429 | GitHub 요청 한도 초과. `details.reset_at`이 있을 수 있음 |
 | `github_unavailable` | 502 | GitHub 연결 실패 |
-| `ai_not_configured` | 503 | 서버에 AI 키가 없을 때. '샘플로 체험하기'를 안내 |
+| `ai_not_configured` | 503 | 서버에 AI 키가 없을 때 |
 | `ai_access_denied` | 503 | 키 비활성·모델 권한·예산 소진 |
 | `ai_timeout` | 504 | AI 응답 지연 |
 | `ai_failed` | 502 | AI 응답 실패 |
 | `analysis_not_found` | 404 | 없는 `analysisId` |
 | `feature_not_found` | 404 | 없는 `featureId` |
-| `demo_not_ready` | 503 | 샘플 데이터가 아직 준비되지 않았을 때 |
-| `demo_example_only` | 400 | AI 설정 없이 데모의 저장되지 않은 위치 찾기 문장을 요청했을 때 |
+| `login_required` | 401 | 로그인하지 않았거나 세션이 만료됐을 때 |
 | `internal_error` | 500 | 그 밖의 서버 오류 |
 
 ## DB 구조
@@ -200,10 +200,10 @@ src/server/    ← 백엔드 본체. Next.js를 import하지 않는다(다른 �
   ai.ts        AI Gateway 호출과 오류 변환
   prompts.ts   AI 결과 스키마와 요청 문장
   store.ts     Postgres / 메모리 저장소
-  demo.ts      샘플 데이터(data/demo/demo.json) 읽기
+  demo.ts      미리 분석해 둔 결과(data/demo/demo.json) 읽기. 같은 저장소·commit이면 재사용
   http.ts      웹 표준 Request/Response 도우미
 src/app/api/** Next.js 라우트. server/의 함수를 부르기만 한다
-scripts/build-demo.ts  실제 샘플 저장소를 분석해 data/demo/demo.json 생성
+scripts/build-demo.ts  공개 샘플 저장소를 실제로 분석해 data/demo/demo.json 생성
 ```
 
 다른 프레임워크(Express, Hono 등)로 옮길 때는 `src/app/api/**`의 라우트만 새로 쓰고 `src/server/`는 그대로 씁니다.

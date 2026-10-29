@@ -19,7 +19,7 @@ const legendLayers = ["ui", "state_logic", "api", "data"] as const;
 
 export function FlowSteps() {
   const router = useRouter();
-  const { feature, record, remember, progress, loadError, startDemo } = useSession();
+  const { feature, record, remember, progress, loadError } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ flow: Flow }>("flow");
   const open = progress.flowView?.open ?? 0;
   const revealed = progress.flowView?.revealed ?? 1;
@@ -35,7 +35,7 @@ export function FlowSteps() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />;
+  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} home={Boolean(loadError)} />;
   if (!data || !feature) return <Loading slow={slow} />;
 
   const steps = [...data.flow.steps].sort((a, b) => a.order - b.order).map((s) => ({ ...s, title: stripNumber(s.title) }));

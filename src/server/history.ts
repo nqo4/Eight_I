@@ -62,8 +62,7 @@ export async function recordQuizAttempt(input: {
   }
   const is_correct = input.chosenIndex === q.answer_index;
   const sql = getSql();
-  // 데모(analysisId "demo")는 DB의 분석 결과가 아니라서 기록하지 않는다.
-  if (!sql || !input.userId || input.analysisId === "demo") return { is_correct, answer_index: q.answer_index, saved: false };
+  if (!sql || !input.userId) return { is_correct, answer_index: q.answer_index, saved: false };
   await sql(
     `INSERT INTO quiz_attempts (user_id, analysis_id, feature_id, question_id, chosen_index, is_correct)
      VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -85,7 +84,7 @@ export async function listQuizAttempts(userId: string, analysisId: string, featu
 // 수정 미션 '완료로 표시'(자기 보고). 같은 기능을 다시 눌러도 한 번만 남긴다.
 export async function recordMissionDone(input: { userId: string | null; analysisId: string; featureId: string }): Promise<{ saved: boolean }> {
   const sql = getSql();
-  if (!sql || !input.userId || input.analysisId === "demo") return { saved: false };
+  if (!sql || !input.userId) return { saved: false };
   await sql(
     `INSERT INTO mission_completions (user_id, analysis_id, feature_id) VALUES ($1, $2, $3)
      ON CONFLICT (user_id, analysis_id, feature_id) DO NOTHING`,
