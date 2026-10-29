@@ -218,8 +218,8 @@ async function cached<T>(analysisId: string, featureId: string, kind: Kind, buil
 type FeatureCtx = { feature: Feature; index: SnapshotIndex; files: string };
 
 // FR-05
-export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
-  return cached(analysisId, featureId, "flow", async ({ feature, index, files }) => {
+export async function getFlow(analysisId: string, featureId: string): Promise<Flow> {
+  const flow = await cached(analysisId, featureId, "flow", async ({ feature, index, files }) => {
     const out = await generate(
       flowSchema,
       featurePrompt("사용자 동작부터 결과까지 코드가 어떤 순서로 이어지는지 단계별로 정리하라. 아래 파일에 이 기능이 쓰는 서버·API 코드(API 라우트, 서버 액션)나 DB 코드(스키마, 쿼리)가 있으면 그 파일을 각각 api·data 단계로 반드시 포함한다. 단계 제목은 코드 이름이 아니라 사용자의 행동과 화면에서 보이는 결과를 쉬운 한국어로 쓴다.", feature, files),
@@ -230,11 +230,21 @@ export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
       .map((s, i) => ({ order: i + 1, layer: s.layer, title: s.title, description: s.description, reference: s.reference }));
     const links = steps.slice(1).map((s, i) => {
       const from = steps[i];
-      const verified = from.reference.path === s.reference.path || index.imports(from.reference.path, s.reference.path);
+      const verified = index.imports(from.reference.path, s.reference.path);
       return { from: from.order, to: s.order, confidence: verified ? ("verified" as const) : ("inferred" as const) };
     });
     return { feature_id: feature.id, steps, links };
   });
+  const stored = await load(analysisId);
+  const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
+  return {
+    ...flow,
+    links: flow.links.map((link) => {
+      const from = flow.steps.find((step) => step.order === link.from);
+      const to = flow.steps.find((step) => step.order === link.to);
+      return { ...link, confidence: from && to && index.imports(from.reference.path, to.reference.path) ? "verified" : "inferred" };
+    }),
+  };
 }
 
 // FR-06
@@ -299,6 +309,9 @@ export function getExercise(analysisId: string, featureId: string): Promise<Exer
         files,
       ),
     );
+    if (!out.acceptance_checks.length || out.acceptance_checks.some((check) => !check.trim())) {
+      throw new AppError("ai_failed", "AI 분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
     const targets = index.refs(out.targets);
     const kind = targets.length === 0 ? "observe" : out.kind;
     return {
@@ -356,6 +369,10 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
   const stored = await load(analysisId);
   findFeature(stored, featureId);
   const exercise = await getExercise(analysisId, featureId);
+  if (!Array.isArray(exercise.acceptance_checks) || !exercise.acceptance_checks.length
+    || exercise.acceptance_checks.some((check) => typeof check !== "string" || !check.trim())) {
+    throw new AppError("internal_error", "서버에서 문제가 생겼어요. 잠시 후 다시 시도해 주세요.");
+  }
   const index = new SnapshotIndex(stored.snapshot, stored.analysis.repository.commit_sha);
   const original = exercise.target_references
     .map((r) => {
@@ -368,10 +385,13 @@ export async function gradeMission(analysisId: string, featureId: string, code: 
     missionGradeSchema,
     missionGradePrompt({ instruction: exercise.instruction, checks: exercise.acceptance_checks, original, submitted }),
   );
+  if (out.checks.length !== exercise.acceptance_checks.length) {
+    throw new AppError("ai_failed", "AI 분석에 실패했어요. 잠시 후 다시 시도해 주세요.");
+  }
   const checks = exercise.acceptance_checks.map((condition, i) => ({
     condition,
-    met: Boolean(out.checks[i]?.met),
-    reason: out.checks[i]?.reason ?? "판단하지 못했어요.",
+    met: out.checks[i].met,
+    reason: out.checks[i].reason,
   }));
   return {
     feature_id: featureId,
