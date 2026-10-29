@@ -35,7 +35,7 @@ test("S7 학습자가 바꾸고 싶은 동작을 문장으로 넣어 고칠 위�
     const [start, end] = [Number(label[1]), Number(label[2])]
     expect(start).toBeGreaterThan(0)
     expect(end).toBeGreaterThanOrEqual(start)
-    const lineNumbers = await excerpt.locator(":scope > div > span:first-child").allInnerTexts()
+    const lineNumbers = await excerpt.locator(":scope > div > span:first-child:not(:only-child)").allInnerTexts()
     expect(lineNumbers.length).toBeGreaterThan(0)
     expect(lineNumbers.map(Number)).toEqual(lineNumbers.map((_, index) => Number(lineNumbers[0]) + index))
     expect(await marked.locator(":scope > span:last-child").allInnerTexts()).toEqual(
