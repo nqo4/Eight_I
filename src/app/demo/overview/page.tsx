@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { FeatureCard } from "@/components/FeatureCard";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
+import { highlightLines, LanguageTag, Tokens } from "@/components/demo/syntax";
 import { ErrorBox, Loading, refLabel, secondaryBtn, techViews } from "@/components/demo/ui";
 import { api, useSession, type ApiError } from "@/components/session/Session";
 import type { Layer, LocateResult } from "@/server/types";
@@ -204,17 +205,20 @@ export default function OverviewPage() {
                     {l.excerpt && (
                       // 원래 코드만 보여 주고, 바꿔야 하는 줄만 하이라이트한다(고친 코드는 보여 주지 않음).
                       <pre data-testid="code-excerpt" className="mt-1 overflow-x-auto rounded-8 bg-text-primary py-3 font-mono text-xs leading-6 text-surface">
-                        {l.excerpt.lines.map((line, j) => {
+                        <div className="flex justify-end px-4 pb-2">
+                          <LanguageTag path={l.reference.path} />
+                        </div>
+                        {highlightLines(l.excerpt.lines.join("\n"), l.reference.path).map((tokens, j) => {
                           const n = l.excerpt!.start_line + j;
                           const mark = n >= l.reference.start_line && n <= l.reference.end_line;
                           return (
                             <div
                               key={n}
                               data-highlight={mark || undefined}
-                              className={`flex gap-4 px-4 ${mark ? "bg-yellow-mark/25 font-bold text-surface" : "text-surface/70"}`}
+                              className={`flex gap-4 px-4 ${mark ? "bg-yellow-mark/25 font-bold" : "opacity-70"}`}
                             >
                               <span className="w-8 shrink-0 text-right text-surface/50 select-none">{n}</span>
-                              <span className="whitespace-pre">{line || " "}</span>
+                              <span className="whitespace-pre">{tokens.length ? <Tokens tokens={tokens} /> : " "}</span>
                             </div>
                           );
                         })}
