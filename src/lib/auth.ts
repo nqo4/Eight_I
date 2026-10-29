@@ -6,29 +6,61 @@ import { useEffect, useSyncExternalStore } from "react";
 
 export type User = { name: string; email: string };
 
-// undefined: 아직 확인 전, null: 로그인 안 함
+// undefined: 아직 확인 전(또는 확인 실패), null: 로그인 안 함(서버가 확인함)
 let current: User | null | undefined = undefined;
+// 로그인 상태를 서버에 묻지 못했을 때 true. 이때는 로그인·로그아웃을 단정하지 않는다(#8).
+let checkFailed = false;
+// 늦게 도착한 /api/auth/me 응답이 더 최신 상태(로그아웃 등)를 덮어쓰지 않게 요청마다 번호를 붙인다.
+let request = 0;
 const listeners = new Set<() => void>();
 
-function set(user: User | null) {
-  current = user;
+function emit() {
   listeners.forEach((l) => l());
 }
 
-export async function refreshUser(): Promise<User | null> {
-  try {
-    const res = await fetch("/api/auth/me", { cache: "no-store" });
-    const body = res.ok ? ((await res.json()) as { user: User | null }) : { user: null };
-    set(body.user ?? null);
-  } catch {
-    set(null);
-  }
-  return current ?? null;
+function set(user: User | null) {
+  current = user;
+  checkFailed = false;
+  emit();
 }
 
-export async function logOut(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+export async function refreshUser(): Promise<User | null | undefined> {
+  const ticket = ++request;
+  let user: User | null;
+  try {
+    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    // 미인증은 200 + user:null로 온다. 그 밖의 상태는 '확인 실패'이지 로그아웃이 아니다.
+    if (!res.ok) throw new Error(`auth check ${res.status}`);
+    const body = (await res.json()) as { user?: User | null };
+    user = body.user ?? null;
+  } catch {
+    if (ticket === request) {
+      // 이미 확인한 상태(로그인·미인증)는 그대로 둔다. 처음 확인부터 실패했으면 확인 실패로 표시한다.
+      checkFailed = current === undefined;
+      emit();
+    }
+    return current;
+  }
+  if (ticket === request) set(user);
+  return current;
+}
+
+export type LogOutResult = "done" | "failed" | "unknown";
+
+// 서버가 세션을 지웠다고 답했을 때만 화면의 사용자를 비운다(#5).
+// 응답을 못 받으면(연결 끊김) 서버 처리 여부를 /api/auth/me로 다시 확인한다.
+export async function logOut(): Promise<LogOutResult> {
+  let res: Response;
+  try {
+    res = await fetch("/api/auth/logout", { method: "POST" });
+  } catch {
+    const user = await refreshUser();
+    return user === null ? "done" : "unknown";
+  }
+  if (!res.ok) return "failed";
+  request++; // 로그아웃 전에 보낸 확인 요청의 응답은 무시한다.
   set(null);
+  return "done";
 }
 
 function subscribe(onChange: () => void) {
@@ -49,4 +81,12 @@ export function useCurrentUser(): User | null | undefined {
     refreshUser();
   }, []);
   return user;
+}
+
+export function useAuthCheckFailed(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => checkFailed,
+    () => false,
+  );
 }
