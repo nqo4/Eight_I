@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { MissionGrader } from "@/components/demo/MissionGrader";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
 import { saveMissionDone } from "@/lib/records";
@@ -73,6 +74,7 @@ export function Mission() {
             </div>
           )}
         </div>
+        {analysis && feature && <MissionGrader analysisId={analysis.id} featureId={feature.id} />}
       </div>
 
       <fieldset aria-labelledby="mission-checks" className="flex min-w-0 flex-col items-start gap-3 rounded-12 border border-line bg-surface px-[26px] py-7">

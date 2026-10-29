@@ -99,6 +99,10 @@ export type FeatureRecord = {
   quiz_correct: number;
   quiz_total: number;
   mission_done: boolean;
+  // AI 채점(FR-08 개정) 결과. 채점한 적이 없으면 null·0.
+  mission_best_score: number | null;
+  mission_last_score: number | null;
+  mission_graded: number;
 };
 
 export type LearningRecord = {
@@ -111,15 +115,16 @@ export type LearningRecord = {
   quiz_correct: number;
   quiz_total: number;
   missions_done: number;
+  mission_avg_score: number | null; // 채점한 기능들의 최고 점수 평균
   features: FeatureRecord[];
 };
 
-// 내 학습 기록(FR-13): 내가 분석한 저장소마다 분석 날짜·commit, 기능별 퀴즈 결과(문항별 첫 시도)와 미션 완료 여부.
+// 내 학습 기록(FR-13): 내가 분석한 저장소마다 분석 날짜·commit, 기능별 퀴즈 결과(문항별 첫 시도), 미션 완료 여부와 채점 점수.
 export async function listLearningRecords(userId: string): Promise<LearningRecord[]> {
   const sql = getSql();
   if (!sql) return [];
-  const [repos, attempts, missions] = await Promise.all([
-    sql<Omit<LearningRecord, "quiz_correct" | "quiz_total" | "missions_done" | "features"> & { features: { id: string; title: string }[] }>(
+  const [repos, attempts, missions, scores] = await Promise.all([
+    sql<Omit<LearningRecord, "quiz_correct" | "quiz_total" | "missions_done" | "mission_avg_score" | "features"> & { features: { id: string; title: string }[] }>(
       `SELECT ur.repo_id, r.url, a.id AS analysis_id, a.commit_sha, ur.last_viewed_at AS analyzed_at, ur.last_viewed_at,
               COALESCE((SELECT json_agg(json_build_object('id', f->>'id', 'title', f->>'title'))
                           FROM jsonb_array_elements(a.analysis->'features') f), '[]'::json) AS features
@@ -140,9 +145,17 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
       `SELECT analysis_id, feature_id FROM mission_completions WHERE user_id = $1`,
       [userId],
     ),
+    sql<{ analysis_id: string; feature_id: string; best: number; last: number; graded: number }>(
+      `SELECT analysis_id, feature_id, max(score)::int AS best,
+              (array_agg(score ORDER BY created_at DESC))[1]::int AS last, count(*)::int AS graded
+         FROM quiz_attempts WHERE user_id = $1 AND kind = 'mission' AND score IS NOT NULL
+        GROUP BY analysis_id, feature_id`,
+      [userId],
+    ),
   ]);
   const key = (a: string, f: string) => `${a}\u0000${f}`;
   const done = new Set(missions.map((m) => key(m.analysis_id, m.feature_id)));
+  const graded = new Map(scores.map((g) => [key(g.analysis_id, g.feature_id), g]));
   return repos.map((r) => {
     const features = r.features.map((f) => {
       const mine = attempts.filter((t) => t.analysis_id === r.analysis_id && t.feature_id === f.id);
@@ -152,13 +165,18 @@ export async function listLearningRecords(userId: string): Promise<LearningRecor
         quiz_correct: mine.filter((t) => t.is_correct).length,
         quiz_total: mine.length,
         mission_done: done.has(key(r.analysis_id, f.id)),
+        mission_best_score: graded.get(key(r.analysis_id, f.id))?.best ?? null,
+        mission_last_score: graded.get(key(r.analysis_id, f.id))?.last ?? null,
+        mission_graded: graded.get(key(r.analysis_id, f.id))?.graded ?? 0,
       };
     });
+    const best = features.flatMap((f) => (f.mission_best_score === null ? [] : [f.mission_best_score]));
     return {
       ...r,
       quiz_correct: features.reduce((n, f) => n + f.quiz_correct, 0),
       quiz_total: features.reduce((n, f) => n + f.quiz_total, 0),
       missions_done: features.filter((f) => f.mission_done).length,
+      mission_avg_score: best.length ? Math.round(best.reduce((n, x) => n + x, 0) / best.length) : null,
       features,
     };
   });

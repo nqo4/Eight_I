@@ -1,9 +1,11 @@
 "use client";
 
 // 내 학습 기록(FR-13)을 서버에 남기고 읽는다. 로그인 전이면 서버가 저장하지 않고 넘어간다(saved: false).
+import { api } from "@/components/session/Session";
 import type { LearningRecord } from "@/server/history";
+import type { MissionGrade } from "@/server/service";
 
-export type { LearningRecord };
+export type { LearningRecord, MissionGrade };
 
 const base = (analysisId: string, featureId: string) =>
   `/api/analyses/${encodeURIComponent(analysisId)}/features/${encodeURIComponent(featureId)}`;
@@ -23,4 +25,13 @@ export function saveQuizAttempt(analysisId: string, featureId: string, questionI
 
 export function saveMissionDone(analysisId: string, featureId: string) {
   post(`${base(analysisId, featureId)}/exercise/complete`);
+}
+
+// 수정 미션 AI 채점(FR-08 개정). 로그인해야 하고, 점수는 서버가 '내 학습 기록'에 남긴다.
+export function gradeMission(analysisId: string, featureId: string, code: string) {
+  return api<{ grade: MissionGrade; saved: boolean }>(`${base(analysisId, featureId)}/exercise/grade`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
 }

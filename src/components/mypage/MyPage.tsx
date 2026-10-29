@@ -33,6 +33,13 @@ function Stat({ label, value, caption }: { label: string; value: string; caption
   );
 }
 
+// 미션: 완료 표시(자기 보고)와 AI 채점 최고 점수를 함께 보여 준다.
+function missionLabel(f: LearningRecord["features"][number]) {
+  const score = f.mission_best_score === null ? null : `${f.mission_best_score}점`;
+  if (f.mission_done) return score ? `미션 완료 · ${score}` : "미션 완료";
+  return score ? `미션 ${score}` : "미션 전";
+}
+
 function RecordCard({ record }: { record: LearningRecord }) {
   const { setAnalysis } = useSession();
   const router = useRouter();
@@ -95,11 +102,12 @@ function RecordCard({ record }: { record: LearningRecord }) {
             </span>
             <span
               data-testid="mission-status"
-              className={`w-24 rounded-8 px-2 py-1 text-center text-xs font-bold ${
-                f.mission_done ? "bg-brand-purple-soft text-brand-purple-ink" : "text-text-muted"
+              title={f.mission_graded ? `채점 ${f.mission_graded}번 · 최근 ${f.mission_last_score}점` : undefined}
+              className={`w-36 rounded-8 px-2 py-1 text-center text-xs font-bold ${
+                f.mission_done || f.mission_best_score !== null ? "bg-brand-purple-soft text-brand-purple-ink" : "text-text-muted"
               }`}
             >
-              {f.mission_done ? "미션 완료" : "미션 전"}
+              {missionLabel(f)}
             </span>
           </li>
         ))}
@@ -129,6 +137,8 @@ function SignedIn({ user }: { user: User }) {
   const quizTotal = records?.reduce((n, r) => n + r.quiz_total, 0) ?? 0;
   const quizCorrect = records?.reduce((n, r) => n + r.quiz_correct, 0) ?? 0;
   const missions = records?.reduce((n, r) => n + r.missions_done, 0) ?? 0;
+  const bestScores = records?.flatMap((r) => r.features.flatMap((f) => (f.mission_best_score === null ? [] : [f.mission_best_score])));
+  const avgScore = bestScores?.length ? Math.round(bestScores.reduce((n, x) => n + x, 0) / bestScores.length) : null;
 
   return (
     <>
@@ -155,6 +165,11 @@ function SignedIn({ user }: { user: User }) {
           caption={quizTotal ? "문항별 첫 시도 기준" : "아직 푼 퀴즈가 없어요"}
         />
         <Stat label="완료한 미션" value={records ? `${missions}개` : "-"} caption="자기 보고 기준" />
+        <Stat
+          label="미션 점수"
+          value={avgScore === null ? "-" : `${avgScore}점`}
+          caption={avgScore === null ? "아직 채점한 미션이 없어요" : `채점한 기능 ${bestScores?.length}개의 최고 점수 평균`}
+        />
       </section>
 
       <section aria-label="분석한 저장소" className="flex w-full flex-col gap-4">
