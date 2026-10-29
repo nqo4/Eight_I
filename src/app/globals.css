@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
+/* CodeBack design tokens (Figma: CodeBack — Frontend Mockup) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #fbfaf7;
+  --surface: #ffffff;
+  --line: #e7e6eb;
+  --text-primary: #161724;
+  --text-muted: #737584;
+  --brand-purple: #7157df;
+  --brand-purple-soft: #f0ecff;
+  --accent-lime: #cdea58;
+  --status-green: #2ba77a;
+  --ink: #060216;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-purple-soft: var(--brand-purple-soft);
+  --color-accent-lime: var(--accent-lime);
+  --color-status-green: var(--status-green);
+  --color-ink: var(--ink);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+
+  --font-sans: var(--font-noto-sans-kr);
+  --font-manrope: var(--font-manrope), var(--font-noto-sans-kr);
+  --font-mono: var(--font-dm-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--text-primary);
 }
