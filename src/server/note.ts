@@ -68,13 +68,18 @@ export async function renderLearningNote({ analysis: a, lessons }: NoteInput): P
   );
 
   h2("사용한 기술");
-  const techs = a.overview.technologies ?? [];
-  for (const s of a.overview.stack) {
-    const where = s.evidence ? `${s.evidence.path}:${s.evidence.start_line}` : "근거 파일 확인 불가";
-    const t = techs.find((x) => x.name.toLowerCase() === s.name.toLowerCase());
-    bullet(`${s.name} (${s.status === "confirmed" ? where : "확인 불가"})${t?.role ? ` — ${t.role}` : ""}`);
-    if (t?.concept) muted(`     핵심 개념: ${t.concept}`);
-    for (const u of t?.references ?? []) muted(`     쓰인 곳: ${u.path}:${u.start_line}–${u.end_line}`);
+  const techs = a.overview.technologies?.length ? a.overview.technologies : a.overview.stack.map((s) => ({
+    name: s.name,
+    role: s.note,
+    concept: null,
+    references: s.status === "confirmed" && s.evidence ? [s.evidence] : [],
+  }));
+  for (const t of techs) {
+    const first = t.references[0];
+    const where = first ? `${first.path}:${first.start_line}` : "확인 불가";
+    bullet(`${t.name} (${where})${t.role ? ` — ${t.role}` : ""}`);
+    if (t.concept) muted(`     핵심 개념: ${t.concept}`);
+    for (const u of t.references) muted(`     쓰인 곳: ${u.path}:${u.start_line}–${u.end_line}`);
   }
 
   if (a.overview.directories.length > 0) {
