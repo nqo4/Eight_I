@@ -6,10 +6,12 @@ type FeatureCardProps = {
   description: string;
   files: string[];
   href: string;
+  // 확인된 코드 근거 개수(실제 분석 화면에서 넘김). 없으면 기존 데모 문구 그대로.
+  evidenceCount?: number;
 };
 
 // Figma: CB / Feature Card — 코드 근거가 있는 기능을 선택하는 카드.
-export function FeatureCard({ number, title, description, files, href }: FeatureCardProps) {
+export function FeatureCard({ number, title, description, files, href, evidenceCount = 3 }: FeatureCardProps) {
   return (
     <Link
       href={href}
@@ -32,7 +34,7 @@ export function FeatureCard({ number, title, description, files, href }: Feature
       </div>
       <div className="h-px w-[434px] bg-line" />
       <div className="flex h-[18px] w-[434px] items-center justify-between text-[8px] leading-[12px] whitespace-nowrap">
-        <span className="font-medium text-status-green">● 근거 3개 확인</span>
+        <span className="font-medium text-status-green">● 근거 {evidenceCount}개 확인</span>
         <span className="font-bold text-brand-purple">이 기능 배우기 →</span>
       </div>
     </Link>
