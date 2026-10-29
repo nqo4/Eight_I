@@ -18,7 +18,7 @@
   - 수집이 실패하면 AI 호출과 saveAnalysis 전에 오류가 나서, 해당 commit의 분석이 저장되지 않음.
   - 장애가 사라진 뒤 같은 commit을 다시 요청하면 그 파일을 포함해 분석·저장됨.
   - 정상 분석이 저장된 뒤의 재요청은 파일·AI를 다시 요청하지 않고 저장본을 씀.
-  - 사전 생성 샘플(savePrecomputed)은 fetchSnapshot보다 먼저 처리되므로 영향 없음.
+  - 당시 별도로 처리하던 사전 생성 샘플 경로는 이후 제거됨.
 
 주석·문자열·실제 import별 판정 결과:
   - SnapshotIndex.imports()가 원문 대신 maskNonCode()로 주석과 문자열·템플릿·정규식의 글자를 지운 텍스트에서 import를 찾음.

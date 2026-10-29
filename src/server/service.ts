@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { assertAiConfigured, generate } from "./ai";
 import { config } from "./config";
 import type { AnalysisDeadline } from "./deadline";
-import { getPrecomputed } from "./demo";
 import { AppError } from "./errors";
 import { detectStack, isSupportedStack, SnapshotIndex } from "./evidence";
 import { redactSecrets } from "./filter";
@@ -57,13 +56,6 @@ export async function analyzeRepository(
     if (opts.userId) await linkUserRepository(opts.userId, repository.id, existing.analysis.id);
     timing("stored", { github_head: headMs });
     return { analysis: existing.analysis, cached: true };
-  }
-
-  const pre = await savePrecomputed(repository);
-  if (pre) {
-    if (opts.userId) await linkUserRepository(opts.userId, repository.id, pre.id);
-    timing("precomputed", { github_head: headMs });
-    return { analysis: pre, cached: true };
   }
 
   // 새로 분석해야 할 때만 AI 설정을 확인하고 파일을 받는다(키가 없으면 GitHub 파일 요청도 아낀다).
@@ -149,18 +141,6 @@ export async function analyzeRepository(
   if (opts.userId) await linkUserRepository(opts.userId, repository.id, analysis.id);
   timing("no", { github_head: headMs, github_files: snapshotMs, ai: aiMs, db_save: Date.now() - t3 });
   return { analysis, cached: false };
-}
-
-// 같은 저장소·같은 commit을 미리 분석해 둔 결과가 있으면 새 분석으로 저장한다(기능별 결과·위치 찾기 예시도 함께).
-async function savePrecomputed(repository: Analysis["repository"]): Promise<Analysis | null> {
-  const pre = getPrecomputed();
-  const r = pre?.stored.analysis.repository;
-  if (!pre || !r || r.id.toLowerCase() !== repository.id.toLowerCase() || r.commit_sha !== repository.commit_sha) return null;
-  const analysis: Analysis = { ...pre.stored.analysis, id: randomUUID(), mode: "repository", created_at: new Date().toISOString(), repository };
-  const store = getStore();
-  await store.saveAnalysis({ analysis, snapshot: pre.stored.snapshot });
-  for (const [key, payload] of Object.entries(pre.artifacts)) await store.saveArtifact(analysis.id, key, payload);
-  return analysis;
 }
 
 async function load(analysisId: string): Promise<StoredAnalysis> {
@@ -313,7 +293,7 @@ export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
 // FR-08: 수정 미션. 서비스는 코드를 고치지 않고, 점수는 '채점하기'(gradeMission)에서 AI가 추정한다.
 const EXERCISE_DISCLAIMER = "CodeBack은 코드를 대신 고치거나 push하지 않아요. 점수는 코드를 실행하지 않고 AI가 추정해요.";
 
-// 예전에 저장된 미션(미리 분석해 둔 샘플 포함)에도 지금 안내 문구를 붙여서 돌려준다.
+// 예전에 저장된 미션에도 지금 안내 문구를 붙여서 돌려준다.
 export async function getExercise(analysisId: string, featureId: string): Promise<Exercise> {
   const exercise = await buildExercise(analysisId, featureId);
   return { ...exercise, disclaimer: EXERCISE_DISCLAIMER };

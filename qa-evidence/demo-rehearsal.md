@@ -1,7 +1,7 @@
 # Owner A: five-minute demo run sheet
 
 Use one feature from `nextjs/saas-starter`, rather than all eight scenarios.
-The sample analysis is reused stored data, not a live generation demonstration.
+The bundled sample analysis has been removed; first analysis calls live AI, and the same commit then reuses DB results.
 
 | Segment | Duration | Screen and message |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ The sample analysis is reused stored data, not a live generation demonstration.
 
 ## Demonstration sequence
 
-1. Sign in and open the sample analysis (15 seconds).
+1. Sign in and analyze the repository (allow time for the first live AI request).
 2. Select its login feature and distinguish grounded evidence from AI estimates (20 seconds).
 3. Show the screen, logic, server and database flow (25 seconds).
 4. Connect the related code excerpt to the concept explanation (30 seconds).

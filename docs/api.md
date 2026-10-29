@@ -33,9 +33,9 @@
 
 요청 `{ "url": "https://github.com/owner/repo" }`
 
-응답 `201`(`cached: false`, 새 AI 분석) 또는 `200`(`cached: true`, 저장된 분석이나 사전 준비 결과 재사용) `{ "analysis": Analysis, "cached": boolean }`
+응답 `201`(`cached: false`, 새 AI 분석) 또는 `200`(`cached: true`, DB에 저장된 분석 재사용) `{ "analysis": Analysis, "cached": boolean }`
 
-분석한 사용자의 '내 학습 기록'에 저장소가 남습니다. 같은 저장소·같은 commit을 미리 분석해 둔 결과(`data/demo/demo.json`, `scripts/build-demo.ts`가 실제로 분석해 만든 것)가 있으면 AI를 부르지 않고 그 결과를 새 분석으로 저장해 돌려줍니다(`cached: true`).
+분석한 사용자의 '내 학습 기록'에 저장소가 남습니다. 같은 저장소·같은 commit의 분석 결과가 DB에 있으면 AI를 부르지 않고 저장된 결과를 돌려줍니다(`cached: true`).
 
 캐시는 저장소 ID가 대소문자 구분 없이 일치하고, `locate_examples`와 새 소개·기술 필드가 있는 현재 형식일 때만 재사용합니다. 이전 형식이나 다른 저장소 ID가 남은 캐시는 다시 분석해 저장합니다.
 
@@ -249,10 +249,8 @@ src/server/    ← 백엔드 본체. Next.js를 import하지 않는다(다른 �
   ai.ts        AI Gateway 호출과 오류 변환
   prompts.ts   AI 결과 스키마와 요청 문장
   store.ts     Postgres / 메모리 저장소
-  demo.ts      미리 분석해 둔 결과(data/demo/demo.json) 읽기. 같은 저장소·commit이면 재사용
   http.ts      웹 표준 Request/Response 도우미
 src/app/api/** Next.js 라우트. server/의 함수를 부르기만 한다
-scripts/build-demo.ts  공개 샘플 저장소를 실제로 분석해 data/demo/demo.json 생성
 ```
 
 다른 프레임워크(Express, Hono 등)로 옮길 때는 `src/app/api/**`의 라우트만 새로 쓰고 `src/server/`는 그대로 씁니다.
