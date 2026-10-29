@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 test("S1 학습자가 공개 GitHub 프로젝트를 연결해 프로젝트 소개와 사용한 기술·기능 목록을 받는다", async ({ page }) => {
   test.setTimeout(150_000)
   await page.goto("/")
-  await page.getByRole("button", { name: "내 프로젝트 분석하기" }).click()
+  await page.getByRole("button", { name: "깃허브 프로젝트 분석하기" }).click()
   await page.getByLabel("GitHub 저장소 URL").fill("https://github.com/nextjs/saas-starter")
   await page.getByRole("button", { name: "분석 시작" }).click()
 

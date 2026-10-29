@@ -44,11 +44,11 @@ export function RepoForm() {
   }
 
   return (
-    <div className="flex w-full max-w-[600px] flex-col items-start gap-4">
+    <div className="flex w-full max-w-[620px] flex-col items-start gap-4">
       {!open ? (
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton
-            label="내 프로젝트 분석하기"
+            label="깃허브 프로젝트 분석하기"
             onClick={() => {
               if (!user) {
                 setNeedLogin(true);
@@ -101,7 +101,7 @@ export function RepoForm() {
           </button>
         </form>
       )}
-      {needLogin && !user && <LoginRequired feature="내 프로젝트 분석" onClose={closeLogin} />}
+      {needLogin && !user && <LoginRequired feature="깃허브 프로젝트 분석" onClose={closeLogin} />}
       {busy && <Loading slow={busy === "analyze"} />}
       {error && (
         <ErrorBox

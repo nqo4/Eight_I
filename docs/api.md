@@ -11,7 +11,7 @@
 
 | 화면 동작 (docs/scenarios.yaml) | API |
 | --- | --- |
-| '내 프로젝트 분석하기' → URL 입력 → '분석 시작' (S1) | `POST /api/repositories/analyze` |
+| '깃허브 프로젝트 분석하기' → URL 입력 → '분석 시작' (S1) | `POST /api/repositories/analyze` |
 | '샘플로 체험하기' (S2~S8) | `GET /api/demo` → 이후 `analysisId`는 `"demo"` |
 | 기능 카드 누르기 (S2) | `GET /api/analyses/{analysisId}/features/{featureId}` |
 | '이 기능 어떻게 동작해?' (S3) | `GET .../features/{featureId}/flow` |

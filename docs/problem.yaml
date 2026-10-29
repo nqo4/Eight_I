@@ -109,7 +109,7 @@ insight:
 features:
   - id: FR-01
     name: "공개 GitHub 저장소 연결"
-    input: "로그인한 사용자가 홈의 '내 프로젝트 분석하기'에서 입력한 공개 GitHub 저장소 URL(https://github.com/owner/repo)"
+    input: "로그인한 사용자가 홈의 '깃허브 프로젝트 분석하기'에서 입력한 공개 GitHub 저장소 URL(https://github.com/owner/repo)"
     output: "저장소 이름·기본 브랜치·분석 기준 commit SHA가 화면에 표시되고, 이 commit 기준으로 분석 결과가 저장된다."
     done: |-
       공개 저장소 URL을 넣고 '분석 시작'을 누르면 저장소 이름·기본 브랜치·commit SHA가 보인다.
