@@ -233,7 +233,7 @@ FR-12·S8은 화면과 같은 commit 및 기술·근거 내용을 요구합니�
 | `AI_GATEWAY_API_KEY` | (없음) | AI Gateway 키. 대시보드 자료 → API 키 |
 | `AI_MODEL` | `anthropic/claude-haiku-5.5` | Gateway 모델 식별자 |
 | `DATABASE_URL` | (연결 주소가 모두 없으면 메모리) | Postgres 주소. 없으면 `POSTGRES_URL`, `POSTGRES_PRISMA_URL` 순서로 확인. 회원가입·로그인·개인 학습 기록에는 Postgres 필요 |
-| `GITHUB_TOKEN` | (없음) | 있으면 GitHub 요청 한도가 IP당 60회/시간에서 토큰당 5,000회/시간으로 늘어남(읽기 전용 토큰). docker-compose.yml도 이 값을 앱에 넘김 |
+| `GITHUB_TOKEN` | (없음) | 있으면 GitHub 요청 한도가 늘어남(읽기 전용 토큰) |
 | `ANALYZE_MAX_FILES` | 80 | 한 저장소에서 읽을 최대 파일 수 |
 | `ANALYZE_MAX_TOTAL_BYTES` | 250000 | 한 저장소에서 읽을 최대 총 크기 |
 | `ANALYZE_MAX_FILE_BYTES` | 40000 | 이보다 큰 파일은 건너뜀 |
