@@ -81,7 +81,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [techName, setTechName] = useState<string | null>(null);
 
+  // 홈·'내 학습 기록'에서 정상 분석을 열 때 쓴다. 실제 분석 결과를 받은 뒤에만 불리므로
+  // 지난 분석을 다시 불러오다 난 오류(loadError)는 여기서 지운다(#7).
   const setAnalysis = useCallback((a: Analysis) => {
+    setLoadError(null);
     setAnalysisState(a);
     setFeature(null);
     setProgress(readJson<Record<string, Progress>>(progressKey(a)) ?? {});
