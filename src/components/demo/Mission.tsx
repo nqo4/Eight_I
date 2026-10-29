@@ -12,18 +12,18 @@ const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-i
 
 export function Mission() {
   const router = useRouter();
-  const { analysis, record, remember } = useSession();
+  const { analysis, record, remember, progress, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ exercise: Exercise }>("exercise");
-  const [checks, setChecks] = useState<Record<number, boolean>>({});
+  const checks = progress.missionChecks ?? {};
   const [hints, setHints] = useState(1);
-  const [done, setDone] = useState(false);
+  const done = progress.done;
 
   useEffect(() => {
     if (data) remember({ exercise: data.exercise });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  if (error) return <ErrorBox error={error} onRetry={retry} />;
+  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />;
   if (!data) return <Loading slow={slow} />;
   const ex = data.exercise;
   const all = ex.acceptance_checks.every((_, i) => checks[i]);
@@ -82,7 +82,7 @@ export function Mission() {
                 type="checkbox"
                 checked={!!checks[i]}
                 disabled={done}
-                onChange={() => setChecks((s) => ({ ...s, [i]: !s[i] }))}
+                onChange={() => record((p) => ({ ...p, missionChecks: { ...p.missionChecks, [i]: !p.missionChecks?.[i] } }))}
                 className="size-5 shrink-0 accent-brand-purple"
               />
               {c}
@@ -102,10 +102,7 @@ export function Mission() {
               <PrimaryButton
                 label="완료로 표시"
                 disabled={!all}
-                onClick={() => {
-                  setDone(true);
-                  record((p) => ({ ...p, done: true }));
-                }}
+                onClick={() => record((p) => ({ ...p, done: true, steps: { ...p.steps, mission: true } }))}
               />
               {!all && <span className="text-sm text-text-muted">성공 조건을 모두 체크하면 완료할 수 있어요</span>}
             </>

@@ -18,7 +18,9 @@ export const overviewSchema = z.object({
     .array(
       z.object({
         title: z.string().describe("사용자가 화면에서 알아볼 수 있는 기능 이름(예: 로그인, 상품 검색)"),
-        summary: z.string().describe("한 줄 설명"),
+        summary: z
+          .string()
+          .describe("한 줄 설명. 코드에서 확인된 동작만 쓴다. 권한·제한이 화면에서만 확인되면 '화면에서'라고 밝힌다"),
         evidence: z.array(ref).describe("이 기능을 구현한 파일과 라인 범위, 1~4개"),
       }),
     )

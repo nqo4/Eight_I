@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder, stripNumber } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
@@ -18,17 +18,23 @@ const layerName: Record<string, string> = {
 
 export function FlowSteps() {
   const router = useRouter();
-  const { feature, record, remember, progress } = useSession();
+  const { feature, record, remember, progress, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ flow: Flow }>("flow");
-  const [open, setOpen] = useState(0);
-  const [revealed, setRevealed] = useState(1);
+  const open = progress.flowView?.open ?? 0;
+  const revealed = progress.flowView?.revealed ?? 1;
+  const setView = (nextOpen: number, nextRevealed: number, total: number) =>
+    record((p) => ({
+      ...p,
+      flowView: { open: nextOpen, revealed: nextRevealed },
+      steps: nextRevealed >= total ? { ...p.steps, flow: true } : p.steps,
+    }));
 
   useEffect(() => {
     if (data) remember({ flow: data.flow });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  if (error) return <ErrorBox error={error} onRetry={retry} />;
+  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />;
   if (!data || !feature) return <Loading slow={slow} />;
 
   const steps = [...data.flow.steps].sort((a, b) => a.order - b.order).map((s) => ({ ...s, title: stripNumber(s.title) }));
@@ -37,10 +43,8 @@ export function FlowSteps() {
   const finished = revealed >= steps.length;
   const inferred = (order: number) => data.flow.links.find((l) => l.to === order)?.confidence !== "verified";
 
-  const goNext = () => {
-    if (open + 1 >= revealed) setRevealed(open + 2);
-    setOpen(open + 1);
-  };
+  const goNext = () => setView(open + 1, Math.max(revealed, open + 2), steps.length);
+  const setOpen = (i: number) => setView(i, revealed, steps.length);
 
   // 보류(기획 검토): 문서에 없는 기능 — 기획검토-보류목록.md A1 (다음 단계 먼저 맞혀 보기)
   const next = steps[open + 1];
@@ -110,8 +114,12 @@ export function FlowSteps() {
                   type="button"
                   className="rounded-8 border border-line bg-surface px-3 py-2 text-left text-sm hover:border-brand-purple"
                   onClick={() => {
-                    record((p) => ({ ...p, flow: { ...p.flow, [open + 1]: o === next.title } }));
-                    goNext();
+                    record((p) => ({
+                      ...p,
+                      flow: { ...p.flow, [open + 1]: o === next.title },
+                      flowView: { open: open + 1, revealed: Math.max(revealed, open + 2) },
+                      steps: Math.max(revealed, open + 2) >= steps.length ? { ...p.steps, flow: true } : p.steps,
+                    }));
                   }}
                 >
                   {o}

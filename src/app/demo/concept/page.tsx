@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
@@ -13,9 +13,17 @@ const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-i
 
 export default function ConceptPage() {
   const router = useRouter();
-  const { feature } = useSession();
+  const { feature, record, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ lesson: Lesson }>("lesson");
   const [easy, setEasy] = useState<Record<number, boolean>>({});
+  const toQuiz = () => {
+    record((p) => ({ ...p, steps: { ...p.steps, concept: true } }));
+    router.push("/demo/quiz");
+  };
+
+  useEffect(() => {
+    if (data && window.location.hash) document.querySelector(window.location.hash)?.scrollIntoView({ block: "start" });
+  }, [data]);
 
   return (
     <>
@@ -24,7 +32,7 @@ export default function ConceptPage() {
         title={`${feature?.title ?? "이 기능"}, 내 코드로 이해해요`}
         description="문법보다 먼저, 이 코드가 내 서비스에서 하는 일을 이해해 봐요. 기능 → 파일 역할 → 코드 → 개념 순서예요."
       />
-      {error && <ErrorBox error={error} onRetry={retry} />}
+      {error && <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />}
       {!error && !data && <Loading slow={slow} />}
       {data && (
         <div className="grid w-full grid-cols-[minmax(0,1fr)_320px] items-start gap-[18px]">
@@ -87,7 +95,7 @@ export default function ConceptPage() {
               </ul>
             </section>
             <div className="flex justify-end">
-              <PrimaryButton label="이해했어요, 확인해 볼게요" onClick={() => router.push("/demo/quiz")} />
+              <PrimaryButton label="이해했어요, 확인해 볼게요" onClick={toQuiz} />
             </div>
           </div>
 
@@ -103,7 +111,7 @@ export default function ConceptPage() {
                 <span className="text-sm font-bold text-text-primary">{c.name}</span>
               </a>
             ))}
-            <button type="button" className={`${secondaryBtn} mt-2`} onClick={() => router.push("/demo/quiz")}>
+            <button type="button" className={`${secondaryBtn} mt-2`} onClick={toQuiz}>
               연습 문제로 바로 가기
             </button>
           </aside>

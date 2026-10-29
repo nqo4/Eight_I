@@ -20,12 +20,40 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export type StepKey = "overview" | "flow" | "concept" | "quiz" | "mission" | "card";
+
 export type Progress = {
   flow: Record<number, boolean>; // 흐름 예측(보류 A1): 단계 번호 → 맞힘
   quiz: Record<string, boolean>; // 연습 문제 첫 시도: 문제 id → 맞힘
   done: boolean; // 미션 완료 표시(자기 보고)
+  // 실제로 끝낸 단계. 화면 위치와 따로 기록해 '미션만 열었는데 50% 완료' 같은 표시를 막는다.
+  steps: Partial<Record<StepKey, boolean>>;
+  flowView?: { open: number; revealed: number };
+  quizView?: { picked: Record<string, number>; checked: Record<string, boolean> };
+  missionChecks?: Record<number, boolean>;
 };
-const emptyProgress: Progress = { flow: {}, quiz: {}, done: false };
+const emptyProgress: Progress = { flow: {}, quiz: {}, done: false, steps: {} };
+
+// 기록은 저장소·커밋별로 브라우저에만 남긴다(로그인 없음). 새로고침하면 마지막 분석·기능을 다시 연다.
+const LAST_KEY = "codeback:v1:last";
+const progressKey = (a: Analysis) => `codeback:v1:progress:${a.repository.id}@${a.repository.commit_sha}`;
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(key: string, value: unknown) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // 저장 공간이 막혀 있어도 학습은 계속할 수 있어야 한다.
+  }
+}
 
 type Session = {
   analysis: Analysis | null;
@@ -39,6 +67,7 @@ type Session = {
   remember: (part: { flow?: Flow; exercise?: Exercise }) => void;
   ensure: () => Promise<void>;
   loadError: ApiError | null;
+  startDemo: () => Promise<void>;
 };
 
 const Ctx = createContext<Session | null>(null);
@@ -53,7 +82,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const setAnalysis = useCallback((a: Analysis) => {
     setAnalysisState(a);
     setFeature(null);
-    setProgress({});
+    setProgress(readJson<Record<string, Progress>>(progressKey(a)) ?? {});
     setCache({});
   }, []);
 
@@ -63,27 +92,60 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoadError(null);
+    const last = readJson<{ analysisId: string; featureId: string | null; repo?: string }>(LAST_KEY);
+    let a: Analysis | null = null;
+    if (last?.analysisId) {
+      a = await api<{ analysis: Analysis }>(`/api/analyses/${encodeURIComponent(last.analysisId)}`)
+        .then((r) => r.analysis)
+        .catch(() => null);
+      // 내 저장소 분석을 복원하지 못하면 샘플로 조용히 바꾸지 않고 다시 연결하도록 안내한다.
+      if (!a && last.analysisId !== "demo") {
+        setLoadError({
+          message: `이전에 분석한 저장소${last.repo ? `(${last.repo})` : ""}를 다시 불러오지 못했어요. 홈에서 다시 연결하거나 샘플로 체험해 주세요.`,
+          retryable: false,
+        });
+        return;
+      }
+    }
     try {
-      const { analysis: a } = await api<{ analysis: Analysis }>("/api/demo");
+      if (!a) a = (await api<{ analysis: Analysis }>("/api/demo")).analysis;
       setAnalysisState(a);
-      setFeature(a.features[0] ?? null);
+      setProgress(readJson<Record<string, Progress>>(progressKey(a)) ?? {});
+      setFeature(a.features.find((f) => f.id === last?.featureId) ?? a.features[0] ?? null);
     } catch (e) {
       setLoadError(e as ApiError);
     }
   }, [analysis, feature]);
+
+  useEffect(() => {
+    if (!analysis) return;
+    writeJson(LAST_KEY, { analysisId: analysis.id, featureId: feature?.id ?? null, repo: analysis.repository.id });
+    writeJson(progressKey(analysis), progressByFeature);
+  }, [analysis, feature, progressByFeature]);
 
   const fid = feature?.id ?? "";
   const value: Session = {
     analysis,
     feature,
     setAnalysis,
-    selectFeature: setFeature,
-    progress: progressByFeature[fid] ?? emptyProgress,
-    record: (update) => setProgress((all) => ({ ...all, [fid]: update(all[fid] ?? emptyProgress) })),
+    selectFeature: (f) => {
+      setFeature(f);
+      setProgress((all) => ({ ...all, [f.id]: { ...(all[f.id] ?? emptyProgress), steps: { ...all[f.id]?.steps, overview: true } } }));
+    },
+    progress: { ...emptyProgress, ...progressByFeature[fid] },
+    record: (update) => setProgress((all) => ({ ...all, [fid]: update({ ...emptyProgress, ...all[fid] }) })),
     cache: cacheByFeature[fid] ?? {},
     remember: (part) => setCache((all) => ({ ...all, [fid]: { ...all[fid], ...part } })),
     ensure,
     loadError,
+    startDemo: async () => {
+      setLoadError(null);
+      try {
+        setAnalysis((await api<{ analysis: Analysis }>("/api/demo")).analysis);
+      } catch (e) {
+        setLoadError(e as ApiError);
+      }
+    },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -96,7 +158,7 @@ export function useSession() {
 
 // 학습 화면에서 쓰는 훅: 분석·기능이 없으면 샘플로 채우고, 기능별 자료를 한 번 불러온다.
 export function useFeatureResource<T>(kind: "flow" | "lesson" | "quiz" | "exercise") {
-  const { analysis, feature, ensure } = useSession();
+  const { analysis, feature, ensure, loadError } = useSession();
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ key: string; data: T | null; error: ApiError | null } | null>(null);
   const path =
@@ -122,7 +184,7 @@ export function useFeatureResource<T>(kind: "flow" | "lesson" | "quiz" | "exerci
   const current = result?.key === key ? result : null;
   return {
     data: current?.data ?? null,
-    error: current?.error ?? null,
+    error: loadError ?? current?.error ?? null,
     retry: () => setAttempt((n) => n + 1),
     slow: analysis?.mode !== "demo",
   };

@@ -12,7 +12,7 @@ const fileName = (path: string) => path.split("/").pop() ?? path;
 
 export default function OverviewPage() {
   const router = useRouter();
-  const { analysis, feature, selectFeature, ensure, loadError } = useSession();
+  const { analysis, feature, selectFeature, ensure, loadError, startDemo } = useSession();
   const detailRef = useRef<HTMLElement>(null);
   const [picked, setPicked] = useState(0);
 
@@ -24,7 +24,7 @@ export default function OverviewPage() {
     if (!analysis) ensure();
   }, [analysis, ensure]);
 
-  if (loadError) return <ErrorBox error={loadError} onRetry={ensure} />;
+  if (loadError) return <ErrorBox error={loadError} onDemo={startDemo} />;
   if (!analysis) return <Loading />;
 
   const repo = analysis.repository;

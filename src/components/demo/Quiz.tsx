@@ -1,22 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
-import type { Quiz as QuizData } from "@/server/types";
+import type { CodeReference, Lesson, Quiz as QuizData } from "@/server/types";
+
+const overlaps = (a: CodeReference, b: CodeReference) =>
+  a.path === b.path && a.start_line <= b.end_line && b.start_line <= a.end_line;
 
 const keys = "ABCDEF";
 
 export function Quiz() {
   const router = useRouter();
-  const { record } = useSession();
+  const { record, progress, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ quiz: QuizData }>("quiz");
-  const [picked, setPicked] = useState<Record<string, number>>({});
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const lesson = useFeatureResource<{ lesson: Lesson }>("lesson");
+  const picked = progress.quizView?.picked ?? {};
+  const checked = progress.quizView?.checked ?? {};
+  const setQuiz = (nextPicked: Record<string, number>, nextChecked: Record<string, boolean>, extra?: (p: typeof progress) => typeof progress) =>
+    record((p) => {
+      const base = { ...p, quizView: { picked: nextPicked, checked: nextChecked } };
+      return extra ? extra(base) : base;
+    });
+  const relatedConcept = (refs: CodeReference[]) => {
+    const concepts = lesson.data?.lesson.concepts ?? [];
+    const i = concepts.findIndex((c) => c.references.some((r) => refs.some((q) => overlaps(r, q))));
+    const j = i >= 0 ? i : concepts.findIndex((c) => c.references.some((r) => refs.some((q) => q.path === r.path)));
+    return j >= 0 ? { index: j, name: concepts[j].name } : null;
+  };
 
-  if (error) return <ErrorBox error={error} onRetry={retry} />;
+  if (error) return <ErrorBox error={error} onRetry={loadError ? undefined : retry} onDemo={loadError ? startDemo : undefined} />;
   if (!data) return <Loading slow={slow} />;
   const q = data.quiz;
   const allDone = q.questions.every((item) => checked[item.id]);
@@ -27,9 +41,14 @@ export function Quiz() {
         const done = checked[item.id];
         const correct = picked[item.id] === item.answer_index;
         const check = () => {
-          setChecked((c) => ({ ...c, [item.id]: true }));
-          record((p) => (item.id in p.quiz ? p : { ...p, quiz: { ...p.quiz, [item.id]: picked[item.id] === item.answer_index } }));
+          const nextChecked = { ...checked, [item.id]: true };
+          setQuiz(picked, nextChecked, (p) => ({
+            ...p,
+            quiz: item.id in p.quiz ? p.quiz : { ...p.quiz, [item.id]: picked[item.id] === item.answer_index },
+            steps: q.questions.every((x) => nextChecked[x.id]) ? { ...p.steps, quiz: true } : p.steps,
+          }));
         };
+        const related = done && !correct ? relatedConcept(item.references) : null;
         return (
           <fieldset
             key={item.id}
@@ -58,7 +77,7 @@ export function Quiz() {
                       name={item.id}
                       disabled={done}
                       checked={active}
-                      onChange={() => setPicked((p) => ({ ...p, [item.id]: ci }))}
+                      onChange={() => setQuiz({ ...picked, [item.id]: ci }, checked)}
                       className="size-5 shrink-0 accent-brand-purple"
                     />
                     <span
@@ -94,23 +113,25 @@ export function Quiz() {
                     {item.references.map((r) => (
                       <CodeExcerpt key={`${r.path}:${r.start_line}`} r={r} />
                     ))}
+                    <p className="text-sm">방금 본 정답을 외워 다시 맞히기보다, 관련 개념 설명을 먼저 읽어 보는 걸 추천해요.</p>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         className={secondaryBtn}
                         onClick={() => {
-                          setChecked((c) => ({ ...c, [item.id]: false }));
-                          setPicked((p) => {
-                            const next = { ...p };
-                            delete next[item.id];
-                            return next;
-                          });
+                          const nextPicked = { ...picked };
+                          delete nextPicked[item.id];
+                          setQuiz(nextPicked, { ...checked, [item.id]: false });
                         }}
                       >
                         다시 풀기
                       </button>
-                      <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/concept")}>
-                        개념 설명 다시 보기
+                      <button
+                        type="button"
+                        className={secondaryBtn}
+                        onClick={() => router.push(related ? `/demo/concept#concept-${related.index}` : "/demo/concept")}
+                      >
+                        {related ? `관련 개념 다시 보기: ${related.name}` : "개념 설명 다시 보기"}
                       </button>
                     </div>
                   </>

@@ -5,20 +5,22 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { PageIntro } from "@/components/demo/PageIntro";
-import { Loading, refLabel, secondaryBtn, stripNumber } from "@/components/demo/ui";
+import { ErrorBox, Loading, refLabel, secondaryBtn, stripNumber } from "@/components/demo/ui";
 import { useSession } from "@/components/session/Session";
 
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export default function CardPage() {
   const router = useRouter();
-  const { analysis, feature, progress, cache, ensure } = useSession();
+  const { analysis, feature, progress, cache, ensure, record, loadError, startDemo } = useSession();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!analysis || !feature) ensure();
   }, [analysis, feature, ensure]);
 
+
+  if (loadError) return <ErrorBox error={loadError} onDemo={startDemo} />;
   if (!analysis || !feature) return <Loading />;
 
   const steps = cache.flow ? [...cache.flow.steps].sort((a, b) => a.order - b.order) : [];
@@ -117,6 +119,7 @@ export default function CardPage() {
           onClick={async () => {
             await navigator.clipboard.writeText(markdown);
             setCopied(true);
+            record((p) => ({ ...p, steps: { ...p.steps, card: true } }));
           }}
         />
         <button type="button" className={secondaryBtn} onClick={() => router.push("/demo/overview")}>
