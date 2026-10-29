@@ -222,7 +222,7 @@ export function getFlow(analysisId: string, featureId: string): Promise<Flow> {
   return cached(analysisId, featureId, "flow", async ({ feature, index, files }) => {
     const out = await generate(
       flowSchema,
-      featurePrompt("사용자 동작부터 결과까지 코드가 어떤 순서로 이어지는지 단계별로 정리하라. 단계 제목은 코드 이름이 아니라 사용자의 행동과 화면에서 보이는 결과를 쉬운 한국어로 쓴다.", feature, files),
+      featurePrompt("사용자 동작부터 결과까지 코드가 어떤 순서로 이어지는지 단계별로 정리하라. 아래 파일에 이 기능이 쓰는 서버·API 코드(API 라우트, 서버 액션)나 DB 코드(스키마, 쿼리)가 있으면 그 파일을 각각 api·data 단계로 반드시 포함한다. 단계 제목은 코드 이름이 아니라 사용자의 행동과 화면에서 보이는 결과를 쉬운 한국어로 쓴다.", feature, files),
     );
     const steps = out.steps
       .map((s) => ({ ...s, reference: index.ref(s.reference) }))
@@ -278,6 +278,8 @@ export function getQuiz(analysisId: string, featureId: string): Promise<Quiz> {
       .filter((q) => q.choices.length >= 2 && q.answer_index >= 0 && q.answer_index < q.choices.length && q.references.length > 0)
       .slice(0, 3)
       .map((q, i) => ({ id: `Q${i + 1}`, ...q }));
+    // FR-07: 질문은 1~3개. 코드 근거가 확인된 문제가 하나도 없으면 저장하지 않고 다시 만들 수 있게 한다.
+    if (questions.length === 0) throw new AppError("ai_failed", "코드 근거가 확인된 퀴즈를 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
     return {
       feature_id: feature.id,
       questions,
