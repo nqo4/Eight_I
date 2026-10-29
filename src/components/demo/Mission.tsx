@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { ErrorBox, Loading, refLabel, secondaryBtn } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
+import { saveMissionDone } from "@/lib/records";
 import type { Exercise } from "@/server/types";
 
 const hintName = { minimal: "최소 힌트", concept: "개념 힌트", code: "코드 힌트" } as const;
 const label = "font-manrope text-xs font-bold tracking-wider text-brand-purple-ink";
 
 export function Mission() {
-  const { analysis, record, remember, progress, loadError, startDemo } = useSession();
+  const { analysis, feature, record, remember, progress, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ exercise: Exercise }>("exercise");
   const checks = progress.missionChecks ?? {};
   const [hints, setHints] = useState(1);
@@ -111,7 +112,10 @@ export function Mission() {
               <PrimaryButton
                 label="완료로 표시"
                 disabled={!all}
-                onClick={() => record((p) => ({ ...p, done: true, steps: { ...p.steps, mission: true } }))}
+                onClick={() => {
+                  record((p) => ({ ...p, done: true, steps: { ...p.steps, mission: true } }));
+                  if (analysis && feature) saveMissionDone(analysis.id, feature.id);
+                }}
               />
               {!all && <span className="text-sm text-text-muted">성공 조건을 모두 체크하면 완료할 수 있어요</span>}
             </>

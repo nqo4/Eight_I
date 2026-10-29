@@ -100,6 +100,19 @@ export async function currentUser(req: Request): Promise<PublicUser | null> {
   return user ? toPublic(user) : null;
 }
 
+// 학습 기록(FR-13)을 남기고 읽을 때 쓰는 사용자 id. 로그인하지 않았거나 DB가 없으면 null.
+export async function currentUserId(req: Request): Promise<string | null> {
+  const token = readSessionToken(req);
+  if (!token || !getSql()) return null;
+  return (await getSessionUser(token))?.id ?? null;
+}
+
+export async function requireUserId(req: Request): Promise<string> {
+  const id = await currentUserId(req);
+  if (!id) throw new AppError("login_required", "로그인하면 내 학습 기록을 볼 수 있어요.");
+  return id;
+}
+
 export async function logout(req: Request): Promise<void> {
   const token = readSessionToken(req);
   if (token && getSql()) await deleteSession(token);

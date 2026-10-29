@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { CodeExcerpt, ErrorBox, Loading, refLabel, secondaryBtn, seededOrder } from "@/components/demo/ui";
 import { useFeatureResource, useSession } from "@/components/session/Session";
+import { saveQuizAttempt } from "@/lib/records";
 import type { CodeReference, Lesson, Quiz as QuizData } from "@/server/types";
 
 const overlaps = (a: CodeReference, b: CodeReference) =>
@@ -13,7 +14,7 @@ const keys = "ABCDEF";
 
 export function Quiz() {
   const router = useRouter();
-  const { record, progress, loadError, startDemo } = useSession();
+  const { analysis, feature, record, progress, loadError, startDemo } = useSession();
   const { data, error, retry, slow } = useFeatureResource<{ quiz: QuizData }>("quiz");
   const lesson = useFeatureResource<{ lesson: Lesson }>("lesson");
   const picked = progress.quizView?.picked ?? {};
@@ -42,6 +43,10 @@ export function Quiz() {
         const correct = picked[item.id] === item.answer_index;
         const check = () => {
           const nextChecked = { ...checked, [item.id]: true };
+          // 문항별 첫 시도만 내 학습 기록(서버)에 남긴다. 화면의 정답 표시와 같은 기준이다.
+          if (!(item.id in progress.quiz) && analysis && feature) {
+            saveQuizAttempt(analysis.id, feature.id, item.id, picked[item.id]);
+          }
           setQuiz(picked, nextChecked, (p) => ({
             ...p,
             quiz: item.id in p.quiz ? p.quiz : { ...p.quiz, [item.id]: picked[item.id] === item.answer_index },

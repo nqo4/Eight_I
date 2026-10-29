@@ -18,6 +18,7 @@ export type ErrorCode =
   | "invalid_credentials"
   | "email_taken"
   | "auth_unavailable"
+  | "login_required"
   | "internal_error";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -39,6 +40,7 @@ const STATUS: Record<ErrorCode, number> = {
   invalid_credentials: 401,
   email_taken: 409,
   auth_unavailable: 503,
+  login_required: 401,
   internal_error: 500,
 };
 

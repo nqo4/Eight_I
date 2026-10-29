@@ -38,38 +38,6 @@ const emptyProgress: Progress = { flow: {}, quiz: {}, done: false, steps: {} };
 const LAST_KEY = "codeback:v1:last";
 const progressKey = (a: Analysis) => `codeback:v1:progress:${a.repository.id}@${a.repository.commit_sha}`;
 
-// 마이페이지용 학습 목록: 진행 기록(progressKey)마다 저장소·기능 이름과 마지막 학습 시각을 함께 남긴다.
-const HISTORY_KEY = "codeback:v1:history";
-export type HistoryEntry = {
-  progress_key: string;
-  analysis_id: string;
-  repo: string;
-  commit_sha: string;
-  mode: Analysis["mode"];
-  features: { id: string; title: string }[];
-  updated_at: string;
-};
-export function readHistory(): { entry: HistoryEntry; progress: Record<string, Progress> }[] {
-  const all = readJson<Record<string, HistoryEntry>>(HISTORY_KEY) ?? {};
-  return Object.values(all)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-    .map((entry) => ({ entry, progress: readJson<Record<string, Progress>>(entry.progress_key) ?? {} }));
-}
-function rememberHistory(a: Analysis) {
-  const all = readJson<Record<string, HistoryEntry>>(HISTORY_KEY) ?? {};
-  const key = progressKey(a);
-  all[key] = {
-    progress_key: key,
-    analysis_id: a.id,
-    repo: a.repository.id,
-    commit_sha: a.repository.commit_sha,
-    mode: a.mode,
-    features: a.features.map((f) => ({ id: f.id, title: f.title })),
-    updated_at: new Date().toISOString(),
-  };
-  writeJson(HISTORY_KEY, all);
-}
-
 function readJson<T>(key: string): T | null {
   try {
     const raw = window.localStorage.getItem(key);
@@ -153,7 +121,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!analysis) return;
     writeJson(LAST_KEY, { analysisId: analysis.id, featureId: feature?.id ?? null, repo: analysis.repository.id });
     writeJson(progressKey(analysis), progressByFeature);
-    rememberHistory(analysis);
   }, [analysis, feature, progressByFeature]);
 
   const fid = feature?.id ?? "";
