@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs"
+import { analyzeSample, loginAsLearner } from "../flows"
 
 // PDF 안의 글자를 꺼낸다. 줄바꿈 위치는 화면과 다르므로 비교할 때는 공백을 모두 뺀다.
 async function pdfText(path: string): Promise<string> {
@@ -15,8 +16,8 @@ async function pdfText(path: string): Promise<string> {
 const squash = (s: string) => s.replace(/\s+/g, "")
 
 test("S8 학습자가 다음에 다시 볼 수 있도록 프로젝트 학습 노트를 내려받는다", async ({ page }) => {
-  await page.goto("/")
-  await page.getByRole("button", { name: "샘플로 체험하기" }).click()
+  await loginAsLearner(page)
+  await analyzeSample(page)
   const repo = (await page.getByTestId("repo-name").innerText()).trim()
   const shownSha = (await page.getByTestId("repo-commit").innerText()).trim()
   const intro = (await page.getByTestId("project-summary").innerText()).trim()

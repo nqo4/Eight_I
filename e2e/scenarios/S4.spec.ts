@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test"
+import { analyzeSample, loginAsLearner } from "../flows"
 
 const AI_WAIT = { timeout: 90_000 }
 
 test("S4 학습자가 고른 기능을 개념까지 배우고 왜 이렇게 구현됐는지 이해한다", async ({ page }) => {
-  await page.goto("/")
-  await page.getByRole("button", { name: "샘플로 체험하기" }).click()
+  await loginAsLearner(page)
+  await analyzeSample(page)
   await page.getByRole("region", { name: "기능" }).getByTestId("feature-card").first().click()
   await page.getByRole("button", { name: "이 코드 배우기" }).click()
   await page.getByRole("button", { name: "쉬운 설명 펼치기" }).first().click(AI_WAIT)
