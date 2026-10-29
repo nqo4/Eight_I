@@ -156,13 +156,14 @@ export function highlightLines(code: string, path: string): Token[][] {
   return lines;
 }
 
-export function Tokens({ tokens }: { tokens: Token[] }) {
+// as="code": 줄 번호 span 옆에 놓일 때 쓴다. 토큰이 span이면 'span:first-child'로 줄 번호를 읽는 쪽(E2E S7)이 토큰까지 읽는다.
+export function Tokens({ tokens, as: Tag = "span" }: { tokens: Token[]; as?: "span" | "code" }) {
   return (
     <>
       {tokens.map((t, i) => (
-        <span key={i} className={color[t.kind]}>
+        <Tag key={i} className={color[t.kind]}>
           {t.text}
-        </span>
+        </Tag>
       ))}
     </>
   );
