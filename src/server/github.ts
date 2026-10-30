@@ -180,18 +180,8 @@ async function fetchRaw(owner: string, repo: string, sha: string, path: string):
   const res = await request(`${RAW}/${owner}/${repo}/${sha}/${encoded}`, {
     headers: { Accept: "text/plain" },
   });
-  if (!res.ok) {
-    if (res.status === 429 || (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0")) {
-      checkStatus(res);
-    }
-    throw new AppError("github_unavailable", `GitHub 응답 오류(${res.status})가 났어요. 잠시 후 다시 시도해 주세요.`);
-  }
-  let text: string;
-  try {
-    text = await res.text();
-  } catch {
-    throw new AppError("github_unavailable", "GitHub에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.");
-  }
+  if (!res.ok) return null;
+  const text = await res.text();
   if (looksBinary(text)) return null;
   const { content } = redactSecrets(text.replace(/\r\n/g, "\n"));
   return { path, content, size: text.length };

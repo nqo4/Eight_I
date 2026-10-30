@@ -1,6 +1,5 @@
 // AI가 말한 파일·라인을 실제로 받은 파일과 대조한다. 없는 파일이나 범위를 벗어난 라인은 응답에서 뺀다.
 import type { CodeReference, Snapshot, SnapshotFile, StackItem } from "./types";
-import ts from "typescript";
 
 const MAX_REF_LINES = 60;
 
@@ -69,44 +68,12 @@ export class SnapshotIndex {
   // from 파일이 to 파일을 상대 경로나 @/ 별칭으로 import하는지 정적으로 확인한다.
   imports(fromPath: string, toPath: string): boolean {
     const from = this.byPath.get(normalizePath(fromPath));
-    if (!from || !this.has(toPath) || normalizePath(fromPath) === normalizePath(toPath)
-      || !/\.(?:[cm]?[jt]s|[jt]sx)$/.test(from.file.path)
-      || !/\.(?:[cm]?[jt]s|[jt]sx)$/.test(toPath)) return false;
+    if (!from) return false;
     const target = stripExt(normalizePath(toPath));
     const dir = from.file.path.split("/").slice(0, -1).join("/");
-    const source = ts.createSourceFile(from.file.path, from.file.content, ts.ScriptTarget.Latest, true);
-    // Invalid syntax cannot establish a dependency.
-    if ((source as ts.SourceFile & { parseDiagnostics: readonly ts.Diagnostic[] }).parseDiagnostics.length) return false;
-    let shadowed = false;
-    const binding = (name: ts.BindingName): boolean => ts.isIdentifier(name)
-      ? name.text === "require"
-      : name.elements.some((e) => ts.isBindingElement(e) && binding(e.name));
-    const scan = (node: ts.Node) => {
-      if ((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isBindingElement(node)) && binding(node.name)) shadowed = true;
-      if ((ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isClassDeclaration(node)
-        || ts.isClassExpression(node) || ts.isImportClause(node) || ts.isImportSpecifier(node)
-        || ts.isNamespaceImport(node) || ts.isImportEqualsDeclaration(node)) && node.name?.text === "require") shadowed = true;
-      ts.forEachChild(node, scan);
-    };
-    scan(source);
-    const specs: string[] = [];
-    const visit = (node: ts.Node) => {
-      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-        const clause = node.importClause;
-        const named = clause?.namedBindings;
-        if (!clause || (!clause.isTypeOnly && (clause.name || !named || ts.isNamespaceImport(named)
-          || named.elements.length === 0 || named.elements.some((e) => !e.isTypeOnly)))) specs.push(node.moduleSpecifier.text);
-      } else if (ts.isExportDeclaration(node) && !node.isTypeOnly && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-        if (!node.exportClause || ts.isNamespaceExport(node.exportClause)
-          || node.exportClause.elements.some((e) => !e.isTypeOnly)) specs.push(node.moduleSpecifier.text);
-      } else if (ts.isCallExpression(node) && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0])) {
-        if (node.expression.kind === ts.SyntaxKind.ImportKeyword
-          || (!shadowed && ts.isIdentifier(node.expression) && node.expression.text === "require")) specs.push(node.arguments[0].text);
-      }
-      ts.forEachChild(node, visit);
-    };
-    visit(source);
-    for (const spec of specs) {
+    const re = /(?:import\s[^'"]*?from\s*|import\s*\(\s*|require\s*\(\s*|export\s[^'"]*?from\s*)['"]([^'"]+)['"]/g;
+    for (const m of from.file.content.matchAll(re)) {
+      const spec = m[1];
       let resolved: string | null = null;
       if (spec.startsWith(".")) resolved = joinPath(dir, spec);
       else if (spec.startsWith("@/") || spec.startsWith("~/")) resolved = spec.slice(2);
